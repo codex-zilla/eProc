@@ -26,6 +26,13 @@ public class SiteService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<SiteDTO> getSitesByProject(Long projectId) {
+        return siteRepository.findByProjectIdAndIsActiveTrue(projectId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public SiteDTO createSite(SiteDTO dto) {
         Project project = projectRepository.findById(dto.getProjectId())

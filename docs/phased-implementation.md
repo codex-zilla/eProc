@@ -8,23 +8,23 @@
 
 ### Backend (Spring Boot)
 
-- [X] **Project Initialization**: Create standard Maven/Gradle Spring Boot project.
-- [X] **Database Setup**: Install PostgreSQL locally. Create `eproc_db` and `eproc_user`. Configure `application.yml` to connect to `localhost:5432`.
-- [X] **Migration Setup**: Initialize Flyway/Liquibase. Create `V1__init_schema.sql` for user/role tables.
-- [X] **Security Skeleton**: Add Spring Security dependency. Create a `SecurityConfig` allowing public access to `/api/health` and `/api/auth/**`.
+- [x] **Project Initialization**: Create standard Maven/Gradle Spring Boot project.
+- [x] **Database Setup**: Install PostgreSQL locally. Create `eproc_db` and `eproc_user`. Configure `application.yml` to connect to `localhost:5432`.
+- [x] **Migration Setup**: Initialize Flyway/Liquibase. Create `V1__init_schema.sql` for user/role tables.
+- [x] **Security Skeleton**: Add Spring Security dependency. Create a `SecurityConfig` allowing public access to `/api/health` and `/api/auth/**`.
 - [ ] **Logging**: Configure Logback for file and console output.
 
 ### Frontend (React)
 
-- [X] **Scaffold**: Initialize Vite + React + TypeScript project.
-- [X] **Styling**: Install and configure Tailwind CSS.
-- [X] **API Client**: Set up Axios instance with base URL from `.env` (default `http://localhost:8080`).
-- [X] **Routing**: Set up React Router with a basic `AppLayout` and `AuthLayout`.
+- [x] **Scaffold**: Initialize Vite + React + TypeScript project.
+- [x] **Styling**: Install and configure Tailwind CSS.
+- [x] **API Client**: Set up Axios instance with base URL from `.env` (default `http://localhost:8080`).
+- [x] **Routing**: Set up React Router with a basic `AppLayout` and `AuthLayout`.
 
 ### Tests
 
-- [X] **Backend**: Write a simple `@SpringBootTest` that asserts the context loads and the health endpoint returns 200.
-- [X] **Frontend**: Write a Vitest test checking if the App component renders "Hello World".
+- [x] **Backend**: Write a simple `@SpringBootTest` that asserts the context loads and the health endpoint returns 200.
+- [x] **Frontend**: Write a Vitest test checking if the App component renders "Hello World".
 
 **Deliverable**: A running backend connected to a local Postgres DB and a React frontend that can talk to the backend health endpoint.
 
@@ -34,23 +34,23 @@
 
 ### Backend
 
-- [X] **User Entity**: Implement `User` class (id, email, password_hash, role).
-- [X] **Role Enum**: Define values: `ENGINEER`, `PROJECT_MANAGER`, `ACCOUNTANT`.
-- [X] **Auth Service**: Implement `register(dto)` and `login(dto)` returning JWTs.
-- [X] **JWT Filter**: Create a filter to intercept requests, validate Token, and set `SecurityContext`.
-- [X] **Role Guards**: Add `@PreAuthorize` annotations to test endpoints.
+- [x] **User Entity**: Implement `User` class (id, email, password_hash, role).
+- [x] **Role Enum**: Define values: `ENGINEER`, `PROJECT_MANAGER`, `ACCOUNTANT`.
+- [x] **Auth Service**: Implement `register(dto)` and `login(dto)` returning JWTs.
+- [x] **JWT Filter**: Create a filter to intercept requests, validate Token, and set `SecurityContext`.
+- [x] **Role Guards**: Add `@PreAuthorize` annotations to test endpoints.
 
 ### Frontend
 
-- [X] **Login Page**: Create form with Email/Password. Handle 401 errors.
-- [X] **Context**: Create `AuthContext` to store JWT in `localStorage` and user state in memory.
-- [X] **Protected Route**: logical component that redirects to `/login` if no token exists.
-- [X] **Role Redirects**: Engineer goes to `/site-dashboard`, Boss to `/approvals`, Accountant to `/procurement`.
+- [x] **Login Page**: Create form with Email/Password. Handle 401 errors.
+- [x] **Context**: Create `AuthContext` to store JWT in `localStorage` and user state in memory.
+- [x] **Protected Route**: logical component that redirects to `/login` if no token exists.
+- [x] **Role Redirects**: Engineer goes to `/site-dashboard`, Boss to `/approvals`, Accountant to `/procurement`.
 
 ### Tests
 
-- [X] **Backend**: Integ test for User Registration (success/fail). Unit test for JWT generation/parsing.
-- [X] **Frontend**: E2E flow: Login -> store token -> navigate to dashboard.
+- [x] **Backend**: Integ test for User Registration (success/fail). Unit test for JWT generation/parsing.
+- [x] **Frontend**: E2E flow: Login -> store token -> navigate to dashboard.
 
 **Deliverable**: Users can sign up and log in. Unauthenticated users cannot access protected routes.
 
@@ -60,23 +60,23 @@
 
 ### Backend
 
-- [ ] **Schema Expansion**: Add `projects`, `sites`, `work_packages`.
-- [ ] **Materials Logic**:
+- [x] **Schema Expansion**: Add `projects`, `sites`, `work_packages`.
+- [x] **Materials Logic**:
   - Create `Material` entity (for standard catalog).
   - **Crucial**: Ensure `MaterialRequest` entity supports _either_ a `material_id` _or_ a `manual_material_name` text field.
-- [ ] **CRUD APIs**: Endpoints to list/add Projects and Sites.
-- [ ] **Validation**: Ensure Manual requests require a unit and name.
+- [x] **CRUD APIs**: Endpoints to list/add Projects and Sites.
+- [x] **Validation**: Ensure Manual requests require a unit and name.
 
 ### Frontend
 
-- [ ] **Dashboards**: Create simple list views for Projects/Sites.
-- [ ] **Material Picker Component**: A combobox that lists standard materials but allows "Create 'X'" (manual entry) if not found.
-- [ ] **Form Logic**: If manual entry, show extra fields (e.g., "Estimated Unit Price" optional).
+- [x] **Dashboards**: Create simple list views for Projects/Sites.
+- [x] **Material Picker Component**: A combobox that lists standard materials but allows "Create 'X'" (manual entry) if not found.
+- [x] **Form Logic**: If manual entry, show extra fields (e.g., "Estimated Unit Price" optional).
 
 ### Tests
 
-- [ ] **Backend**: Test creating a request with a standard material vs. a manual material name.
-- [ ] **Frontend**: Test usage of the custom material picker; verify manual entry state is captured.
+- [x] **Backend**: Test creating a request with a standard material vs. a manual material name.
+- [x] **Frontend**: Test usage of the custom material picker; verify manual entry state is captured.
 
 **Deliverable**: Engineers can see projects and are ready to make requests with flexible material inputs.
 
