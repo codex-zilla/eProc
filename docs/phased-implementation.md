@@ -50,7 +50,7 @@
 ### Tests
 
 - [X] **Backend**: Integ test for User Registration (success/fail). Unit test for JWT generation/parsing.
-- [ ] **Frontend**: E2E flow: Login -> store token -> navigate to dashboard.
+- [X] **Frontend**: E2E flow: Login -> store token -> navigate to dashboard.
 
 **Deliverable**: Users can sign up and log in. Unauthenticated users cannot access protected routes.
 
