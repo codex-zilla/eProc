@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: eproc-backend-test
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+
+# JWT Configuration for tests
+jwt:
+  secret: 129f0475b767d565a9460de4e3b6b3e6e5bf1edb73516050c612d6919fc83544
+  expiration: 86400000
+
+logging:
+  level:
+    root: WARN
+    org.springframework.web: WARN

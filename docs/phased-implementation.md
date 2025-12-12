@@ -19,12 +19,12 @@
 - [X] **Scaffold**: Initialize Vite + React + TypeScript project.
 - [X] **Styling**: Install and configure Tailwind CSS.
 - [X] **API Client**: Set up Axios instance with base URL from `.env` (default `http://localhost:8080`).
-- [ ] **Routing**: Set up React Router with a basic `AppLayout` and `AuthLayout`.
+- [X] **Routing**: Set up React Router with a basic `AppLayout` and `AuthLayout`.
 
 ### Tests
 
 - [X] **Backend**: Write a simple `@SpringBootTest` that asserts the context loads and the health endpoint returns 200.
-- [ ] **Frontend**: Write a Vitest test checking if the App component renders "Hello World".
+- [X] **Frontend**: Write a Vitest test checking if the App component renders "Hello World".
 
 **Deliverable**: A running backend connected to a local Postgres DB and a React frontend that can talk to the backend health endpoint.
 
@@ -34,23 +34,23 @@
 
 ### Backend
 
-- [ ] **User Entity**: Implement `User` class (id, email, password_hash, role).
-- [ ] **Role Enum**: Define values: `ENGINEER`, `PROJECT_MANAGER`, `ACCOUNTANT`.
-- [ ] **Auth Service**: Implement `register(dto)` and `login(dto)` returning JWTs.
-- [ ] **JWT Filter**: Create a filter to intercept requests, validate Token, and set `SecurityContext`.
-- [ ] **Role Guards**: Add `@PreAuthorize` annotations to test endpoints.
+- [X] **User Entity**: Implement `User` class (id, email, password_hash, role).
+- [X] **Role Enum**: Define values: `ENGINEER`, `PROJECT_MANAGER`, `ACCOUNTANT`.
+- [X] **Auth Service**: Implement `register(dto)` and `login(dto)` returning JWTs.
+- [X] **JWT Filter**: Create a filter to intercept requests, validate Token, and set `SecurityContext`.
+- [X] **Role Guards**: Add `@PreAuthorize` annotations to test endpoints.
 
 ### Frontend
 
-- [ ] **Login Page**: Create form with Email/Password. Handle 401 errors.
-- [ ] **Context**: Create `AuthContext` to store JWT in `localStorage` and user state in memory.
-- [ ] **Protected Route**: logical component that redirects to `/login` if no token exists.
-- [ ] **Role Redirects**: Engineer goes to `/site-dashboard`, Boss to `/approvals`, Accountant to `/procurement`.
+- [X] **Login Page**: Create form with Email/Password. Handle 401 errors.
+- [X] **Context**: Create `AuthContext` to store JWT in `localStorage` and user state in memory.
+- [X] **Protected Route**: logical component that redirects to `/login` if no token exists.
+- [X] **Role Redirects**: Engineer goes to `/site-dashboard`, Boss to `/approvals`, Accountant to `/procurement`.
 
 ### Tests
 
-- [ ] **Backend**: Integ test for User Registration (success/fail). Unit test for JWT generation/parsing.
-- [ ] **Frontend**: E2E (Playwright/Cypress) flow: Login -> store token -> navigate to dashboard.
+- [X] **Backend**: Integ test for User Registration (success/fail). Unit test for JWT generation/parsing.
+- [ ] **Frontend**: E2E flow: Login -> store token -> navigate to dashboard.
 
 **Deliverable**: Users can sign up and log in. Unauthenticated users cannot access protected routes.
 

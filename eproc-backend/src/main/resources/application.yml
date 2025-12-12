@@ -20,3 +20,8 @@ logging:
   level:
     root: INFO
     org.springframework.web: INFO
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:b50492e3aceb859392141ee7681353c8a1ef9e891085e554175ec75491547b79}
+  expiration: 86400000 # 24 hours in milliseconds
