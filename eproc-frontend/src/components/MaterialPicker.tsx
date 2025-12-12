@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Material, MaterialSelection, MaterialUnit } from '../types/models';
+import { type Material, type MaterialSelection, MaterialUnit } from '../types/models';
 import { materialService } from '../services/materialService';
 
 interface Props {

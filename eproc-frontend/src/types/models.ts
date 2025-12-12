@@ -19,26 +19,30 @@ export interface Site {
   createdAt: string;
 }
 
-export enum MaterialCategory {
-  CEMENT = 'CEMENT',
-  AGGREGATES = 'AGGREGATES',
-  STEEL = 'STEEL',
-  PLUMBING = 'PLUMBING',
-  ELECTRICAL = 'ELECTRICAL',
-  FINISHING = 'FINISHING',
-  MISC = 'MISC'
-}
+export const MaterialCategory = {
+  CEMENT: 'CEMENT',
+  AGGREGATES: 'AGGREGATES',
+  STEEL: 'STEEL',
+  PLUMBING: 'PLUMBING',
+  ELECTRICAL: 'ELECTRICAL',
+  FINISHING: 'FINISHING',
+  MISC: 'MISC'
+} as const;
 
-export enum MaterialUnit {
-  KG = 'KG',
-  BAG = 'BAG',
-  LITER = 'LITER',
-  TRIP = 'TRIP',
-  PCS = 'PCS',
-  METER = 'METER',
-  BUNDLE = 'BUNDLE',
-  BOX = 'BOX'
-}
+export type MaterialCategory = (typeof MaterialCategory)[keyof typeof MaterialCategory];
+
+export const MaterialUnit = {
+  KG: 'KG',
+  BAG: 'BAG',
+  LITER: 'LITER',
+  TRIP: 'TRIP',
+  PCS: 'PCS',
+  METER: 'METER',
+  BUNDLE: 'BUNDLE',
+  BOX: 'BOX'
+} as const;
+
+export type MaterialUnit = (typeof MaterialUnit)[keyof typeof MaterialUnit];
 
 export interface Material {
   id: number;

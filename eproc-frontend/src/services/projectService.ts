@@ -1,5 +1,5 @@
 import axiosInstance from '../lib/axios';
-import { Project, Site } from '../types/models';
+import type { Project, Site } from '../types/models';
 
 export const projectService = {
   getAllProjects: async (): Promise<Project[]> => {

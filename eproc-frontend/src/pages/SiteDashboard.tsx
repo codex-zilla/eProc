@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { SiteList } from '../components/SiteList';
 import { MaterialPicker } from '../components/MaterialPicker';
-import { MaterialSelection } from '../types/models';
+import type { MaterialSelection } from '../types/models';
 
 /**
  * Site Dashboard page for Engineers.

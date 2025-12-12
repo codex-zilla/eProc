@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Site } from '../types/models';
+import type { Site } from '../types/models';
 import { projectService } from '../services/projectService';
 
 export const SiteList: React.FC = () => {

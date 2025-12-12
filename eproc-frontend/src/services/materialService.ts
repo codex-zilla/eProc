@@ -1,5 +1,5 @@
 import axiosInstance from '../lib/axios';
-import { Material } from '../types/models';
+import type { Material } from '../types/models';
 
 export const materialService = {
   getAllMaterials: async (): Promise<Material[]> => {
