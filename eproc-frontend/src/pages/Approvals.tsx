@@ -1,7 +1,8 @@
 import { useAuth } from '../context/AuthContext';
+import { ProjectList } from '../components/ProjectList';
 
 /**
- * Approvals page for Project Managers.
+ * Approvals / Project Manager Dashboard.
  */
 const Approvals = () => {
   const { user, logout } = useAuth();
@@ -10,7 +11,7 @@ const Approvals = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Approvals Queue</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Project Manager Dashboard</h1>
           <p className="text-gray-600">Welcome, {user?.name}</p>
         </div>
         <button
@@ -21,23 +22,9 @@ const Approvals = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-3 bg-purple-100 rounded-full">
-            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Project Manager View</h2>
-            <p className="text-sm text-gray-500">Role: {user?.role}</p>
-          </div>
-        </div>
-        <p className="text-gray-600">
-          This is the Project Manager's approval dashboard. Request approval workflows will be added in Phase 3.
-        </p>
-      </div>
+      <ProjectList />
 
+      {/* Stats Placeholders */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
           <h3 className="font-semibold text-lg">Pending Approval</h3>

@@ -1,10 +1,20 @@
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { SiteList } from '../components/SiteList';
+import { MaterialPicker } from '../components/MaterialPicker';
+import { MaterialSelection } from '../types/models';
 
 /**
  * Site Dashboard page for Engineers.
  */
 const SiteDashboard = () => {
   const { user, logout } = useAuth();
+  const [lastSelection, setLastSelection] = useState<MaterialSelection | null>(null);
+
+  const handleMaterialChange = (selection: MaterialSelection | null) => {
+    setLastSelection(selection);
+    console.log('Material Selection:', selection);
+  };
 
   return (
     <div className="space-y-6">
@@ -22,22 +32,20 @@ const SiteDashboard = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-3 bg-blue-100 rounded-full">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Material Picker Demo</h2>
+          <div className="p-4 bg-gray-50 rounded-md border border-gray-200">
+            <MaterialPicker onChange={handleMaterialChange} />
+            
+            <div className="mt-4 p-2 bg-gray-800 text-green-400 text-xs rounded font-mono">
+              DEBUG OUTPUT: <br/>  
+              {lastSelection ? JSON.stringify(lastSelection, null, 2) : 'No selection'}
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Engineer View</h2>
-            <p className="text-sm text-gray-500">Role: {user?.role}</p>
-          </div>
-        </div>
-        <p className="text-gray-600">
-          This is the Engineer's dashboard. Material requests and site management features will be added in Phase 2.
-        </p>
       </div>
 
+      <SiteList />
+
+      {/* Stats Placeholders */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
           <h3 className="font-semibold text-lg">Pending Requests</h3>
