@@ -4,6 +4,7 @@ import AppLayout from './layouts/AppLayout';
 import AuthLayout from './layouts/AuthLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import SiteDashboard from './pages/SiteDashboard';
 import Approvals from './pages/Approvals';
 import Procurement from './pages/Procurement';
@@ -16,6 +17,7 @@ function App() {
           {/* Public Routes (Login) */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Route>
 
           {/* Protected Routes */}

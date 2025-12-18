@@ -23,6 +23,8 @@ const SiteDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
 
+  const [requestToEdit, setRequestToEdit] = useState<MaterialRequest | null>(null);
+
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -68,15 +70,21 @@ const SiteDashboard = () => {
 
   const handleRequestSuccess = () => {
     setShowWizard(false);
+    setRequestToEdit(null);
     loadData();
   };
 
   const handleRequestClick = (request: MaterialRequest) => {
-    // If rejected, user can edit/resubmit - for now just log
+    // If rejected, user can edit/resubmit
     if (request.status === 'REJECTED') {
-      console.log('Clicked rejected request:', request.id);
-      // TODO: Open edit modal for resubmission
+      setRequestToEdit(request);
+      setShowWizard(true);
     }
+  };
+
+  const handleNewRequest = () => {
+    setRequestToEdit(null);
+    setShowWizard(true);
   };
 
   return (
@@ -88,7 +96,7 @@ const SiteDashboard = () => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowWizard(true)}
+            onClick={handleNewRequest}
             className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
           >
             + New Request
@@ -125,8 +133,9 @@ const SiteDashboard = () => {
             <RequestWizard
               sites={sites}
               materials={materials}
+              requestToEdit={requestToEdit}
               onSuccess={handleRequestSuccess}
-              onCancel={() => setShowWizard(false)}
+              onCancel={() => { setShowWizard(false); setRequestToEdit(null); }}
             />
           </div>
         </div>

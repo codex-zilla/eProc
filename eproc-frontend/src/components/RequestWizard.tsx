@@ -1,17 +1,18 @@
-import { useState } from 'react';
-import type { CreateMaterialRequest, Material, Site } from '../types/models';
+import { useState, useEffect } from 'react';
+import type { CreateMaterialRequest, Materialrequest, Material, Site } from '../types/models';
 import { requestService } from '../services/requestService';
 
 interface RequestWizardProps {
   sites: Site[];
   materials: Material[];
+  requestToEdit?: MaterialRequest | null;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
 type WizardStep = 'emergency' | 'site' | 'material' | 'details' | 'review';
 
-export default function RequestWizard({ sites, materials, onSuccess, onCancel }: RequestWizardProps) {
+export default function RequestWizard({ sites, materials, requestToEdit, onSuccess, onCancel }: RequestWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('emergency');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,27 @@ export default function RequestWizard({ sites, materials, onSuccess, onCancel }:
   const [quantity, setQuantity] = useState<number>(1);
   const [plannedUsageStart, setPlannedUsageStart] = useState('');
   const [plannedUsageEnd, setPlannedUsageEnd] = useState('');
+
+  // Initialize state if editing
+  useEffect(() => {
+    if (requestToEdit) {
+      setEmergencyFlag(requestToEdit.emergencyFlag);
+      setSelectedSiteId(requestToEdit.siteId);
+      setQuantity(requestToEdit.quantity);
+      setPlannedUsageStart(new Date(requestToEdit.plannedUsageStart).toISOString().slice(0, 16));
+      setPlannedUsageEnd(new Date(requestToEdit.plannedUsageEnd).toISOString().slice(0, 16));
+
+      if (requestToEdit.materialId) {
+        setMaterialMode('catalog');
+        setSelectedMaterialId(requestToEdit.materialId);
+      } else {
+        setMaterialMode('manual');
+        setManualMaterialName(requestToEdit.manualMaterialName || '');
+        setManualUnit(requestToEdit.manualUnit || '');
+        setManualEstimatedPrice(requestToEdit.manualEstimatedPrice);
+      }
+    }
+  }, [requestToEdit]);
 
   const steps: WizardStep[] = ['emergency', 'site', 'material', 'details', 'review'];
   const stepLabels: Record<WizardStep, string> = {
@@ -98,10 +120,14 @@ export default function RequestWizard({ sites, materials, onSuccess, onCancel }:
     }
 
     try {
-      await requestService.createRequest(data);
+      if (requestToEdit) {
+        await requestService.updateRequest(requestToEdit.id, data);
+      } else {
+        await requestService.createRequest(data);
+      }
       onSuccess?.();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create request';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save request';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
