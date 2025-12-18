@@ -86,23 +86,23 @@
 
 ### Backend
 
-- [ ] **Request API**: `POST /api/requests`. Handle `planned_usage_window`.
-- [ ] **Duplicate Check**: Logic to query recent requests by `site_id` + (`material_id` OR `manual_material_name`).
-- [ ] **Approval API**: `PATCH /api/requests/{id}/status`.
+- [x] **Request API**: `POST /api/requests`. Handle `planned_usage_window`.
+- [x] **Duplicate Check**: Logic to query recent requests by `site_id` + (`material_id` OR `manual_material_name`).
+- [x] **Approval API**: `PATCH /api/requests/{id}/status`.
   - Status: `PENDING` -> `APPROVED` | `REJECTED`.
   - If `REJECTED`, require `comment`.
-- [ ] **Edit API**: Allow Engineers to `PUT` updates to `REJECTED` requests to reset status to `PENDING`.
+- [x] **Edit API**: Allow Engineers to `PUT` updates to `REJECTED` requests to reset status to `PENDING`.
 
 ### Frontend
 
-- [ ] **Request Wizard**: Step-by-step form: Site -> Material -> Quantity/Window -> Summary.
-- [ ] **Approval Queue**: View for Boss showing "Pending Requests". Compact cards with "Approve" (Green) / "Reject" (Red) buttons.
-- [ ] **Rejection Handling**: Engineer view highlights rejected items. Clicking opens edit form pre-filled with previous data + rejection comment.
+- [x] **Request Wizard**: Step-by-step form: Site -> Material -> Quantity/Window -> Summary.
+- [x] **Approval Queue**: View for Boss showing "Pending Requests". Compact cards with "Approve" (Green) / "Reject" (Red) buttons.
+- [x] **Rejection Handling**: Engineer view highlights rejected items. Clicking opens edit form pre-filled with previous data + rejection comment.
 
 ### Tests
 
-- [ ] **Backend**: full lifecycle test: Create -> Reject -> Update -> Approve.
-- [ ] **Frontend**: visual test of Rejection red-state and resubmission flow.
+- [x] **Backend**: full lifecycle test: Create -> Reject -> Update -> Approve.
+- [x] **Frontend**: visual test of Rejection red-state and resubmission flow.
 
 **Deliverable**: Full loop of requesting, rejecting, fixing, and approving.
 
