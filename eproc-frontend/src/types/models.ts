@@ -63,3 +63,57 @@ export interface MaterialSelection {
   manualUnit?: string;
   manualPrice?: number;
 }
+
+// Phase 3: Request Status
+export const RequestStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const;
+
+export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus];
+
+// Phase 3: Material Request
+export interface MaterialRequest {
+  id: number;
+  siteId: number;
+  siteName: string;
+  workPackageId?: number;
+  workPackageName?: string;
+  materialId?: number;
+  materialName?: string;
+  manualMaterialName?: string;
+  manualUnit?: string;
+  manualEstimatedPrice?: number;
+  quantity: number;
+  status: RequestStatus;
+  rejectionComment?: string;
+  emergencyFlag: boolean;
+  plannedUsageStart: string;
+  plannedUsageEnd: string;
+  requestedById: number;
+  requestedByName: string;
+  requestedByEmail: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Phase 3: Create Material Request DTO
+export interface CreateMaterialRequest {
+  siteId: number;
+  workPackageId?: number;
+  materialId?: number;
+  manualMaterialName?: string;
+  manualUnit?: string;
+  manualEstimatedPrice?: number;
+  quantity: number;
+  plannedUsageStart: string;
+  plannedUsageEnd: string;
+  emergencyFlag?: boolean;
+}
+
+// Phase 3: Approval Action
+export interface ApprovalAction {
+  status: 'APPROVED' | 'REJECTED';
+  comment?: string;
+}
