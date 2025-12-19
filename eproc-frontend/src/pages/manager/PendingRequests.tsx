@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -23,9 +23,7 @@ interface PendingRequest {
  * Pending Requests page - approval queue for manager.
  */
 const PendingRequests = () => {
-  const { user, logout } = useAuth();
-  const [searchParams] = useSearchParams();
-  const projectIdFilter = searchParams.get('projectId');
+  const { logout } = useAuth();
   
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);

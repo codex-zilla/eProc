@@ -21,7 +21,7 @@ interface MaterialRequest {
  * My Requests page - list of engineer's own requests.
  */
 const MyRequests = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('ALL');

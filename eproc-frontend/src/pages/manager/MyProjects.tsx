@@ -22,7 +22,7 @@ interface Project {
  * My Projects page - list of manager's projects.
  */
 const MyProjects = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 

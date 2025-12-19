@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 
@@ -42,7 +42,6 @@ interface AuditEntry {
 const RequestDetailsManager = () => {
   const { id } = useParams<{ id: string }>();
   const { logout } = useAuth();
-  const navigate = useNavigate();
   const [request, setRequest] = useState<RequestDetails | null>(null);
   const [history, setHistory] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);

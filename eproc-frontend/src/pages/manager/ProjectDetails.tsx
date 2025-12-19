@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -30,7 +30,6 @@ interface AvailableEngineer {
 const ProjectDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { logout } = useAuth();
-  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [availableEngineers, setAvailableEngineers] = useState<AvailableEngineer[]>([]);
   const [selectedEngineerId, setSelectedEngineerId] = useState<string>('');

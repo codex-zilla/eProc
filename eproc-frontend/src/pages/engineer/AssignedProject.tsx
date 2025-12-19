@@ -22,7 +22,7 @@ interface Project {
  * Assigned Project page - read-only view of the engineer's assigned project.
  */
 const AssignedProject = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

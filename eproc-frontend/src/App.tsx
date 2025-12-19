@@ -46,26 +46,30 @@ function App() {
               <Route path="/profile" element={<Profile />} />
 
               {/* Engineer Routes */}
-              <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
-              <Route path="/engineer/project" element={<AssignedProject />} />
-              <Route path="/engineer/requests" element={<MyRequests />} />
-              <Route path="/engineer/requests/new" element={<CreateRequest />} />
-              <Route path="/engineer/requests/:id" element={<RequestDetails />} />
-              <Route path="/engineer/requests/:id/edit" element={<CreateRequest />} />
+              <Route element={<ProtectedRoute allowedRoles={['ENGINEER']} />}>
+                <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
+                <Route path="/engineer/project" element={<AssignedProject />} />
+                <Route path="/engineer/requests" element={<MyRequests />} />
+                <Route path="/engineer/requests/new" element={<CreateRequest />} />
+                <Route path="/engineer/requests/:id" element={<RequestDetails />} />
+                <Route path="/engineer/requests/:id/edit" element={<CreateRequest />} />
+              </Route>
 
               {/* Manager Routes */}
-              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-              <Route path="/manager/projects" element={<MyProjects />} />
-              <Route path="/manager/projects/new" element={<CreateProject />} />
-              <Route path="/manager/projects/:id" element={<ProjectDetails />} />
-              <Route path="/manager/pending" element={<PendingRequests />} />
-              <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
+              <Route element={<ProtectedRoute allowedRoles={['PROJECT_MANAGER']} />}>
+                <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+                <Route path="/manager/projects" element={<MyProjects />} />
+                <Route path="/manager/projects/new" element={<CreateProject />} />
+                <Route path="/manager/projects/:id" element={<ProjectDetails />} />
+                <Route path="/manager/pending" element={<PendingRequests />} />
+                <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
+              </Route>
 
               {/* Legacy routes redirect */}
               <Route path="/site-dashboard" element={<Navigate to="/engineer/dashboard" replace />} />
               <Route path="/approvals" element={<Navigate to="/manager/pending" replace />} />
               <Route path="/projects" element={<Navigate to="/manager/projects" replace />} />
-              
+
               {/* Default redirect based on role (ProtectedRoute handles this) */}
               <Route path="/dashboard" element={<Navigate to="/engineer/dashboard" replace />} />
               <Route path="/" element={<Navigate to="/engineer/dashboard" replace />} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { CreateMaterialRequest, Materialrequest, Material, Site } from '../types/models';
+import type { CreateMaterialRequest, MaterialRequest, Material, Site } from '../types/models';
 import { requestService } from '../services/requestService';
 
 interface RequestWizardProps {
