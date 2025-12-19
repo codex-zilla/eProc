@@ -52,6 +52,7 @@ public class RequestControllerIntegrationTest {
     private Long siteId;
     private Long materialId;
 
+    @SuppressWarnings("deprecation")
     @BeforeEach
     void setUp() {
         requestRepository.deleteAll();

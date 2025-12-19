@@ -16,12 +16,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Integration test for ProjectController including project scoping and engineer
@@ -48,12 +46,9 @@ public class ProjectControllerIntegrationTest {
         private String pm1Token;
         private String pm2Token;
         private String eng1Token;
-        private String eng2Token;
-        private String acctToken;
 
         private Long userId_PM1;
         private Long userId_Eng1;
-        private Long userId_Eng2;
 
         @BeforeEach
         void setUp() {
@@ -75,13 +70,10 @@ public class ProjectControllerIntegrationTest {
                 eng1Token = jwtUtil.generateToken(eng1.getEmail(), eng1.getRole().name());
 
                 // Create Engineer 2
-                User eng2 = createUser("eng2@test.com", Role.ENGINEER, "Eng 2");
-                userId_Eng2 = eng2.getId();
-                eng2Token = jwtUtil.generateToken(eng2.getEmail(), eng2.getRole().name());
+                createUser("eng2@test.com", Role.ENGINEER, "Eng 2");
 
                 // Create Accountant
-                User acct = createUser("acct@test.com", Role.ACCOUNTANT, "Accountant");
-                acctToken = jwtUtil.generateToken(acct.getEmail(), acct.getRole().name());
+                createUser("acct@test.com", Role.ACCOUNTANT, "Accountant");
         }
 
         private User createUser(String email, Role role, String name) {
@@ -115,10 +107,10 @@ public class ProjectControllerIntegrationTest {
         @Test
         void getProjects_isScopedByRole() throws Exception {
                 // PM1 creates a project
-                Project p1 = createProjectForBoss(userId_PM1, "PM1 Project");
+                createProjectForBoss(userId_PM1, "PM1 Project");
 
                 // PM2 creates a project
-                Project p2 = createProjectForBoss(userRepository.findByEmail("pm2@test.com").get().getId(),
+                createProjectForBoss(userRepository.findByEmail("pm2@test.com").get().getId(),
                                 "PM2 Project");
 
                 // PM1 should only see P1
@@ -230,6 +222,7 @@ public class ProjectControllerIntegrationTest {
                                 .andExpect(jsonPath("$", hasSize(2))); // Both avail
         }
 
+        @SuppressWarnings("deprecation")
         private Project createProjectForBoss(Long bossId, String name) {
                 User boss = userRepository.findById(bossId).orElseThrow();
                 Project p = Project.builder()

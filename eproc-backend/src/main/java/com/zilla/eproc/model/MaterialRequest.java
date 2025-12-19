@@ -93,4 +93,12 @@ public class MaterialRequest {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * Audit trail for this request.
+     * Cascaded delete when request is deleted.
+     */
+    @Builder.Default
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<RequestAuditLog> auditLogs = new java.util.ArrayList<>();
 }

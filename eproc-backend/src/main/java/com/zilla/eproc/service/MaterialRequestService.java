@@ -3,6 +3,7 @@ package com.zilla.eproc.service;
 import com.zilla.eproc.dto.ApprovalActionDTO;
 import com.zilla.eproc.dto.CreateMaterialRequestDTO;
 import com.zilla.eproc.dto.MaterialRequestResponseDTO;
+import com.zilla.eproc.dto.RequestAuditDTO;
 import com.zilla.eproc.exception.ForbiddenException;
 import com.zilla.eproc.exception.ResourceNotFoundException;
 import com.zilla.eproc.model.*;
@@ -27,6 +28,7 @@ public class MaterialRequestService {
     private final SiteRepository siteRepository;
     private final MaterialRepository materialRepository;
     private final UserRepository userRepository;
+    private final RequestAuditLogRepository auditLogRepository;
 
     /**
      * Create a new material request.
@@ -86,6 +88,10 @@ public class MaterialRequestService {
         }
 
         MaterialRequest saved = materialRequestRepository.save(request);
+
+        // Log audit: CREATED
+        logAudit(saved, requester, RequestAuditAction.CREATED, null);
+
         return mapToResponseDTO(saved);
     }
 
@@ -142,6 +148,14 @@ public class MaterialRequestService {
         request.setRejectionComment(null);
 
         MaterialRequest saved = materialRequestRepository.save(request);
+
+        // Get requester for audit
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Log audit: RESUBMITTED (editing rejected and resubmitting)
+        logAudit(saved, requester, RequestAuditAction.RESUBMITTED, null);
+
         return mapToResponseDTO(saved);
     }
 
@@ -183,6 +197,13 @@ public class MaterialRequestService {
         }
 
         MaterialRequest saved = materialRequestRepository.save(request);
+
+        // Log audit: APPROVED or REJECTED
+        RequestAuditAction auditAction = dto.getStatus() == RequestStatus.APPROVED
+                ? RequestAuditAction.APPROVED
+                : RequestAuditAction.REJECTED;
+        logAudit(saved, approver, auditAction, dto.getComment());
+
         return mapToResponseDTO(saved);
     }
 
@@ -346,5 +367,48 @@ public class MaterialRequestService {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Get the audit history for a request.
+     */
+    @Transactional(readOnly = true)
+    public List<RequestAuditDTO> getRequestHistory(Long requestId) {
+        // Verify request exists
+        if (!materialRequestRepository.existsById(requestId)) {
+            throw new ResourceNotFoundException("Request not found with ID: " + requestId);
+        }
+
+        return auditLogRepository.findByRequestIdOrderByCreatedAtAsc(requestId).stream()
+                .map(this::mapAuditToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Log an audit entry for a request action.
+     */
+    private void logAudit(MaterialRequest request, User actor, RequestAuditAction action, String comment) {
+        RequestAuditLog log = RequestAuditLog.builder()
+                .request(request)
+                .actor(actor)
+                .action(action)
+                .statusSnapshot(request.getStatus())
+                .comment(comment)
+                .build();
+        auditLogRepository.save(log);
+    }
+
+    private RequestAuditDTO mapAuditToDTO(RequestAuditLog log) {
+        return RequestAuditDTO.builder()
+                .id(log.getId())
+                .action(log.getAction().name())
+                .statusSnapshot(log.getStatusSnapshot() != null ? log.getStatusSnapshot().name() : null)
+                .comment(log.getComment())
+                .timestamp(log.getCreatedAt())
+                .actorId(log.getActor().getId())
+                .actorName(log.getActor().getName())
+                .actorEmail(log.getActor().getEmail())
+                .actorRole(log.getActor().getRole().name())
+                .build();
     }
 }

@@ -3,6 +3,7 @@ package com.zilla.eproc.controller;
 import com.zilla.eproc.dto.ApprovalActionDTO;
 import com.zilla.eproc.dto.CreateMaterialRequestDTO;
 import com.zilla.eproc.dto.MaterialRequestResponseDTO;
+import com.zilla.eproc.dto.RequestAuditDTO;
 import com.zilla.eproc.model.RequestStatus;
 import com.zilla.eproc.service.MaterialRequestService;
 import jakarta.validation.Valid;
@@ -85,6 +86,17 @@ public class RequestController {
     public ResponseEntity<MaterialRequestResponseDTO> getRequestById(@PathVariable Long id) {
         MaterialRequestResponseDTO request = materialRequestService.getRequestById(id);
         return ResponseEntity.ok(request);
+    }
+
+    /**
+     * Get the audit history for a request.
+     * Returns timeline of all status changes.
+     */
+    @GetMapping("/{id}/history")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<RequestAuditDTO>> getRequestHistory(@PathVariable Long id) {
+        List<RequestAuditDTO> history = materialRequestService.getRequestHistory(id);
+        return ResponseEntity.ok(history);
     }
 
     /**

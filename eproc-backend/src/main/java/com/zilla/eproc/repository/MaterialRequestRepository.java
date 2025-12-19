@@ -38,6 +38,11 @@ public interface MaterialRequestRepository extends JpaRepository<MaterialRequest
         List<MaterialRequest> findByRequestedByIdAndStatus(Long requestedById, RequestStatus status);
 
         /**
+         * Find requests by requester email (for dashboard statistics).
+         */
+        List<MaterialRequest> findByRequestedByEmail(String email);
+
+        /**
          * Find requests by site.
          */
         List<MaterialRequest> findBySiteId(Long siteId);

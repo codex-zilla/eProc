@@ -64,6 +64,7 @@ public class ProjectService {
      * Create a new project with the authenticated user as the boss.
      * Only PROJECT_MANAGER can create projects.
      */
+    @SuppressWarnings("deprecation")
     @Transactional
     public ProjectDTO createProject(ProjectDTO dto, String bossEmail) {
         User boss = userRepository.findByEmail(bossEmail)
@@ -207,6 +208,7 @@ public class ProjectService {
 
     // ==================== Private Helper Methods ====================
 
+    @SuppressWarnings("deprecation")
     private ProjectDTO mapToDTO(Project project) {
         ProjectDTO.ProjectDTOBuilder builder = ProjectDTO.builder()
                 .id(project.getId())
