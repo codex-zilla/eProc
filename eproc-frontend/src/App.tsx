@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import SiteDashboard from './pages/SiteDashboard';
 import Approvals from './pages/Approvals';
 import Procurement from './pages/Procurement';
+import ProjectManagement from './pages/ProjectManagement';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
               <Route path="/site-dashboard" element={<SiteDashboard />} />
               <Route path="/approvals" element={<Approvals />} />
               <Route path="/procurement" element={<Procurement />} />
+              <Route path="/projects" element={<ProjectManagement />} />
               
               {/* Default redirect to site-dashboard (will be role-based in ProtectedRoute) */}
               <Route path="/dashboard" element={<Navigate to="/site-dashboard" replace />} />

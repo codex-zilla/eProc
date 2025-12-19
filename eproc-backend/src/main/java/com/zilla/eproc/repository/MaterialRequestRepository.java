@@ -12,82 +12,105 @@ import java.util.List;
 
 /**
  * Repository for MaterialRequest entity with custom queries for duplicate
- * detection.
+ * detection and project-scoped access.
  */
 @Repository
 public interface MaterialRequestRepository extends JpaRepository<MaterialRequest, Long> {
 
-    /**
-     * Find requests by site and status.
-     */
-    List<MaterialRequest> findBySiteIdAndStatus(Long siteId, RequestStatus status);
+        /**
+         * Find requests by site and status.
+         */
+        List<MaterialRequest> findBySiteIdAndStatus(Long siteId, RequestStatus status);
 
-    /**
-     * Find requests by status (for approval queue).
-     */
-    List<MaterialRequest> findByStatus(RequestStatus status);
+        /**
+         * Find requests by status (for approval queue).
+         */
+        List<MaterialRequest> findByStatus(RequestStatus status);
 
-    /**
-     * Find requests by requester (for "My Requests" view).
-     */
-    List<MaterialRequest> findByRequestedById(Long requestedById);
+        /**
+         * Find requests by requester (for "My Requests" view).
+         */
+        List<MaterialRequest> findByRequestedById(Long requestedById);
 
-    /**
-     * Find requests by requester and status.
-     */
-    List<MaterialRequest> findByRequestedByIdAndStatus(Long requestedById, RequestStatus status);
+        /**
+         * Find requests by requester and status.
+         */
+        List<MaterialRequest> findByRequestedByIdAndStatus(Long requestedById, RequestStatus status);
 
-    /**
-     * Find requests by site.
-     */
-    List<MaterialRequest> findBySiteId(Long siteId);
+        /**
+         * Find requests by site.
+         */
+        List<MaterialRequest> findBySiteId(Long siteId);
 
-    /**
-     * Find potential duplicates with overlapping usage windows for catalog
-     * material.
-     * Overlap logic: new.start < existing.end AND new.end > existing.start
-     */
-    @Query("SELECT mr FROM MaterialRequest mr WHERE " +
-            "mr.site.id = :siteId " +
-            "AND mr.material.id = :materialId " +
-            "AND mr.status IN (com.zilla.eproc.model.RequestStatus.PENDING, com.zilla.eproc.model.RequestStatus.APPROVED) "
-            +
-            "AND mr.plannedUsageStart < :newEnd " +
-            "AND mr.plannedUsageEnd > :newStart " +
-            "AND (:excludeId IS NULL OR mr.id != :excludeId)")
-    List<MaterialRequest> findCatalogDuplicatesWithOverlappingWindow(
-            @Param("siteId") Long siteId,
-            @Param("materialId") Long materialId,
-            @Param("newStart") LocalDateTime newStart,
-            @Param("newEnd") LocalDateTime newEnd,
-            @Param("excludeId") Long excludeId);
+        /**
+         * Find potential duplicates with overlapping usage windows for catalog
+         * material.
+         * Overlap logic: new.start < existing.end AND new.end > existing.start
+         */
+        @Query("SELECT mr FROM MaterialRequest mr WHERE " +
+                        "mr.site.id = :siteId " +
+                        "AND mr.material.id = :materialId " +
+                        "AND mr.status IN (com.zilla.eproc.model.RequestStatus.PENDING, com.zilla.eproc.model.RequestStatus.APPROVED) "
+                        +
+                        "AND mr.plannedUsageStart < :newEnd " +
+                        "AND mr.plannedUsageEnd > :newStart " +
+                        "AND (:excludeId IS NULL OR mr.id != :excludeId)")
+        List<MaterialRequest> findCatalogDuplicatesWithOverlappingWindow(
+                        @Param("siteId") Long siteId,
+                        @Param("materialId") Long materialId,
+                        @Param("newStart") LocalDateTime newStart,
+                        @Param("newEnd") LocalDateTime newEnd,
+                        @Param("excludeId") Long excludeId);
 
-    /**
-     * Find potential duplicates with overlapping usage windows for manual material.
-     * Uses case-insensitive name matching.
-     */
-    @Query("SELECT mr FROM MaterialRequest mr WHERE " +
-            "mr.site.id = :siteId " +
-            "AND LOWER(mr.manualMaterialName) = LOWER(:manualName) " +
-            "AND mr.status IN (com.zilla.eproc.model.RequestStatus.PENDING, com.zilla.eproc.model.RequestStatus.APPROVED) "
-            +
-            "AND mr.plannedUsageStart < :newEnd " +
-            "AND mr.plannedUsageEnd > :newStart " +
-            "AND (:excludeId IS NULL OR mr.id != :excludeId)")
-    List<MaterialRequest> findManualDuplicatesWithOverlappingWindow(
-            @Param("siteId") Long siteId,
-            @Param("manualName") String manualName,
-            @Param("newStart") LocalDateTime newStart,
-            @Param("newEnd") LocalDateTime newEnd,
-            @Param("excludeId") Long excludeId);
+        /**
+         * Find potential duplicates with overlapping usage windows for manual material.
+         * Uses case-insensitive name matching.
+         */
+        @Query("SELECT mr FROM MaterialRequest mr WHERE " +
+                        "mr.site.id = :siteId " +
+                        "AND LOWER(mr.manualMaterialName) = LOWER(:manualName) " +
+                        "AND mr.status IN (com.zilla.eproc.model.RequestStatus.PENDING, com.zilla.eproc.model.RequestStatus.APPROVED) "
+                        +
+                        "AND mr.plannedUsageStart < :newEnd " +
+                        "AND mr.plannedUsageEnd > :newStart " +
+                        "AND (:excludeId IS NULL OR mr.id != :excludeId)")
+        List<MaterialRequest> findManualDuplicatesWithOverlappingWindow(
+                        @Param("siteId") Long siteId,
+                        @Param("manualName") String manualName,
+                        @Param("newStart") LocalDateTime newStart,
+                        @Param("newEnd") LocalDateTime newEnd,
+                        @Param("excludeId") Long excludeId);
 
-    /**
-     * Count pending requests for dashboard stats.
-     */
-    long countByStatus(RequestStatus status);
+        /**
+         * Count pending requests for dashboard stats.
+         */
+        long countByStatus(RequestStatus status);
 
-    /**
-     * Count requests by status and site.
-     */
-    long countBySiteIdAndStatus(Long siteId, RequestStatus status);
+        /**
+         * Count requests by status and site.
+         */
+        long countBySiteIdAndStatus(Long siteId, RequestStatus status);
+
+        // ==================== ADR: Project-Scoped Queries ====================
+
+        /**
+         * Find all requests from projects owned by a specific boss.
+         * Used for project managers to see only their projects' requests.
+         */
+        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.boss.id = :bossId")
+        List<MaterialRequest> findByProjectBossId(@Param("bossId") Long bossId);
+
+        /**
+         * Find requests with specific status from projects owned by a specific boss.
+         * Used for pending requests queue scoped to boss's projects.
+         */
+        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.boss.id = :bossId AND mr.status = :status")
+        List<MaterialRequest> findByProjectBossIdAndStatus(@Param("bossId") Long bossId,
+                        @Param("status") RequestStatus status);
+
+        /**
+         * Find requests from projects where a specific engineer is assigned.
+         */
+        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.engineer.id = :engineerId")
+        List<MaterialRequest> findByProjectEngineerId(@Param("engineerId") Long engineerId);
 }

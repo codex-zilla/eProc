@@ -15,9 +15,23 @@ import java.time.LocalDateTime;
 public class ProjectDTO {
     private Long id;
     private String name;
-    private String owner;
+
+    @Deprecated
+    private String owner; // kept for backward compatibility
+
     private String currency;
     private BigDecimal budgetTotal;
     private Boolean isActive;
     private LocalDateTime createdAt;
+
+    // ADR: Project-Centric Authorization fields
+    private Long bossId;
+    private String bossName;
+    private String bossEmail;
+
+    private Long engineerId;
+    private String engineerName;
+    private String engineerEmail;
+
+    private String status; // ACTIVE, COMPLETED, CANCELLED
 }

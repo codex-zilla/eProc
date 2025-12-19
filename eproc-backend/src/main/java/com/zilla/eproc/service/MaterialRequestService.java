@@ -30,6 +30,7 @@ public class MaterialRequestService {
 
     /**
      * Create a new material request.
+     * ADR: Engineer can only create requests for projects they are assigned to.
      */
     @Transactional
     public MaterialRequestResponseDTO createRequest(CreateMaterialRequestDTO dto, String requesterEmail) {
@@ -43,6 +44,20 @@ public class MaterialRequestService {
         // Get site
         Site site = siteRepository.findById(dto.getSiteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Site not found with ID: " + dto.getSiteId()));
+
+        // ADR Authorization: Engineer can only create requests for their assigned
+        // project
+        if (requester.getRole() == Role.ENGINEER) {
+            Project project = site.getProject();
+            if (project.getEngineer() == null || !project.isEngineer(requester)) {
+                throw new ForbiddenException(
+                        "You can only create requests for projects you are assigned to");
+            }
+            if (!project.isActiveProject()) {
+                throw new ForbiddenException(
+                        "Cannot create requests for inactive projects");
+            }
+        }
 
         // Check for duplicates
         checkForDuplicates(dto, null);
@@ -133,6 +148,7 @@ public class MaterialRequestService {
     /**
      * Approve or reject a request.
      * Only PROJECT_MANAGER can perform this action.
+     * ADR: Boss can only approve/reject requests from their own projects.
      */
     @Transactional
     public MaterialRequestResponseDTO processApproval(Long requestId, ApprovalActionDTO dto, String approverEmail) {
@@ -145,6 +161,13 @@ public class MaterialRequestService {
         // Permission check: only PROJECT_MANAGER can approve/reject
         if (approver.getRole() != Role.PROJECT_MANAGER) {
             throw new ForbiddenException("Only Project Managers can approve or reject requests");
+        }
+
+        // ADR Authorization: Boss can only approve/reject requests from their projects
+        Project project = request.getSite().getProject();
+        if (!project.isBoss(approver)) {
+            throw new ForbiddenException(
+                    "You can only approve/reject requests from your own projects");
         }
 
         // Status transition check: only PENDING requests can be approved/rejected
@@ -175,9 +198,22 @@ public class MaterialRequestService {
 
     /**
      * Get all pending requests (for approval queue).
+     * ADR: Scoped to boss's projects only.
      */
     @Transactional(readOnly = true)
-    public List<MaterialRequestResponseDTO> getPendingRequests() {
+    public List<MaterialRequestResponseDTO> getPendingRequests(String approverEmail) {
+        User approver = userRepository.findByEmail(approverEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // ADR: Boss sees only pending requests from their own projects
+        if (approver.getRole() == Role.PROJECT_MANAGER) {
+            return materialRequestRepository.findByProjectBossIdAndStatus(approver.getId(), RequestStatus.PENDING)
+                    .stream()
+                    .map(this::mapToResponseDTO)
+                    .collect(Collectors.toList());
+        }
+
+        // Other roles see all pending (or could be further restricted)
         return materialRequestRepository.findByStatus(RequestStatus.PENDING).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());

@@ -60,8 +60,9 @@ public class RequestController {
      */
     @GetMapping("/pending")
     @PreAuthorize("hasRole('PROJECT_MANAGER')")
-    public ResponseEntity<List<MaterialRequestResponseDTO>> getPendingRequests() {
-        List<MaterialRequestResponseDTO> requests = materialRequestService.getPendingRequests();
+    public ResponseEntity<List<MaterialRequestResponseDTO>> getPendingRequests(Authentication authentication) {
+        String email = authentication.getName();
+        List<MaterialRequestResponseDTO> requests = materialRequestService.getPendingRequests(email);
         return ResponseEntity.ok(requests);
     }
 

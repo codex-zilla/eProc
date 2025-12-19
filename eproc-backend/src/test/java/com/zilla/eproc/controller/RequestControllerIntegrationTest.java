@@ -81,6 +81,9 @@ public class RequestControllerIntegrationTest {
         Project project = new Project();
         project.setName("Test Project");
         project.setOwner("Client");
+        project.setBoss(pm); // ADR: Set boss
+        project.setEngineer(engineer); // ADR: Assign engineer
+        project.setStatus(ProjectStatus.ACTIVE); // ADR: Active status
         project.setCurrency("USD");
         project.setBudgetTotal(BigDecimal.valueOf(100000));
         projectRepository.save(project);

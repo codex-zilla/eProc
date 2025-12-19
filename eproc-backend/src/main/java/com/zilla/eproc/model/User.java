@@ -35,6 +35,14 @@ public class User {
 
     private String name;
 
+    /**
+     * Whether the user account is active.
+     * Inactive users cannot log in or be assigned to projects.
+     */
+    @Column(name = "active")
+    @Builder.Default
+    private Boolean active = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
