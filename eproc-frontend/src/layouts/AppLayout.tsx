@@ -2,13 +2,18 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { LayoutDashboard, Building, ClipboardList } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 interface SidebarItem {
   label: string;
   path: string;
-  icon: string;
+  icon: React.ElementType;
   badge?: number;
 }
 
@@ -40,16 +45,16 @@ const AppLayout = () => {
   const getNavItems = (): SidebarItem[] => {
     if (user?.role === 'ENGINEER') {
       return [
-        { label: 'Dashboard', path: '/engineer/dashboard', icon: '📊' },
-        { label: 'My Project', path: '/engineer/project', icon: '🏗️' },
-        { label: 'My Requests', path: '/engineer/requests', icon: '📋' },
+        { label: 'Dashboard', path: '/engineer/dashboard', icon: LayoutDashboard },
+        { label: 'My Project', path: '/engineer/project', icon: Building },
+        { label: 'My Requests', path: '/engineer/requests', icon: ClipboardList },
       ];
     }
     if (user?.role === 'PROJECT_MANAGER') {
       return [
-        { label: 'Dashboard', path: '/manager/dashboard', icon: '📊' },
-        { label: 'Projects', path: '/manager/projects', icon: '🏗️' },
-        { label: 'Pending Requests', path: '/manager/pending', icon: '⏳', badge: pendingCount },
+        { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
+        { label: 'Projects', path: '/manager/projects', icon: Building },
+        { label: 'Pending Requests', path: '/manager/pending', icon: ClipboardList, badge: pendingCount },
       ];
     }
     return [];
@@ -58,68 +63,73 @@ const AppLayout = () => {
   const navItems = getNavItems();
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-indigo-600">eProc TZ</h1>
-          <p className="text-sm text-gray-500 mt-1">{user?.name}</p>
-          <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded">
-            {user?.role?.replace('_', ' ')}
-          </span>
+      <aside className="w-64 bg-white border-r flex flex-col fixed inset-y-0 z-50">
+        <div className="p-6">
+          <h1 className="text-xl font-bold tracking-tight text-primary">eProc TZ</h1>
         </div>
         
-        <nav className="p-4">
-          <ul className="space-y-2">
+        <Separator />
+        
+        <div className="flex-1 py-6 px-4 overflow-y-auto">
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+              const Icon = item.icon;
               return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-                      isActive 
-                        ? 'bg-indigo-100 text-indigo-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                </li>
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    isActive 
+                      ? "bg-secondary text-secondary-foreground" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <Badge variant="destructive" className="ml-auto text-xs px-1.5 py-0.5 h-5">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </Link>
               );
             })}
-          </ul>
-        </nav>
+          </nav>
+        </div>
 
-        <div className="absolute bottom-0 w-64 p-4 border-t bg-white">
-          <Link
-            to="/profile"
-            className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 text-sm"
-          >
-            <span>👤</span>
-            <span>Profile</span>
+        <Separator />
+
+        <div className="p-4">
+          <Link to="/profile" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={`https://ui-avatars.com/api/?name=${user?.name}&background=random`} />
+              <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col text-sm">
+               <span className="font-medium">{user?.name}</span>
+               <span className="text-xs text-muted-foreground capitalize">
+                 {user?.role?.toLowerCase().replace('_', ' ')}
+               </span>
+            </div>
           </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white shadow p-4">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-lg font-semibold text-gray-900">
+      <div className="flex-1 flex flex-col ml-64">
+        <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b h-16 flex items-center px-6">
+            <h2 className="text-lg font-semibold text-foreground">
               {navItems.find(i => location.pathname.startsWith(i.path))?.label || 'Dashboard'}
             </h2>
-          </div>
+            <div className="ml-auto flex items-center gap-4">
+               {/* Could add notifications or other header actions here */}
+            </div>
         </header>
-        <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
           <Outlet />
         </main>
       </div>
