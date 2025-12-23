@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Search, Filter } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -18,13 +23,10 @@ interface Project {
   engineerEmail: string | null;
 }
 
-/**
- * My Projects page - list of manager's projects.
- */
 const MyProjects = () => {
-  const { logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('token');
@@ -49,87 +51,109 @@ const MyProjects = () => {
     loadProjects();
   }, [loadProjects]);
 
-  const getStatusBadgeClass = (status: string) => {
+  const filteredProjects = projects.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.engineerName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
-      case 'COMPLETED':
-        return 'bg-blue-100 text-blue-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'ACTIVE': return 'default'; // Uses primary color
+      case 'COMPLETED': return 'secondary';
+      case 'CANCELLED': return 'destructive';
+      default: return 'outline';
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Projects</h1>
-          <p className="text-gray-600">Manage your construction projects</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
+          <p className="text-slate-500 mt-1">Manage and track your construction sites.</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            to="/manager/projects/new"
-            className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-          >
-            + New Project
+        <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md">
+          <Link to="/manager/projects/new">
+            <Plus className="mr-2 h-4 w-4" /> New Project
           </Link>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
+        </Button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">Loading projects...</p>
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <div className="text-4xl mb-4">🏗️</div>
-          <p className="text-gray-500">No projects yet.</p>
-          <Link
-            to="/manager/projects/new"
-            className="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            Create Your First Project
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map(project => (
-            <Link
-              key={project.id}
-              to={`/manager/projects/${project.id}`}
-              className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="font-semibold text-lg text-gray-900">{project.name}</h3>
-                <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadgeClass(project.status)}`}>
-                  {project.status}
-                </span>
-              </div>
-              
-              <div className="space-y-2 text-sm text-gray-600">
-                <p>
-                  <span className="font-medium">Budget:</span> {project.currency} {project.budgetTotal?.toLocaleString() || 0}
-                </p>
-                <p>
-                  <span className="font-medium">Engineer:</span>{' '}
-                  {project.engineerName || (
-                    <span className="text-yellow-600">Not assigned</span>
-                  )}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+              <Input 
+                placeholder="Search projects..." 
+                className="pl-9 border-slate-200 bg-slate-50" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" size="icon" className="border-slate-200 text-slate-500">
+               <Filter className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+             <div className="text-center py-10 text-slate-500">Loading projects...</div>
+          ) : filteredProjects.length === 0 ? (
+             <div className="text-center py-10 text-slate-500">No projects found.</div>
+          ) : (
+            <div className="overflow-hidden rounded-md border border-slate-200">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                    <TableHead className="font-semibold text-slate-700">Project Name</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Budget</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Engineer</TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProjects.map((project) => (
+                    <TableRow key={project.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="font-medium text-slate-900">
+                        {project.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(project.status)}>
+                          {project.status.toLowerCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {project.currency} {project.budgetTotal?.toLocaleString() || 0}
+                      </TableCell>
+                      <TableCell className="text-slate-600">
+                        {project.engineerName ? (
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
+                              {project.engineerName.charAt(0)}
+                            </div>
+                            {project.engineerName}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" asChild className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+                          <Link to={`/manager/projects/${project.id}`}>
+                            View Details
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
