@@ -3,6 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getRoleDefaultRoute } from '../components/ProtectedRoute';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Loader2, Lock, User, Mail, Eye, EyeOff, Users } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -10,7 +15,8 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('ENGINEER'); // Default role
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState('ENGINEER');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +29,6 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // 1. Register
       await axios.post(`${API_BASE}/api/auth/register`, {
         name,
         email,
@@ -31,10 +36,8 @@ const Register = () => {
         role,
       });
 
-      // 2. Auto-login after registration
       await login(email, password);
 
-      // 3. Redirect based on role
       const redirectPath = getRoleDefaultRoute(role as any);
       navigate(redirectPath, { replace: true });
     } catch (err: any) {
@@ -45,92 +48,125 @@ const Register = () => {
   };
 
   return (
-    <div className="max-w-md w-full mx-auto">
-      <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">
-        Create an Account
-      </h2>
-      
-      <form onSubmit={handleSubmit} className="bg-white py-8 px-6 shadow rounded-lg space-y-6">
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {error}
+    <Card className="w-full min-h-screen md:min-h-0 md:max-w-md shadow-2xl border-0 bg-white md:bg-white/95 md:backdrop-blur-sm px-5 py-6 md:rounded-2xl rounded-none flex flex-col justify-center">
+      <CardHeader className="space-y-1 text-center pb-4">
+        <div className="flex justify-center mb-1">
+          <h1 className="text-3xl font-serif font-bold text-slate-900 tracking-tight">eProc</h1>
+        </div>
+        <h2 className="text-lg text-slate-700 font-normal">Create your account</h2>
+      </CardHeader>
+
+      <CardContent className="py-0">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-2.5 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm font-medium text-center">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-black-900 font-medium text-sm">Full Name</Label>
+            <div className="relative group">
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <Input
+                id="name"
+                type="text"
+                placeholder=""
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                required
+              />
+            </div>
           </div>
-        )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Full Name
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="John Doe"
-            required
-          />
-        </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-black-900 font-medium text-sm">Email Address</Label>
+            <div className="relative group">
+              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <Input
+                id="email"
+                type="email"
+                placeholder=""
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                required
+              />
+            </div>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="you@example.com"
-            required
-          />
-        </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-black-900 font-medium text-sm">Password</Label>
+            <div className="relative group">
+              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder=""
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-9 pr-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-700 focus:outline-none"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Password (min 6 chars)
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="••••••••"
-            required
-            minLength={6}
-          />
-        </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="role" className="text-black-900 font-medium text-sm">Role</Label>
+            <div className="relative group">
+              <Users className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full pl-9 pr-4 h-10 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors appearance-none"
+              >
+                <option value="ENGINEER">Engineer</option>
+                <option value="PROJECT_MANAGER">Project Manager</option>
+                <option value="ACCOUNTANT">Accountant</option>
+              </select>
+            </div>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Role
-          </label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+          <Button 
+            type="submit" 
+            className="w-full h-11 text-base text-white font-semibold bg-[#2a3455] hover:bg-[#1e253e] transition-all shadow-md mt-2" 
+            disabled={isLoading}
           >
-            <option value="ENGINEER">Engineer</option>
-            <option value="PROJECT_MANAGER">Project Manager</option>
-            <option value="ACCOUNTANT">Accountant</option>
-          </select>
-        </div>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Account...
+              </>
+            ) : (
+              'Sign Up'
+            )}
+          </Button>
+        </form>
+      </CardContent>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-2 px-4 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
-        >
-          {isLoading ? 'Creating Account...' : 'Register'}
-        </button>
-
-        <div className="text-center text-sm text-gray-600">
+      <CardFooter className="flex flex-col gap-3 pt-4 pb-2">
+        <div className="text-sm text-slate-800">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
-            Sign in
+          <Link to="/login" className="text-black-950 font-semibold hover:underline">
+            Sign in.
           </Link>
         </div>
-      </form>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 
