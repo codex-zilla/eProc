@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, User, DollarSign, Calendar, MapPin, FileText, CheckCircle, XCircle } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 interface Project {
   id: number;
@@ -40,26 +38,21 @@ const ProjectDetails = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
-
   const loadData = useCallback(async () => {
     try {
       const [projectRes, engineersRes] = await Promise.all([
-        axios.get<Project>(`${API_BASE}/api/projects/${id}`, { headers: getAuthHeaders() }),
-        axios.get<AvailableEngineer[]>(`${API_BASE}/api/projects/available-engineers`, { headers: getAuthHeaders() }),
+        api.get<Project>(`/projects/${id}`),
+        api.get<AvailableEngineer[]>(`/projects/available-engineers`),
       ]);
       setProject(projectRes.data);
       setAvailableEngineers(engineersRes.data);
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError('Failed to load project');
+      setError('Failed to load project details');
     } finally {
       setLoading(false);
     }
-  }, [id, getAuthHeaders]);
+  }, [id]);
 
   useEffect(() => {
     loadData();
@@ -69,10 +62,9 @@ const ProjectDetails = () => {
     if (!selectedEngineerId) return;
     setError(null);
     try {
-      await axios.patch(
-        `${API_BASE}/api/projects/${id}/engineer`,
-        { engineerId: parseInt(selectedEngineerId) },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+      await api.patch(
+        `/projects/${id}/engineer`,
+        { engineerId: parseInt(selectedEngineerId) }
       );
       setSuccess('Engineer assigned successfully!');
       setSelectedEngineerId('');
@@ -85,10 +77,9 @@ const ProjectDetails = () => {
   const handleUpdateStatus = async (newStatus: string) => {
     setError(null);
     try {
-      await axios.patch(
-        `${API_BASE}/api/projects/${id}/status`,
-        { status: newStatus },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+      await api.patch(
+        `/projects/${id}/status`,
+        { status: newStatus }
       );
       setSuccess(`Project marked as ${newStatus}`);
       loadData();
