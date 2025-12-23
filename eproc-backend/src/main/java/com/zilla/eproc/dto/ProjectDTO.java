@@ -23,6 +23,9 @@ public class ProjectDTO {
     private BigDecimal budgetTotal;
     private String description;
     private String siteLocation;
+    private String region;
+    private String district;
+    private String ward;
     private Boolean isActive;
     private LocalDateTime createdAt;
 

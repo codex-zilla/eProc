@@ -44,6 +44,15 @@ public class Project {
     @Column(name = "site_location")
     private String siteLocation;
 
+    @Column(length = 100)
+    private String region;
+
+    @Column(length = 100)
+    private String district;
+
+    @Column(length = 100)
+    private String ward;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

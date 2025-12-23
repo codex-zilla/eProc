@@ -82,6 +82,9 @@ public class ProjectService {
                 .budgetTotal(dto.getBudgetTotal())
                 .description(dto.getDescription())
                 .siteLocation(dto.getSiteLocation())
+                .region(dto.getRegion())
+                .district(dto.getDistrict())
+                .ward(dto.getWard())
                 .status(ProjectStatus.ACTIVE)
                 .isActive(true)
                 .build();
@@ -220,6 +223,9 @@ public class ProjectService {
                 .budgetTotal(project.getBudgetTotal())
                 .description(project.getDescription())
                 .siteLocation(project.getSiteLocation())
+                .region(project.getRegion())
+                .district(project.getDistrict())
+                .ward(project.getWard())
                 .isActive(project.getIsActive())
                 .createdAt(project.getCreatedAt())
                 .status(project.getStatus() != null ? project.getStatus().name() : null);

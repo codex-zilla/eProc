@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, User, DollarSign, Calendar, MapPin, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, MapPin, FileText, CheckCircle, XCircle } from 'lucide-react';
 
 interface Project {
   id: number;

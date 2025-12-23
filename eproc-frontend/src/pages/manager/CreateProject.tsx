@@ -7,208 +7,220 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, X } from 'lucide-react';
-
-const CURRENCY_API_URL = import.meta.env.VITE_CURRENCY_API_URL || 'https://api.exchangerate-api.com/v4/latest/USD';
+import { getExchangeRate, convertFromTZS, convertToTZS } from '@/lib/currency';
+import { LocationPicker } from '@/components/ui/location-picker';
 
 const CreateProject = () => {
-  const navigate = useNavigate();
-  
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [budget, setBudget] = useState('');
-  const [currency, setCurrency] = useState('TZS');
-  const [siteLocation, setSiteLocation] = useState('');
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+    const navigate = useNavigate();
 
-  // Fetch Exchange Rate on mount
-  useEffect(() => {
-    const fetchRate = async () => {
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    
+    // Financials
+    const [displayBudget, setDisplayBudget] = useState(''); // What user sees
+    const [currency, setCurrency] = useState('TZS'); // Selected currency
+    const [exchangeRate, setExchangeRate] = useState<number>(2500);
+
+    // Location
+    const [region, setRegion] = useState('');
+    const [district, setDistrict] = useState('');
+    const [ward, setWard] = useState('');
+    const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch rate on mount
+    useEffect(() => {
+        const initRate = async () => {
+            const rate = await getExchangeRate();
+            setExchangeRate(rate);
+        };
+        initRate();
+    }, []);
+
+    // Handle currency toggle
+    const handleCurrencyChange = (newCurrency: string) => {
+        if (!displayBudget) {
+            setCurrency(newCurrency);
+            return;
+        }
+
+        // Convert current display value to TZS (base)
+        const currentAmount = parseFloat(displayBudget);
+        if (isNaN(currentAmount)) {
+             setCurrency(newCurrency);
+             return;
+        }
+
+        const amountInTZS = convertToTZS(currentAmount, currency, exchangeRate);
+        const newDisplayAmount = convertFromTZS(amountInTZS, newCurrency, exchangeRate); // Returns string
+
+        setDisplayBudget(newDisplayAmount);
+        setCurrency(newCurrency);
+    };
+
+    const handleLocationSelect = (lat: number, lng: number) => {
+        setCoordinates({ lat, lng });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
+
         try {
-            const res = await fetch(CURRENCY_API_URL);
-            const data = await res.json();
-            // Assuming API returns base USD, we want USD -> TZS rate
-            // If base is USD, to get TZS we look at data.rates.TZS
-            if (data && data.rates && data.rates.TZS) {
-                setExchangeRate(data.rates.TZS);
-            }
-        } catch (error) {
-            console.error("Failed to fetch exchange rate:", error);
-            // Fallback rate if API fails
-            setExchangeRate(2500); 
+            // 1. Calculate budget in TZS for storage
+            const budgetVal = parseFloat(displayBudget);
+            const budgetInTZS = convertToTZS(isNaN(budgetVal) ? 0 : budgetVal, currency, exchangeRate);
+
+            // 2. Format location string
+            const locString = coordinates ? `${coordinates.lat},${coordinates.lng}` : '';
+
+            await api.post('/projects', {
+                name,
+                description,
+                budgetTotal: budgetInTZS,
+                currency: 'TZS', // Always store as TZS
+                region,
+                district,
+                ward,
+                siteLocation: locString
+            });
+            navigate('/manager/projects');
+        } catch (err: any) {
+            console.error(err);
+            setError(err.response?.data?.message || 'Failed to create project');
+        } finally {
+            setLoading(false);
         }
     };
-    fetchRate();
-  }, []);
 
-  // Handle Currency Conversion
-  const handleCurrencyChange = (newCurrency: string) => {
-    const currentAmount = parseFloat(budget);
-    const rate = exchangeRate || 2500; // Default fallback
+    return (
+        <div className="container max-w-4xl mx-auto py-10 space-y-8">
+            <Card className="border-slate-200 shadow-sm">
+                <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-2xl font-bold text-slate-900">Create New Project</CardTitle>
+                            <CardDescription>Initiate a new construction endeavor by filling out the essential details below.</CardDescription>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => navigate('/manager/projects')}>
+                            <X className="h-4 w-4 text-slate-500" />
+                        </Button>
+                    </div>
+                </CardHeader>
 
-    if (!isNaN(currentAmount) && budget !== '') {
-      if (currency === 'TZS' && newCurrency === 'USD') {
-         // TZS -> USD
-         setBudget((currentAmount / rate).toFixed(2));
-      } else if (currency === 'USD' && newCurrency === 'TZS') {
-         // USD -> TZS
-         setBudget((currentAmount * rate).toFixed(0));
-      }
-    }
-    setCurrency(newCurrency);
-  };
+                <form onSubmit={handleSubmit}>
+                    <CardContent className="space-y-8">
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                                {error}
+                            </div>
+                        )}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+                        {/* Section 1: General Info */}
+                        <div className="space-y-4">
+                            <h3 className="text-md font-semibold text-slate-900 border-b pb-2">1. General Information</h3>
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">Project Name <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="e.g., Skyline Tower Renovation"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="description">Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        placeholder="Scope and objectives..."
+                                        className="resize-none h-24"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
-    try {
-      await api.post('/projects', {
-        name,
-        description,
-        budgetTotal: parseFloat(budget) || 0,
-        currency,
-        siteLocation
-      });
-      navigate('/manager/projects');
-    } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Failed to create project');
-    } finally {
-      setLoading(false);
-    }
-  };
+                        {/* Section 2: Financials */}
+                        <div className="space-y-4">
+                            <h3 className="text-md font-semibold text-slate-900 border-b pb-2">2. Financials</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="currency">Input Currency</Label>
+                                    <select
+                                        id="currency"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={currency}
+                                        onChange={(e) => handleCurrencyChange(e.target.value)}
+                                    >
+                                        <option value="TZS">TZS - Tanzanian Shilling</option>
+                                        <option value="USD">USD - US Dollar</option>
+                                    </select>
+                                    <p className="text-xs text-muted-foreground">Values are stored in TZS. Estimated Rate: 1 USD = {exchangeRate} TZS</p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="budget">Budget Total</Label>
+                                    <Input
+                                        id="budget"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={displayBudget}
+                                        onChange={(e) => setDisplayBudget(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
-  return (
-    <div className="container max-w-3xl mx-auto py-10 space-y-8">
-      {/* Header aligned or centered as per preference, matching mockup */}
-      
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader>
-           <div className="flex justify-between items-start">
-              <div>
-                  <CardTitle className="text-2xl font-bold text-slate-900">Create New Project</CardTitle>
-                  <CardDescription>Initiate a new construction endeavor by filling out the essential details below.</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => navigate('/manager/projects')}>
-                  <X className="h-4 w-4 text-slate-500" />
-              </Button>
-           </div>
-        </CardHeader>
+                        {/* Section 3: Location Details */}
+                        <div className="space-y-4">
+                            <h3 className="text-md font-semibold text-slate-900 border-b pb-2">3. Site Location</h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="region">Region</Label>
+                                    <Input id="region" placeholder="e.g. Dar es Salaam" value={region} onChange={e => setRegion(e.target.value)} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="district">District</Label>
+                                    <Input id="district" placeholder="e.g. Kinondoni" value={district} onChange={e => setDistrict(e.target.value)} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="ward">Ward</Label>
+                                    <Input id="ward" placeholder="e.g. Msasani" value={ward} onChange={e => setWard(e.target.value)} />
+                                </div>
+                            </div>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-6">
-             {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
+                            <div className="grid gap-2">
+                                <Label>Pin Location on Map</Label>
+                                <div className="border rounded-md overflow-hidden">
+                                     <LocationPicker onLocationSelect={handleLocationSelect} />
+                                </div>
+                                {coordinates && (
+                                    <p className="text-xs text-green-600 flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" /> Selected: {coordinates.lat.toFixed(5)}, {coordinates.lng.toFixed(5)}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
 
-             {/* General Information */}
-             <div className="space-y-4">
-                <h3 className="text-sm font-medium text-slate-900">General Information</h3>
-                <div className="grid gap-2">
-                   <Label htmlFor="name">Project Name</Label>
-                   <Input 
-                      id="name" 
-                      placeholder="e.g., Skyline Tower Renovation" 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                      required 
-                   />
-                </div>
-                <div className="grid gap-2">
-                   <Label htmlFor="description">Description</Label>
-                   <Textarea 
-                      id="description" 
-                      placeholder="Provide a brief overview of the project scope and objectives..." 
-                      className="resize-none h-24"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                   />
-                </div>
-             </div>
+                    </CardContent>
 
-             <div className="border-t border-slate-100 my-4" />
-
-             {/* Financials */}
-             <div className="space-y-4">
-                <h3 className="text-sm font-medium text-slate-900">Financials</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="grid gap-2">
-                      <Label htmlFor="budget">Budget Total</Label>
-                      <div className="relative">
-                         <div className="absolute left-3 top-2.5 text-slate-500">
-                             {currency === 'USD' ? '$' : 'TSh'}
-                         </div>
-                         <Input 
-                            id="budget" 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="0.00" 
-                            className="pl-12"
-                            value={budget}
-                            onChange={(e) => setBudget(e.target.value)}
-                         />
-                      </div>
-                   </div>
-                   <div className="grid gap-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <select
-                        id="currency"
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={currency}
-                        onChange={(e) => handleCurrencyChange(e.target.value)}
-                      >
-                         <option value="TZS">TZS - Tanzanian Shilling</option>
-                         <option value="USD">USD - US Dollar</option>
-                      </select>
-                   </div>
-                </div>
-             </div>
-             
-             <div className="border-t border-slate-100 my-4" />
-
-             {/* Site Details */}
-             <div className="space-y-4">
-                <h3 className="text-sm font-medium text-slate-900">Site Details</h3>
-                <div className="grid gap-2">
-                   <Label htmlFor="location">Site Location</Label>
-                   <div className="relative">
-                       <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                       <Input 
-                          id="location" 
-                          placeholder="Enter address or coordinates" 
-                          className="pl-9"
-                          value={siteLocation}
-                          onChange={(e) => setSiteLocation(e.target.value)}
-                       />
-                   </div>
-                </div>
-                {/* Visual Map Placeholder */}
-                <div className="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center group cursor-pointer hover:bg-slate-200 transition-colors">
-                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                    <Button type="button" variant="secondary" size="sm" className="z-10 bg-white/80 hover:bg-white shadow-sm text-indigo-700">
-                        <MapPin className="mr-2 h-3 w-3" /> Pin on Map
-                    </Button>
-                </div>
-             </div>
-
-          </CardContent>
-          
-          <CardFooter className="flex justify-end gap-3 bg-slate-50/50 p-6 border-t border-slate-100">
-             <Button type="button" variant="ghost" onClick={() => navigate('/manager/projects')}>Cancel</Button>
-             <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[140px]" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Project'}
-             </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
-  );
+                    <CardFooter className="flex justify-end gap-3 bg-slate-50/50 p-6 border-t border-slate-100">
+                        <Button type="button" variant="ghost" onClick={() => navigate('/manager/projects')}>Cancel</Button>
+                        <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[140px]" disabled={loading}>
+                            {loading ? 'Creating...' : 'Create Project'}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Card>
+        </div>
+    );
 };
 
 export default CreateProject;
