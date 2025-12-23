@@ -38,6 +38,12 @@ public class Project {
     @Column(name = "budget_total")
     private BigDecimal budgetTotal;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "site_location")
+    private String siteLocation;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

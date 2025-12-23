@@ -130,7 +130,7 @@ const ProjectDetails = () => {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                     <span className="flex items-center gap-1"><User className="h-3 w-3" /> Assigned to: {project.engineerName || 'Unassigned'}</span>
                     <Separator orientation="vertical" className="h-4" />
-                    <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> Budget: {project.currency} {project.budgetTotal.toLocaleString()}</span>
+                    <span className="flex items-center gap-1"> Budget: {project.currency} {project.budgetTotal.toLocaleString()}</span>
                 </div>
             </div>
             {/* Action Buttons */}

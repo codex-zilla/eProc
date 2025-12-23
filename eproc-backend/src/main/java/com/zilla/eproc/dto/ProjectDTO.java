@@ -21,6 +21,8 @@ public class ProjectDTO {
 
     private String currency;
     private BigDecimal budgetTotal;
+    private String description;
+    private String siteLocation;
     private Boolean isActive;
     private LocalDateTime createdAt;
 

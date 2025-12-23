@@ -80,6 +80,8 @@ public class ProjectService {
                 .boss(boss)
                 .currency(dto.getCurrency() != null ? dto.getCurrency() : "TZS")
                 .budgetTotal(dto.getBudgetTotal())
+                .description(dto.getDescription())
+                .siteLocation(dto.getSiteLocation())
                 .status(ProjectStatus.ACTIVE)
                 .isActive(true)
                 .build();
@@ -216,6 +218,8 @@ public class ProjectService {
                 .owner(project.getOwner())
                 .currency(project.getCurrency())
                 .budgetTotal(project.getBudgetTotal())
+                .description(project.getDescription())
+                .siteLocation(project.getSiteLocation())
                 .isActive(project.getIsActive())
                 .createdAt(project.getCreatedAt())
                 .status(project.getStatus() != null ? project.getStatus().name() : null);
