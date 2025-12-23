@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { getRoleDefaultRoute } from '../components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Loader2, Lock, User, Mail, Eye, EyeOff, Users } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -20,7 +18,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -29,19 +27,19 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      await axios.post(`${API_BASE}/api/auth/register`, {
+      await register({
         name,
         email,
         password,
         role,
       });
 
-      await login(email, password);
-
       const redirectPath = getRoleDefaultRoute(role as any);
       navigate(redirectPath, { replace: true });
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Registration failed';
+      // Error is already set in context, but we can also set local error if needed
+      // context error might be cleared on next navigation, so local state is good
+      const msg = err.message || 'Registration failed';
       setError(msg);
       setIsLoading(false);
     }

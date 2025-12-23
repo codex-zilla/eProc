@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../lib/axios';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 interface Project {
   id: number;
@@ -28,24 +26,16 @@ const MyProjects = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
-
   const loadProjects = useCallback(async () => {
     try {
-      const response = await axios.get<Project[]>(
-        `${API_BASE}/api/projects`,
-        { headers: getAuthHeaders() }
-      );
+      const response = await api.get<Project[]>('/projects');
       setProjects(response.data);
     } catch (err) {
       console.error('Failed to load projects:', err);
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   useEffect(() => {
     loadProjects();

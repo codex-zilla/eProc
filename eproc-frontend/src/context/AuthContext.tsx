@@ -7,12 +7,20 @@ interface User {
   name: string;
 }
 
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   error: string | null;
 }
@@ -45,26 +53,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, [token]);
 
+  const handleAuthResponse = (response: any) => {
+    const { token: newToken, email: userEmail, role, name } = response.data;
+    
+    // Store token and user info
+    localStorage.setItem('token', newToken);
+    const userData: User = { email: userEmail, role, name };
+    localStorage.setItem('user', JSON.stringify(userData));
+    
+    setToken(newToken);
+    setUser(userData);
+  };
+
+  const handleError = (err: any) => {
+    let message = 'An unexpected error occurred';
+    if (err.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      message = err.response.data?.message || 'Authentication failed';
+    } else if (err.request) {
+      // The request was made but no response was received
+      message = 'Unable to connect to server. Please check your internet connection or try again later.';
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      message = err.message;
+    }
+    setError(message);
+    throw new Error(message);
+  };
+
   const login = async (email: string, password: string) => {
     setError(null);
     setIsLoading(true);
     
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { token: newToken, email: userEmail, role, name } = response.data;
-      
-      // Store token and user info
-      localStorage.setItem('token', newToken);
-      const userData: User = { email: userEmail, role, name };
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setToken(newToken);
-      setUser(userData);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      const message = error.response?.data?.message || 'Invalid email or password';
-      setError(message);
-      throw new Error(message);
+      handleAuthResponse(response);
+    } catch (err: any) {
+      handleError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (data: RegisterData) => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await api.post('/auth/register', data);
+      handleAuthResponse(response);
+    } catch (err: any) {
+      handleError(err);
     } finally {
       setIsLoading(false);
     }
@@ -84,6 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!token && !!user,
     isLoading,
     login,
+    register,
     logout,
     error,
   };
