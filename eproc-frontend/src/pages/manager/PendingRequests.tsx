@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_URL;
 
 interface PendingRequest {
   id: number;
@@ -39,7 +39,7 @@ const PendingRequests = () => {
   const loadRequests = useCallback(async () => {
     try {
       const response = await axios.get<PendingRequest[]>(
-        `${API_BASE}/api/requests/pending`,
+        `${API_BASE}/requests/pending`,
         { headers: getAuthHeaders() }
       );
       setRequests(response.data);
@@ -58,7 +58,7 @@ const PendingRequests = () => {
     setError(null);
     try {
       await axios.patch(
-        `${API_BASE}/api/requests/${requestId}/status`,
+        `${API_BASE}/requests/${requestId}/status`,
         { status: 'APPROVED' },
         { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
       );
@@ -78,7 +78,7 @@ const PendingRequests = () => {
     setError(null);
     try {
       await axios.patch(
-        `${API_BASE}/api/requests/${requestId}/status`,
+        `${API_BASE}/requests/${requestId}/status`,
         { status: 'REJECTED', comment },
         { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
       );
@@ -92,21 +92,6 @@ const PendingRequests = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pending Requests</h1>
-          <p className="text-gray-600">
-            {requests.length} request{requests.length !== 1 ? 's' : ''} awaiting approval
-          </p>
-        </div>
-        <button
-          onClick={logout}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-        >
-          Logout
-        </button>
-      </div>
-
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}

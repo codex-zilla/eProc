@@ -162,19 +162,6 @@ const CreateProject = () => {
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex flex-col gap-2">
-                <Link to="/manager/projects" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1 w-fit">
-                    <ArrowLeft className="h-4 w-4" /> Back to Projects
-                </Link>
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">Create New Project</h1>
-                        <p className="text-muted-foreground mt-1">Initiate a new construction endeavor by filling out the essential details below.</p>
-                    </div>
-                </div>
-            </div>
-
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                     {error}

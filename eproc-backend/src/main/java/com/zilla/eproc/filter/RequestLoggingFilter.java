@@ -6,6 +6,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -23,12 +25,21 @@ public class RequestLoggingFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+        
+        long startTime = System.currentTimeMillis();
+
+        chain.doFilter(request, response);
+
+        long duration = System.currentTimeMillis() - startTime;
 
         if (request instanceof HttpServletRequest) {
             HttpServletRequest httpRequest = (HttpServletRequest) request;
-            logger.info("Incoming request: [{}] {}", httpRequest.getMethod(), httpRequest.getRequestURI());
+            HttpServletResponse httpResponse = (HttpServletResponse) response;
+            logger.info("[{}] {} -> status={} ({} ms)", 
+                        httpRequest.getMethod(), 
+                        httpRequest.getRequestURI(), 
+                        httpResponse.getStatus(),
+                        duration);
         }
-
-        chain.doFilter(request, response);
     }
 }

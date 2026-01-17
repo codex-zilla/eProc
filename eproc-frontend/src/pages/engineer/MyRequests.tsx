@@ -68,27 +68,6 @@ const MyRequests = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Requests</h1>
-          <p className="text-gray-600">Track your material requests</p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            to="/engineer/requests/new"
-            className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-          >
-            + New Request
-          </Link>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
       {/* Filter Tabs */}
       <div className="flex gap-2 border-b pb-2">
         {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(status => (

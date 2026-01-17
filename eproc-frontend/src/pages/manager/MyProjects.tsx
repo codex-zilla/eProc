@@ -24,14 +24,25 @@ interface Project {
 const MyProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const loadProjects = useCallback(async () => {
+    setError(null);
     try {
       const response = await api.get<Project[]>('/projects');
       setProjects(response.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load projects:', err);
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Connection failed. Please check your internet connection and try again.');
+      } else if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+      } else if (err.response?.status >= 500) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load projects. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -57,17 +68,16 @@ const MyProjects = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
-          <p className="text-slate-500 mt-1">Manage and track your construction sites.</p>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Error:</span> {error}
+          </div>
+          <Button variant="ghost" size="sm" onClick={loadProjects} className="text-red-700 hover:bg-red-100">
+            Retry
+          </Button>
         </div>
-        <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md">
-          <Link to="/manager/projects/new">
-            <Plus className="mr-2 h-4 w-4" /> New Project
-          </Link>
-        </Button>
-      </div>
+      )}
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
@@ -89,6 +99,8 @@ const MyProjects = () => {
         <CardContent>
           {loading ? (
              <div className="text-center py-10 text-slate-500">Loading projects...</div>
+          ) : error ? (
+             <div className="text-center py-10 text-slate-400">Could not load projects.</div>
           ) : filteredProjects.length === 0 ? (
              <div className="text-center py-10 text-slate-500">No projects found.</div>
           ) : (

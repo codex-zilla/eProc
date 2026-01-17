@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -21,7 +20,6 @@ interface EngineerDashboardData {
  * Engineer Dashboard - daily operational view.
  */
 const EngineerDashboard = () => {
-  const { user, logout } = useAuth();
   const [dashboard, setDashboard] = useState<EngineerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,29 +57,6 @@ const EngineerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Engineer Dashboard</h1>
-          <p className="text-gray-600">Welcome, {user?.name}</p>
-        </div>
-        <div className="flex gap-2">
-          {dashboard?.assignedProjectId && dashboard.projectStatus === 'ACTIVE' && (
-            <Link
-              to="/engineer/requests/new"
-              className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-            >
-              + New Request
-            </Link>
-          )}
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}
