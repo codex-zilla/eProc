@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, User, Calendar, MapPin, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { User, Calendar, MapPin, FileText, CheckCircle, XCircle } from 'lucide-react';
 
 interface Project {
   id: number;
@@ -118,9 +118,6 @@ const ProjectDetails = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <Link to="/manager/projects" className="text-sm text-muted-foreground hover:underline inline-flex items-center gap-1 w-fit">
-          <ArrowLeft className="h-4 w-4" /> Back to Projects
-        </Link>
         <div className="flex justify-between items-start">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">

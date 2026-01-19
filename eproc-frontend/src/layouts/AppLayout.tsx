@@ -11,6 +11,7 @@ import {
   Settings, 
   AlertCircle,
   ChevronLeft,
+
   Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -78,6 +79,41 @@ const AppLayout = () => {
   };
 
   const navItems = getNavItems();
+
+  // Breadcrumb Logic
+  const breadcrumbs: { label: string; path?: string; active?: boolean }[] = [];
+  
+  // Find key root section
+  const activeNavItem = navItems.find(i => location.pathname.startsWith(i.path));
+  
+  if (activeNavItem) {
+    // Level 1: Sidebar Item
+    breadcrumbs.push({
+      label: activeNavItem.label,
+      path: activeNavItem.path,
+      active: location.pathname === activeNavItem.path
+    });
+
+    // Level 2: Sub-pages
+    // Hardcoded logic for now as requested, can be made recursive later
+    if (location.pathname === '/manager/projects/new') {
+       breadcrumbs[0].active = false; // Parent is no longer active
+       breadcrumbs.push({
+         label: 'Create New Project',
+         active: true
+       });
+    } else if (/^\/manager\/projects\/\d+$/.test(location.pathname)) {
+        breadcrumbs[0].active = false;
+        breadcrumbs.push({
+            label: 'Project Details',
+            active: true
+        });
+    }
+    // Add other sub-page logic here if needed
+  } else {
+    // Fallback
+    breadcrumbs.push({ label: 'Dashboard', active: true });
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex font-sans">
@@ -176,10 +212,26 @@ const AppLayout = () => {
         )}
       >
         <header className="bg-white sticky top-0 z-40 border-b h-16 flex items-center px-8 shadow-sm justify-between">
-            <div className="flex flex-col">
-              <h2 className="text-lg font-semibold text-slate-900 tracking-tight">
-                {navItems.find(i => location.pathname.startsWith(i.path))?.label || 'Dashboard'}
-              </h2>
+            <div className="flex items-center text-lg tracking-tight text-slate-900">
+              {breadcrumbs.map((crumb, index) => (
+                <div key={index} className="flex items-center">
+                  {index > 0 && (
+                     <span className="mx-1 text-slate-400 font-light">/</span>
+                  )}
+                  {crumb.path && !crumb.active ? (
+                    <Link 
+                      to={crumb.path} 
+                      className="font-normal"
+                    >
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold">
+                      {crumb.label}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
             
             <div className="flex items-center gap-4">

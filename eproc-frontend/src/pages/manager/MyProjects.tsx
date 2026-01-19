@@ -81,18 +81,27 @@ const MyProjects = () => {
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-              <Input 
-                placeholder="Search projects..." 
-                className="pl-9 border-slate-200 bg-slate-50" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                <Input 
+                  placeholder="Search projects..." 
+                  className="pl-9 border-slate-200 bg-slate-50 focus:bg-white transition-colors" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" size="icon" className="border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200">
+                 <Filter className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="outline" size="icon" className="border-slate-200 text-slate-500">
-               <Filter className="h-4 w-4" />
+            
+            <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md">
+              <Link to="/manager/projects/new" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                <span>Create New Project</span>
+              </Link>
             </Button>
           </div>
         </CardHeader>

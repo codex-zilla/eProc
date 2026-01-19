@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/eproc_db
     username: postgres
-    password: ctfreak06
+    password: complex26
   jpa:
     hibernate:
       ddl-auto: validate
