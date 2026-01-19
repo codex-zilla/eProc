@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { 
+  FileText, 
+  Send, 
+  CheckCircle, 
+  XCircle, 
+  Edit, 
+  RotateCw, 
+  AlertOctagon,
+  ArrowLeft
+} from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -119,13 +129,13 @@ const RequestDetailsManager = () => {
 
   const getActionIcon = (action: string) => {
     switch (action) {
-      case 'CREATED': return '📝';
-      case 'SUBMITTED': return '📤';
-      case 'APPROVED': return '✅';
-      case 'REJECTED': return '❌';
-      case 'UPDATED': return '✏️';
-      case 'RESUBMITTED': return '🔄';
-      default: return '•';
+      case 'CREATED': return <FileText className="h-4 w-4" />;
+      case 'SUBMITTED': return <Send className="h-4 w-4" />;
+      case 'APPROVED': return <CheckCircle className="h-4 w-4" />;
+      case 'REJECTED': return <XCircle className="h-4 w-4" />;
+      case 'UPDATED': return <Edit className="h-4 w-4" />;
+      case 'RESUBMITTED': return <RotateCw className="h-4 w-4" />;
+      default: return <div className="h-2 w-2 rounded-full bg-gray-300" />;
     }
   };
 
@@ -146,8 +156,8 @@ const RequestDetailsManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <Link to="/manager/pending" className="text-indigo-600 hover:underline text-sm">
-            ← Back to Pending Requests
+          <Link to="/manager/pending" className="text-indigo-600 hover:underline text-sm flex items-center gap-1">
+            <ArrowLeft className="h-4 w-4" /> Back to Pending Requests
           </Link>
           <h1 className="text-lg md:text-2xl font-bold text-gray-900 mt-1">
             Request #{request.id}
@@ -177,8 +187,8 @@ const RequestDetailsManager = () => {
         <div className="p-6 border-b flex items-center justify-between">
           <div className="flex items-center gap-3">
             {request.emergencyFlag && (
-              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-                🚨 URGENT
+              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded flex items-center gap-1">
+                <AlertOctagon className="h-3 w-3" /> URGENT
               </span>
             )}
             <h2 className="text-lg font-semibold text-gray-900">
@@ -231,7 +241,7 @@ const RequestDetailsManager = () => {
                 onClick={handleApprove}
                 className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
               >
-                ✓ Approve
+                <CheckCircle className="h-4 w-4 mr-2" /> Approve
               </button>
               <input
                 type="text"
@@ -244,7 +254,7 @@ const RequestDetailsManager = () => {
                 onClick={handleReject}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
               >
-                ✗ Reject
+                <XCircle className="h-4 w-4 mr-2" /> Reject
               </button>
             </div>
           </div>
