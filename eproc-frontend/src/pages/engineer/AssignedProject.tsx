@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
+
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -22,7 +22,7 @@ interface Project {
  * Assigned Project page - read-only view of the engineer's assigned project.
  */
 const AssignedProject = () => {
-  const { logout } = useAuth();
+
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +133,7 @@ const AssignedProject = () => {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow p-6 text-center">
-          <div className="text-4xl mb-4">🏗️</div>
+          <div className="text-3xl md:text-4xl mb-4">🏗️</div>
           <h2 className="text-xl font-semibold text-gray-900">No Project Assigned</h2>
           <p className="text-gray-500 mt-2">
             You have not been assigned to any project yet.

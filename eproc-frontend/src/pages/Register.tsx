@@ -49,7 +49,7 @@ const Register = () => {
     <Card className="w-full min-h-screen md:min-h-0 md:max-w-md shadow-2xl border-0 bg-white md:bg-white/95 md:backdrop-blur-sm px-5 py-6 md:rounded-2xl rounded-none flex flex-col justify-center">
       <CardHeader className="space-y-1 text-center pb-4">
         <div className="flex justify-center mb-1">
-          <h1 className="text-3xl font-serif font-bold text-slate-900 tracking-tight">eProc</h1>
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 tracking-tight">eProc</h1>
         </div>
         <h2 className="text-lg text-slate-700 font-normal">Create your account</h2>
       </CardHeader>

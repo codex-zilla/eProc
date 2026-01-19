@@ -101,19 +101,19 @@ const EngineerDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
           <h3 className="font-semibold text-lg">Total Requests</h3>
-          <p className="text-3xl font-bold mt-2">{dashboard?.totalRequests || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-2">{dashboard?.totalRequests || 0}</p>
         </div>
         <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
           <h3 className="font-semibold text-lg">Pending</h3>
-          <p className="text-3xl font-bold mt-2">{dashboard?.pendingRequests || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-2">{dashboard?.pendingRequests || 0}</p>
         </div>
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
           <h3 className="font-semibold text-lg">Approved</h3>
-          <p className="text-3xl font-bold mt-2">{dashboard?.approvedRequests || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-2">{dashboard?.approvedRequests || 0}</p>
         </div>
         <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
           <h3 className="font-semibold text-lg">Rejected</h3>
-          <p className="text-3xl font-bold mt-2">{dashboard?.rejectedRequests || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-2">{dashboard?.rejectedRequests || 0}</p>
         </div>
       </div>
 
@@ -125,7 +125,7 @@ const EngineerDashboard = () => {
             to="/engineer/requests"
             className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <span className="text-2xl">📋</span>
+            <span className="text-xl md:text-2xl">📋</span>
             <p className="font-medium mt-2">My Requests</p>
             <p className="text-sm text-gray-500">View all your requests</p>
           </Link>
@@ -133,7 +133,7 @@ const EngineerDashboard = () => {
             to="/engineer/project"
             className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <span className="text-2xl">🏗️</span>
+            <span className="text-xl md:text-2xl">🏗️</span>
             <p className="font-medium mt-2">Project Details</p>
             <p className="text-sm text-gray-500">View assigned project</p>
           </Link>
@@ -141,7 +141,7 @@ const EngineerDashboard = () => {
             to="/profile"
             className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <span className="text-2xl">👤</span>
+            <span className="text-xl md:text-2xl">👤</span>
             <p className="font-medium mt-2">My Profile</p>
             <p className="text-sm text-gray-500">Account settings</p>
           </Link>

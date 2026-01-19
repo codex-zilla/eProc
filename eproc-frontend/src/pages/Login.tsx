@@ -45,7 +45,7 @@ const Login = () => {
     <Card className="w-full min-h-screen md:min-h-0 md:max-w-md shadow-2xl border-0 bg-white md:bg-white/95 md:backdrop-blur-sm px-6 py-8 md:rounded-2xl rounded-none flex flex-col justify-center">
         <CardHeader className="space-y-2 text-center pb-6">
           <div className="flex justify-center mb-2">
-             <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tight">eProc</h1>
+             <h1 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 tracking-tight">eProc</h1>
           </div>
           <h2 className="text-lg text-slate-700 font-normal">Welcome back to eProc</h2>
         </CardHeader>

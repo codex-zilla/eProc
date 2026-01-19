@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
+
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -23,7 +23,7 @@ interface PendingRequest {
  * Pending Requests page - approval queue for manager.
  */
 const PendingRequests = () => {
-  const { logout } = useAuth();
+
   
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +109,7 @@ const PendingRequests = () => {
         <div className="text-center py-8 text-gray-500">Loading requests...</div>
       ) : requests.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
-          <div className="text-4xl mb-4">✅</div>
+          <div className="text-3xl md:text-4xl mb-4">✅</div>
           <p className="text-gray-500">No pending requests!</p>
           <p className="text-sm text-gray-400">All requests have been processed.</p>
         </div>

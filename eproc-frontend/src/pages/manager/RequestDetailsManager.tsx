@@ -149,7 +149,7 @@ const RequestDetailsManager = () => {
           <Link to="/manager/pending" className="text-indigo-600 hover:underline text-sm">
             ← Back to Pending Requests
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-1">
+          <h1 className="text-lg md:text-2xl font-bold text-gray-900 mt-1">
             Request #{request.id}
           </h1>
         </div>

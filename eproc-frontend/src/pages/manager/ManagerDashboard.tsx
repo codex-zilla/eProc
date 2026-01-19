@@ -62,9 +62,9 @@ const ManagerDashboard = () => {
       )}
 
       {/* Welcome Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-row justify-between items-center gap-4">
         <div>
-          <h2 className="text-slate-900 text-3xl tracking-tight font-semibold">Welcome back, {user?.name}.</h2>
+          <h2 className="text-slate-900 text-xl md:text-3xl tracking-tight font-semibold">Welcome back, {user?.name}.</h2>
         </div>
         <div className="flex items-center gap-3">
           <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md">
@@ -90,7 +90,7 @@ const ManagerDashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="z-10 relative">
-            <div className="text-3xl font-bold text-slate-900">{dashboard?.totalProjects || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold text-slate-900">{dashboard?.totalProjects || 0}</div>
             <p className="text-xs text-slate-500 mt-1 font-medium">
               {dashboard?.activeProjects || 0} active, {dashboard?.completedProjects || 0} completed
             </p>
@@ -115,7 +115,7 @@ const ManagerDashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="z-10 relative">
-            <div className="text-3xl font-bold text-slate-900">{dashboard?.pendingRequests || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold text-slate-900">{dashboard?.pendingRequests || 0}</div>
             <p className="text-xs text-slate-500 mt-1 font-medium">
               Requires approval
             </p>
@@ -140,7 +140,7 @@ const ManagerDashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="z-10 relative">
-            <div className="text-3xl font-bold text-slate-900">{dashboard?.assignedEngineers || 0}</div>
+            <div className="text-2xl md:text-3xl font-bold text-slate-900">{dashboard?.assignedEngineers || 0}</div>
             <p className="text-xs text-slate-500 mt-1 font-medium">
               Engineers utilized
             </p>
@@ -162,7 +162,7 @@ const ManagerDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-slate-900">$45,231</span>
+              <span className="text-2xl md:text-3xl font-bold text-slate-900">$45,231</span>
               <span className="text-sm text-slate-500">/ $120k</span>
             </div>
             <Progress value={38} className="h-2 mt-3 bg-slate-100" indicatorClassName="bg-green-600" />

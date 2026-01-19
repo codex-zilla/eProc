@@ -118,29 +118,29 @@ const ProjectDetails = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <div className="flex justify-between items-start">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                    {project.name}
-                    <Badge className={statusColorClass(project.status)}>{project.status}</Badge>
-                </h1>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                    <span className="flex items-center gap-1"><User className="h-3 w-3" /> Assigned to: {project.engineerName || 'Unassigned'}</span>
-                    <Separator orientation="vertical" className="h-4" />
-                    <span className="flex items-center gap-1"> Budget: {project.currency} {project.budgetTotal.toLocaleString()}</span>
-                </div>
-            </div>
+        <div className="flex flex-col gap-4">
+            <h1 className="text-xl md:text-3xl font-bold tracking-tight text-foreground flex flex-wrap items-center gap-3">
+                {project.name}
+                <Badge className={statusColorClass(project.status)}>{project.status}</Badge>
+            </h1>
+
             {/* Action Buttons */}
              {project.status === 'ACTIVE' && (
-                <div className="flex gap-2">
-                   <Button variant="outline" size="sm" onClick={() => handleUpdateStatus('COMPLETED')} className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                <div className="flex flex-wrap gap-2 w-full">
+                   <Button variant="outline" size="sm" onClick={() => handleUpdateStatus('COMPLETED')} className="text-blue-600 border-blue-200 hover:bg-blue-50 flex-1 sm:flex-none">
                      <CheckCircle className="mr-2 h-4 w-4" /> Mark Completed
                    </Button>
-                   <Button variant="outline" size="sm" onClick={() => handleUpdateStatus('CANCELLED')} className="text-red-600 border-red-200 hover:bg-red-50">
+                   <Button variant="outline" size="sm" onClick={() => handleUpdateStatus('CANCELLED')} className="text-red-600 border-red-200 hover:bg-red-50 flex-1 sm:flex-none">
                      <XCircle className="mr-2 h-4 w-4" /> Cancel Project
                    </Button>
                 </div>
              )}
+
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1"><User className="h-3 w-3" /> Assigned to: {project.engineerName || 'Unassigned'}</span>
+                <Separator orientation="vertical" className="h-4 hidden sm:block" />
+                <span className="flex items-center gap-1"> Budget: {project.currency} {project.budgetTotal.toLocaleString()}</span>
+            </div>
         </div>
       </div>
 
@@ -166,8 +166,8 @@ const ProjectDetails = () => {
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4 mt-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="col-span-2">
+            <div className="grid gap-4 grid-cols-1">
+                <Card>
                     <CardHeader>
                         <CardTitle>Project Description</CardTitle>
                     </CardHeader>
