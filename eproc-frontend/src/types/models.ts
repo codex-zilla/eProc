@@ -1,11 +1,58 @@
 export interface Project {
   id: number;
   name: string;
-  owner: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   currency: string;
   budgetTotal?: number;
+  description?: string;
   isActive: boolean;
   createdAt: string;
+
+  // Authorities
+  bossId?: number;
+  bossName?: string;
+  bossEmail?: string;
+  engineerId?: number;     // Legacy
+  engineerName?: string;   // Legacy
+  engineerEmail?: string;  // Legacy
+
+  // Advanced Fields
+  code?: string;
+  industry?: string;       // Enum
+  projectType?: string;    // Enum
+  
+  // Owner Rep
+  ownerRepName?: string;
+  ownerRepContact?: string;
+
+  // Location
+  siteLocation?: string; // Legacy field (kept for backward compat)
+  region?: string;
+  district?: string;
+  ward?: string;
+  plotNumber?: string;
+  gpsCoordinates?: string;
+  titleDeedAvailable?: boolean;
+  siteAccessNotes?: string;
+
+  // Context
+  keyObjectives?: string;
+  expectedOutput?: string;
+
+  // Timeline
+  startDate?: string;
+  expectedCompletionDate?: string;
+
+  // Contractual
+  contractType?: string; // Enum
+  defectsLiabilityPeriod?: number;
+  performanceSecurityRequired?: boolean;
+
+  // Counts
+  teamCount?: number;
+  scopeCount?: number;
+  milestoneCount?: number;
+  documentCount?: number;
 }
 
 export interface Site {
@@ -18,6 +65,115 @@ export interface Site {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface ProjectAssignment {
+  id: number;
+  projectId: number;
+  projectName: string;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  role: string; // ProjectRole
+  responsibilityLevel: string; // ResponsibilityLevel
+  reportingLine?: string;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ProjectScope {
+  id: number;
+  projectId: number;
+  category: string; // ScopeCategory
+  description: string;
+  isIncluded: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ProjectMilestone {
+  id: number;
+  projectId: number;
+  name: string;
+  deadline: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  approvalRequired: boolean;
+  approvedById?: number;
+  approvedByName?: string;
+  approvedAt?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ProjectDocument {
+  id: number;
+  projectId: number;
+  name: string;
+  type: string; // DocumentType
+  url: string;
+  version: number;
+  status: 'DRAFT' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
+  uploadedById?: number;
+  uploadedByName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAssignmentRequest {
+  userId: number;
+  role: string;
+  responsibilityLevel?: string;
+  reportingLine?: string;
+  startDate: string;
+}
+
+export const Industry = {
+  HOTEL: 'HOTEL',
+  RESIDENTIAL: 'RESIDENTIAL',
+  COMMERCIAL: 'COMMERCIAL',
+  INDUSTRIAL: 'INDUSTRIAL',
+  INFRASTRUCTURE: 'INFRASTRUCTURE',
+  INSTITUTIONAL: 'INSTITUTIONAL'
+} as const;
+
+export const ProjectType = {
+  CONSTRUCTION: 'CONSTRUCTION',
+  RENOVATION: 'RENOVATION',
+  MAINTENANCE: 'MAINTENANCE',
+  DESIGN_ONLY: 'DESIGN_ONLY'
+} as const;
+
+export const ProjectRole = {
+  LEAD_ENGINEER: 'LEAD_ENGINEER',
+  CIVIL_ENGINEER: 'CIVIL_ENGINEER',
+  ELECTRICAL_ENGINEER: 'ELECTRICAL_ENGINEER',
+  MECHANICAL_ENGINEER: 'MECHANICAL_ENGINEER',
+  SITE_ENGINEER: 'SITE_ENGINEER',
+  PROJECT_MANAGER: 'PROJECT_MANAGER',
+  QUANTITY_SURVEYOR: 'QUANTITY_SURVEYOR',
+  CLERK_OF_WORKS: 'CLERK_OF_WORKS'
+} as const;
+
+export const ResponsibilityLevel = {
+  FULL: 'FULL',
+  LIMITED: 'LIMITED',
+  OBSERVER: 'OBSERVER'
+} as const;
+
+export const ScopeCategory = {
+  CIVIL_STRUCTURAL: 'CIVIL_STRUCTURAL',
+  ELECTRICAL: 'ELECTRICAL',
+  MECHANICAL: 'MECHANICAL',
+  PLUMBING: 'PLUMBING',
+  FIRE_SAFETY: 'FIRE_SAFETY',
+  EXTERNAL_WORKS: 'EXTERNAL_WORKS',
+  LANDSCAPING: 'LANDSCAPING',
+  INTERIOR_FINISHING: 'INTERIOR_FINISHING',
+  ROOFING: 'ROOFING'
+} as const;
 
 export const MaterialCategory = {
   CEMENT: 'CEMENT',
@@ -64,7 +220,6 @@ export interface MaterialSelection {
   manualPrice?: number;
 }
 
-// Phase 3: Request Status
 export const RequestStatus = {
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
@@ -73,7 +228,6 @@ export const RequestStatus = {
 
 export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus];
 
-// Phase 3: Material Request
 export interface MaterialRequest {
   id: number;
   siteId: number;
@@ -98,7 +252,6 @@ export interface MaterialRequest {
   updatedAt: string;
 }
 
-// Phase 3: Create Material Request DTO
 export interface CreateMaterialRequest {
   siteId: number;
   workPackageId?: number;
@@ -112,8 +265,14 @@ export interface CreateMaterialRequest {
   emergencyFlag?: boolean;
 }
 
-// Phase 3: Approval Action
 export interface ApprovalAction {
   status: 'APPROVED' | 'REJECTED';
   comment?: string;
+}
+
+export interface UserSummary {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
 }

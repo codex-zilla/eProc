@@ -23,7 +23,7 @@ import RequestDetails from './pages/engineer/RequestDetails';
 // Manager pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import MyProjects from './pages/manager/MyProjects';
-import CreateProject from './pages/manager/CreateProject';
+import ProjectWizard from './components/ProjectWizard';
 import ProjectDetails from './pages/manager/ProjectDetails';
 import PendingRequests from './pages/manager/PendingRequests';
 import RequestDetailsManager from './pages/manager/RequestDetailsManager';
@@ -59,7 +59,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['PROJECT_MANAGER']} />}>
                 <Route path="/manager/dashboard" element={<ManagerDashboard />} />
                 <Route path="/manager/projects" element={<MyProjects />} />
-                <Route path="/manager/projects/new" element={<CreateProject />} />
+                <Route path="/manager/projects/new" element={<ProjectWizard />} />
                 <Route path="/manager/projects/:id" element={<ProjectDetails />} />
                 <Route path="/manager/pending" element={<PendingRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />

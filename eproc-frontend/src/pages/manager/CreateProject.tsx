@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, ArrowLeft } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { getExchangeRate, convertFromTZS, convertToTZS } from '@/lib/currency';
 import { LocationPicker } from '@/components/ui/location-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -21,7 +20,7 @@ interface MaterialRequest {
  * My Requests page - list of engineer's own requests.
  */
 const MyRequests = () => {
-  const { logout } = useAuth();
+
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('ALL');

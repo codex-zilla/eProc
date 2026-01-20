@@ -34,7 +34,7 @@ export const ProjectList: React.FC = () => {
             <div className="mt-2 sm:flex sm:justify-between">
               <div className="sm:flex">
                 <p className="flex items-center text-sm text-gray-500">
-                  Owner: {project.owner}
+                  Owner: {project.bossName}
                 </p>
               </div>
             </div>

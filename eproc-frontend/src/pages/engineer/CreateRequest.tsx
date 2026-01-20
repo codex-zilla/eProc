@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -38,7 +37,7 @@ interface ExistingRequest {
  */
 const CreateRequest = () => {
   const { id } = useParams<{ id: string }>(); // Edit mode if ID present
-  const { logout } = useAuth();
+
   const navigate = useNavigate();
   
   const [sites, setSites] = useState<Site[]>([]);

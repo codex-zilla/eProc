@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import api from '../lib/axios';
 
 interface User {
+  id: number;
   email: string;
   role: string;
   name: string;
@@ -54,11 +55,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [token]);
 
   const handleAuthResponse = (response: any) => {
-    const { token: newToken, email: userEmail, role, name } = response.data;
+    const { token: newToken, email: userEmail, role, name, id } = response.data;
     
     // Store token and user info
     localStorage.setItem('token', newToken);
-    const userData: User = { email: userEmail, role, name };
+    const userData: User = { id, email: userEmail, role, name };
     localStorage.setItem('user', JSON.stringify(userData));
     
     setToken(newToken);
