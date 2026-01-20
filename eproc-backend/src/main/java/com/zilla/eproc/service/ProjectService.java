@@ -228,7 +228,34 @@ public class ProjectService {
                 .ward(project.getWard())
                 .isActive(project.getIsActive())
                 .createdAt(project.getCreatedAt())
-                .status(project.getStatus() != null ? project.getStatus().name() : null);
+                .status(project.getStatus() != null ? project.getStatus().name() : null)
+                // NEW: Core Identification
+                .code(project.getCode())
+                .industry(project.getIndustry() != null ? project.getIndustry().name() : null)
+                .projectType(project.getProjectType() != null ? project.getProjectType().name() : null)
+                // NEW: Owner Rep
+                .ownerRepName(project.getOwnerRepName())
+                .ownerRepContact(project.getOwnerRepContact())
+                // NEW: Location Details
+                .plotNumber(project.getPlotNumber())
+                .gpsCoordinates(project.getGpsCoordinates())
+                .titleDeedAvailable(project.getTitleDeedAvailable())
+                .siteAccessNotes(project.getSiteAccessNotes())
+                // NEW: Project Context
+                .keyObjectives(project.getKeyObjectives())
+                .expectedOutput(project.getExpectedOutput())
+                // NEW: Timeline
+                .startDate(project.getStartDate())
+                .expectedCompletionDate(project.getExpectedCompletionDate())
+                // NEW: Contractual
+                .contractType(project.getContractType() != null ? project.getContractType().name() : null)
+                .defectsLiabilityPeriod(project.getDefectsLiabilityPeriod())
+                .performanceSecurityRequired(project.getPerformanceSecurityRequired())
+                // NEW: Summary counts
+                .teamCount(project.getTeamAssignments() != null ? project.getTeamAssignments().size() : 0)
+                .scopeCount(project.getScopes() != null ? project.getScopes().size() : 0)
+                .milestoneCount(project.getMilestones() != null ? project.getMilestones().size() : 0)
+                .documentCount(project.getDocuments() != null ? project.getDocuments().size() : 0);
 
         // Map boss info
         if (project.getBoss() != null) {
