@@ -36,6 +36,26 @@ public class User {
     private String name;
 
     /**
+     * Phone number for site-level coordination.
+     */
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    /**
+     * Professional title (e.g., "Senior Engineer").
+     * Note: This is informational only. Authority comes from
+     * ProjectAssignment.role.
+     */
+    private String title;
+
+    /**
+     * Engineers Registration Board (ERB) number.
+     * Required for engineers in Tanzania for compliance validation.
+     */
+    @Column(name = "erb_number")
+    private String erbNumber;
+
+    /**
      * Whether the user account is active.
      * Inactive users cannot log in or be assigned to projects.
      */

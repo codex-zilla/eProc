@@ -2,9 +2,13 @@
 
 ## Entities (key fields)
 
-- `users` (id, name, phone, email, role, status)
+- `users` (id, name, phone, email, role, title, erb_number, status)
 - `roles` (id, code: ENGINEER/STOREKEEPER/SITE_MANAGER/PROJECT_MANAGER/PROCUREMENT/ACCOUNTANT/SUPPLIER)
-- `projects` (id, name, owner, currency default, budget_total)
+- `projects` (id, code, name, industry, type, owner, owner_rep_name, owner_rep_contact, region, district, ward, plot_number, gps_coordinates, title_deed_available, key_objectives, expected_output, site_access_notes, start_date, expected_completion_date, contract_type, defects_liability_period, budget_total, currency)
+- `project_assignments` (id, project_id, user_id, role, responsibility_level, reporting_line, start_date, end_date)
+- `project_scopes` (id, project_id, category, description, is_included, notes)
+- `project_milestones` (id, project_id, name, deadline, status, approval_required)
+- `project_documents` (id, project_id, name, type, url, version, status)
 - `sites` (id, project_id, name, location, budget_cap, gps_center)
 - `work_packages` (id, project_id, name, stage)
 - `materials` (id, name, category, default_unit, unit_type: bag/bundle/trip/lorry_load/ton/asphalt_drum/culvert/custom, reference_price)

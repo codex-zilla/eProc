@@ -8,7 +8,10 @@ import lombok.Builder;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "projects")
@@ -52,6 +55,89 @@ public class Project {
 
     @Column(length = 100)
     private String ward;
+
+    // === NEW: Core Identification ===
+
+    /**
+     * Auto-generated project code (e.g., PRJ-HTL-2026-001).
+     */
+    @Column(unique = true)
+    private String code;
+
+    @Enumerated(EnumType.STRING)
+    private Industry industry;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "project_type")
+    private ProjectType projectType;
+
+    // === NEW: Owner Representative ===
+
+    @Column(name = "owner_rep_name")
+    private String ownerRepName;
+
+    @Column(name = "owner_rep_contact")
+    private String ownerRepContact;
+
+    // === NEW: Location Details ===
+
+    @Column(name = "plot_number")
+    private String plotNumber;
+
+    @Column(name = "gps_coordinates")
+    private String gpsCoordinates;
+
+    @Column(name = "title_deed_available")
+    private Boolean titleDeedAvailable;
+
+    @Column(name = "site_access_notes", columnDefinition = "TEXT")
+    private String siteAccessNotes;
+
+    // === NEW: Project Context ===
+
+    @Column(name = "key_objectives", columnDefinition = "TEXT")
+    private String keyObjectives;
+
+    @Column(name = "expected_output", columnDefinition = "TEXT")
+    private String expectedOutput;
+
+    // === NEW: Timeline ===
+
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "expected_completion_date")
+    private LocalDate expectedCompletionDate;
+
+    // === NEW: Contractual ===
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "contract_type")
+    private ContractType contractType;
+
+    @Column(name = "defects_liability_period")
+    private Integer defectsLiabilityPeriod;
+
+    @Column(name = "performance_security_required")
+    private Boolean performanceSecurityRequired;
+
+    // === NEW: Relationships to child entities ===
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProjectAssignment> teamAssignments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProjectScope> scopes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProjectMilestone> milestones = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProjectDocument> documents = new ArrayList<>();
 
     @Column(name = "is_active")
     @Builder.Default
