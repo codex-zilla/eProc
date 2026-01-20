@@ -3,12 +3,16 @@ package com.zilla.eproc.service;
 import com.zilla.eproc.dto.SiteDTO;
 import com.zilla.eproc.model.Project;
 import com.zilla.eproc.model.Site;
+import com.zilla.eproc.model.Role;
+import com.zilla.eproc.model.User;
 import com.zilla.eproc.repository.ProjectRepository;
 import com.zilla.eproc.repository.SiteRepository;
+import com.zilla.eproc.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,10 +22,25 @@ public class SiteService {
 
     private final SiteRepository siteRepository;
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<SiteDTO> getAllSites() {
-        return siteRepository.findByIsActiveTrue().stream()
+    public List<SiteDTO> getAllSites(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Site> sites;
+
+        if (user.getRole() == Role.ENGINEER) {
+            sites = siteRepository.findByProjectEngineerIdAndIsActiveTrue(user.getId());
+        } else if (user.getRole() == Role.PROJECT_MANAGER) {
+            sites = siteRepository.findByProjectBossIdAndIsActiveTrue(user.getId());
+        } else {
+            // Admin or other roles see nothing (strict access)
+            sites = Collections.emptyList();
+        }
+
+        return sites.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }

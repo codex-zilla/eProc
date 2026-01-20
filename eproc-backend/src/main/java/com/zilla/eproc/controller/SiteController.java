@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -18,8 +19,8 @@ public class SiteController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<SiteDTO>> getAllSites() {
-        return ResponseEntity.ok(siteService.getAllSites());
+    public ResponseEntity<List<SiteDTO>> getAllSites(Principal principal) {
+        return ResponseEntity.ok(siteService.getAllSites(principal.getName()));
     }
 
     @GetMapping("/project/{projectId}")

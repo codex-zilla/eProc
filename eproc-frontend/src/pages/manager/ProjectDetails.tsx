@@ -238,7 +238,7 @@ const ProjectDetails = () => {
                                 >
                                     <option value="">Select an engineer...</option>
                                     {availableEngineers.map(eng => (
-                                    <option key={eng.id} value={eng.id}>{eng.name} ({eng.email})</option>
+                                    <option key={eng.id} value={eng.id}>{eng.name}</option>
                                     ))}
                                 </select>
                               </div>

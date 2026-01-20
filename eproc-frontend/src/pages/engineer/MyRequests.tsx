@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_URL;
 
 interface MaterialRequest {
   id: number;
@@ -35,7 +35,7 @@ const MyRequests = () => {
     const loadRequests = async () => {
       try {
         const response = await axios.get<MaterialRequest[]>(
-          `${API_BASE}/api/requests/my`,
+          `${API_BASE}/requests/my`,
           { headers: getAuthHeaders() }
         );
         setRequests(response.data);
@@ -76,7 +76,7 @@ const MyRequests = () => {
             onClick={() => setFilter(status)}
             className={`px-4 py-2 rounded-t-lg font-medium ${
               filter === status 
-                ? 'bg-indigo-100 text-indigo-700 border-b-2 border-indigo-600' 
+                ? 'bg-[#2a3455]/10 text-[#2a3455] border-b-2 border-[#2a3455]' 
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -100,7 +100,7 @@ const MyRequests = () => {
           <p className="text-gray-500">No requests found.</p>
           <Link
             to="/engineer/requests/new"
-            className="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="inline-block mt-4 px-4 py-2 bg-[#2a3455] text-white rounded-lg hover:bg-[#1e253e]"
           >
             Create Your First Request
           </Link>
@@ -145,7 +145,7 @@ const MyRequests = () => {
                     <div className="flex gap-2">
                       <Link
                         to={`/engineer/requests/${request.id}`}
-                        className="text-indigo-600 hover:underline text-sm"
+                        className="text-blue-600 hover:underline text-sm"
                       >
                         View
                       </Link>

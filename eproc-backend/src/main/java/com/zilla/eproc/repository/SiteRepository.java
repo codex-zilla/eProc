@@ -11,4 +11,8 @@ public interface SiteRepository extends JpaRepository<Site, Long> {
     List<Site> findByProjectIdAndIsActiveTrue(Long projectId);
 
     List<Site> findByIsActiveTrue();
+
+    List<Site> findByProjectEngineerIdAndIsActiveTrue(Long engineerId);
+
+    List<Site> findByProjectBossIdAndIsActiveTrue(Long bossId);
 }

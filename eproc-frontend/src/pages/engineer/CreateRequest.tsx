@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_URL;
 
 interface Site {
   id: number;
@@ -70,8 +70,8 @@ const CreateRequest = () => {
     const loadData = async () => {
       try {
         const [sitesRes, materialsRes] = await Promise.all([
-          axios.get<Site[]>(`${API_BASE}/api/sites`, { headers: getAuthHeaders() }),
-          axios.get<Material[]>(`${API_BASE}/api/materials`, { headers: getAuthHeaders() }),
+          axios.get<Site[]>(`${API_BASE}/sites`, { headers: getAuthHeaders() }),
+          axios.get<Material[]>(`${API_BASE}/materials`, { headers: getAuthHeaders() }),
         ]);
         setSites(sitesRes.data);
         setMaterials(materialsRes.data);
@@ -84,7 +84,7 @@ const CreateRequest = () => {
         // Load existing request if edit mode
         if (isEditMode) {
           const reqRes = await axios.get<ExistingRequest>(
-            `${API_BASE}/api/requests/${id}`,
+            `${API_BASE}/requests/${id}`,
             { headers: getAuthHeaders() }
           );
           const req = reqRes.data;
@@ -139,13 +139,13 @@ const CreateRequest = () => {
     try {
       if (isEditMode) {
         await axios.put(
-          `${API_BASE}/api/requests/${id}`,
+          `${API_BASE}/requests/${id}`,
           payload,
           { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
         );
       } else {
         await axios.post(
-          `${API_BASE}/api/requests`,
+          `${API_BASE}/requests`,
           payload,
           { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
         );
@@ -187,7 +187,7 @@ const CreateRequest = () => {
               value={siteId}
               onChange={(e) => setSiteId(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
             >
               <option value="">Select a site...</option>
               {sites.map(site => (
@@ -232,7 +232,7 @@ const CreateRequest = () => {
                 value={materialId}
                 onChange={(e) => setMaterialId(e.target.value)}
                 required={!useManualMaterial}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
               >
                 <option value="">Select a material...</option>
                 {materials.map(mat => (
@@ -255,7 +255,7 @@ const CreateRequest = () => {
                   onChange={(e) => setManualMaterialName(e.target.value)}
                   required={useManualMaterial}
                   placeholder="e.g., Custom Steel Beam"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -266,7 +266,7 @@ const CreateRequest = () => {
                     value={manualUnit}
                     onChange={(e) => setManualUnit(e.target.value)}
                     placeholder="e.g., pcs, kg, m"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
                   />
                 </div>
                 <div>
@@ -278,7 +278,7 @@ const CreateRequest = () => {
                     placeholder="0"
                     min="0"
                     step="0.01"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
                   />
                 </div>
               </div>
@@ -296,7 +296,7 @@ const CreateRequest = () => {
               min="0.01"
               step="0.01"
               placeholder="Enter quantity"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
             />
           </div>
 
@@ -308,7 +308,7 @@ const CreateRequest = () => {
                 type="datetime-local"
                 value={plannedUsageStart}
                 onChange={(e) => setPlannedUsageStart(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
               />
             </div>
             <div>
@@ -317,7 +317,7 @@ const CreateRequest = () => {
                 type="datetime-local"
                 value={plannedUsageEnd}
                 onChange={(e) => setPlannedUsageEnd(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-600"
               />
             </div>
           </div>
@@ -347,7 +347,7 @@ const CreateRequest = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 bg-[#2a3455] text-white rounded-md hover:bg-[#1e253e] disabled:opacity-50"
             >
               {submitting ? 'Submitting...' : (isEditMode ? 'Resubmit Request' : 'Create Request')}
             </button>

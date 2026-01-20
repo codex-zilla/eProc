@@ -64,8 +64,8 @@ const AppLayout = () => {
     if (user?.role === 'ENGINEER') {
       return [
         { label: 'Dashboard', path: '/engineer/dashboard', icon: LayoutDashboard },
-        { label: 'My Project', path: '/engineer/project', icon: Building },
-        { label: 'My Requests', path: '/engineer/requests', icon: ClipboardList },
+        { label: 'Projects', path: '/engineer/project', icon: Building },
+        { label: 'Requests', path: '/engineer/requests', icon: ClipboardList },
       ];
     }
     if (user?.role === 'PROJECT_MANAGER') {
@@ -108,6 +108,27 @@ const AppLayout = () => {
             label: 'Project Details',
             active: true
         });
+    }
+
+    // Engineer Routes Logic
+    if (location.pathname === '/engineer/requests/new') {
+        if (breadcrumbs.length > 0) breadcrumbs[0].active = false;
+        breadcrumbs.push({
+            label: 'Create New Request',
+            active: true
+        });
+    } else if (/^\/engineer\/requests\/\d+$/.test(location.pathname)) {
+        if (breadcrumbs.length > 0) breadcrumbs[0].active = false;
+        breadcrumbs.push({
+            label: 'Request Details',
+            active: true
+        });
+    } else if (/^\/engineer\/requests\/\d+\/edit$/.test(location.pathname)) {
+         if (breadcrumbs.length > 0) breadcrumbs[0].active = false;
+         breadcrumbs.push({
+             label: 'Edit Request',
+             active: true
+         });
     }
     // Add other sub-page logic here if needed
   } else {
