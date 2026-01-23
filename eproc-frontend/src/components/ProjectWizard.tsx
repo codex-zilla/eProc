@@ -14,7 +14,7 @@ import { getAllRegions, getDistrictData, getWardData } from 'tz-geo-data';
 
 import { getCoordinates } from '@/lib/geocoding';
 import { projectService } from '@/services/projectService';
-import { Industry, ProjectType } from '@/types/models';
+import { Industry, ProjectType, ContractType } from '@/types/models';
 
 const ProjectWizard = () => {
     const navigate = useNavigate();
@@ -31,6 +31,7 @@ const ProjectWizard = () => {
         projectType: '',
         currency: 'TZS',
         budgetDisplay: '',
+        description: '',
         
         // Step 2: Location
         region: '',
@@ -46,6 +47,11 @@ const ProjectWizard = () => {
         ownerRepContact: '',
         startDate: '',
         expectedCompletionDate: '',
+        
+        // Step 4: Contract
+        contractType: '',
+        defectsLiabilityPeriod: 0,
+        performanceSecurityRequired: false,
         
         // Step 4: Context
         keyObjectives: '',
@@ -65,18 +71,23 @@ const ProjectWizard = () => {
     };
 
     // Geo Updates
-    const updateMapLocation = async (query: string, setMarker: boolean = false) => {
+    const updateMapLocation = async (query: string) => {
         const coords = await getCoordinates(query);
         if (coords) {
             setMapCenter(coords);
-            if (setMarker) setMarkerPosition(coords);
+            setMarkerPosition(coords);
+            handleChange('gpsCoordinates', `${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}`);
         }
     };
 
     useEffect(() => {
-        if (formData.region && !formData.district) updateMapLocation(`${formData.region}, Tanzania`);
-        if (formData.district) updateMapLocation(`${formData.district}, ${formData.region}, Tanzania`);
-        if (formData.ward) updateMapLocation(`${formData.ward}, ${formData.district}, ${formData.region}, Tanzania`, true);
+        if (formData.ward) {
+            updateMapLocation(`${formData.ward}, ${formData.district}, ${formData.region}, Tanzania`);
+        } else if (formData.district) {
+            updateMapLocation(`${formData.district}, ${formData.region}, Tanzania`);
+        } else if (formData.region) {
+            updateMapLocation(`${formData.region}, Tanzania`);
+        }
     }, [formData.region, formData.district, formData.ward]);
 
     const handleLocationSelect = (lat: number, lng: number) => {
@@ -103,7 +114,7 @@ const ProjectWizard = () => {
                 district: formData.district,
                 ward: formData.ward,
                 plotNumber: formData.plotNumber,
-                gpsCoordinates: formData.gpsCoordinates,
+                gpsCoordinates: markerPosition ? `${markerPosition.lat},${markerPosition.lng}` : formData.gpsCoordinates,
                 siteAccessNotes: formData.siteAccessNotes,
                 titleDeedAvailable: formData.titleDeedAvailable,
                 siteLocation: markerPosition ? `${markerPosition.lat},${markerPosition.lng}` : '', // Legacy compat
@@ -112,6 +123,11 @@ const ProjectWizard = () => {
                 ownerRepContact: formData.ownerRepContact,
                 startDate: formData.startDate,
                 expectedCompletionDate: formData.expectedCompletionDate,
+
+                contractType: formData.contractType,
+                defectsLiabilityPeriod: formData.defectsLiabilityPeriod,
+                performanceSecurityRequired: formData.performanceSecurityRequired,
+                description: formData.description,
 
                 keyObjectives: formData.keyObjectives,
                 expectedOutput: formData.expectedOutput
@@ -201,6 +217,10 @@ const ProjectWizard = () => {
                                     <Input type="number" value={formData.budgetDisplay} onChange={e => handleChange('budgetDisplay', e.target.value)} placeholder="0.00" />
                                 </div>
                             </div>
+                            <div className="grid gap-2">
+                                <Label>Description</Label>
+                                <Textarea value={formData.description} onChange={e => handleChange('description', e.target.value)} placeholder="Detailed project description..." />
+                            </div>
                         </CardContent>
                     </>
                 )}
@@ -255,6 +275,11 @@ const ProjectWizard = () => {
                                 <LocationPicker center={mapCenter} markerPosition={markerPosition} onLocationSelect={handleLocationSelect} />
                                 {markerPosition && <p className="text-xs text-green-600">Selected: {markerPosition.lat.toFixed(5)}, {markerPosition.lng.toFixed(5)}</p>}
                             </div>
+                            <div className="grid gap-2">
+                                <Label>Site Access Notes</Label>
+                                <Textarea value={formData.siteAccessNotes} onChange={e => handleChange('siteAccessNotes', e.target.value)} placeholder="e.g. 4x4 required, muddy road..." />
+                            </div>
+
                         </CardContent>
                     </>
                 )}
@@ -263,7 +288,7 @@ const ProjectWizard = () => {
                 {step === 3 && (
                     <>
                         <CardHeader>
-                            <CardTitle>Owner & Timeline</CardTitle>
+                            <CardTitle>Owner, Timeline & Contract</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-2">
@@ -284,6 +309,29 @@ const ProjectWizard = () => {
                                     <Input type="date" value={formData.expectedCompletionDate} onChange={e => handleChange('expectedCompletionDate', e.target.value)} />
                                 </div>
                             </div>
+
+                            <hr className="my-2" />
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Contract Type</Label>
+                                    <Select value={formData.contractType} onValueChange={v => handleChange('contractType', v)}>
+                                        <SelectTrigger><SelectValue placeholder="Select Contract Type" /></SelectTrigger>
+                                        <SelectContent>
+                                            {Object.values(ContractType).map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Defects Liability Period (Days)</Label>
+                                    <Input type="number" value={formData.defectsLiabilityPeriod} onChange={e => handleChange('defectsLiabilityPeriod', parseInt(e.target.value) || 0)} />
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="perfSecurity" checked={formData.performanceSecurityRequired} onCheckedChange={(v) => handleChange('performanceSecurityRequired', v === true)} />
+                                <Label htmlFor="perfSecurity">Performance Security Required?</Label>
+                            </div>
+
                         </CardContent>
                     </>
                 )}
@@ -322,6 +370,7 @@ const ProjectWizard = () => {
                                 <div><strong>Type:</strong> {formData.projectType}</div>
                                 <div><strong>Region:</strong> {formData.region}</div>
                                 <div><strong>Plot:</strong> {formData.plotNumber}</div>
+                                <div><strong>Contract:</strong> {formData.contractType}</div>
                             </div>
                             <div className="bg-gray-50 p-3 rounded">
                                 <p><strong>Objectives:</strong> {formData.keyObjectives}</p>

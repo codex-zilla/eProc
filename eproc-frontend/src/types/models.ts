@@ -146,6 +146,13 @@ export const ProjectType = {
   DESIGN_ONLY: 'DESIGN_ONLY'
 } as const;
 
+export const ContractType = {
+  LUMP_SUM: 'LUMP_SUM',
+  COST_PLUS: 'COST_PLUS',
+  UNIT_PRICE: 'UNIT_PRICE',
+  TIME_AND_MATERIALS: 'TIME_AND_MATERIALS'
+} as const;
+
 export const ProjectRole = {
   LEAD_ENGINEER: 'LEAD_ENGINEER',
   CIVIL_ENGINEER: 'CIVIL_ENGINEER',
