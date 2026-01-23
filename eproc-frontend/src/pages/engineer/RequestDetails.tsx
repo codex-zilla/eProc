@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+import api from '../../lib/axios';
 
 interface RequestDetails {
   id: number;
@@ -46,17 +44,14 @@ const RequestDetails = () => {
   const [history, setHistory] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const [reqRes, histRes] = await Promise.all([
-          axios.get<RequestDetails>(`${API_BASE}/api/requests/${id}`, { headers: getAuthHeaders() }),
-          axios.get<AuditEntry[]>(`${API_BASE}/api/requests/${id}/history`, { headers: getAuthHeaders() }),
+          api.get<RequestDetails>(`/requests/${id}`),
+          api.get<AuditEntry[]>(`/requests/${id}/history`),
         ]);
         setRequest(reqRes.data);
         setHistory(histRes.data);
@@ -67,7 +62,7 @@ const RequestDetails = () => {
       }
     };
     loadData();
-  }, [id, getAuthHeaders]);
+  }, [id]);
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {

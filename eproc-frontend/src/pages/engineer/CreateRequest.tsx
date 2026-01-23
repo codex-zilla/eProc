@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL;
+import api from '../../lib/axios';
 
 interface Site {
   id: number;
@@ -60,17 +58,14 @@ const CreateRequest = () => {
 
   const isEditMode = !!id;
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const [sitesRes, materialsRes] = await Promise.all([
-          axios.get<Site[]>(`${API_BASE}/sites`, { headers: getAuthHeaders() }),
-          axios.get<Material[]>(`${API_BASE}/materials`, { headers: getAuthHeaders() }),
+          api.get<Site[]>('/sites'),
+          api.get<Material[]>('/materials'),
         ]);
         setSites(sitesRes.data);
         setMaterials(materialsRes.data);
@@ -82,9 +77,8 @@ const CreateRequest = () => {
 
         // Load existing request if edit mode
         if (isEditMode) {
-          const reqRes = await axios.get<ExistingRequest>(
-            `${API_BASE}/requests/${id}`,
-            { headers: getAuthHeaders() }
+          const reqRes = await api.get<ExistingRequest>(
+            `/requests/${id}`
           );
           const req = reqRes.data;
           setSiteId(req.siteId.toString());
@@ -111,7 +105,7 @@ const CreateRequest = () => {
       }
     };
     loadData();
-  }, [id, isEditMode, getAuthHeaders]);
+  }, [id, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,16 +131,16 @@ const CreateRequest = () => {
 
     try {
       if (isEditMode) {
-        await axios.put(
-          `${API_BASE}/requests/${id}`,
+        await api.put(
+          `/requests/${id}`,
           payload,
-          { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+          { headers: { 'Content-Type': 'application/json' } }
         );
       } else {
-        await axios.post(
-          `${API_BASE}/requests`,
+        await api.post(
+          '/requests',
           payload,
-          { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+          { headers: { 'Content-Type': 'application/json' } }
         );
       }
       navigate('/engineer/requests');

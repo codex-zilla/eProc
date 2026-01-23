@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL;
+import api from '../../lib/axios';
 
 interface Project {
   id: number;
@@ -27,17 +25,13 @@ const AssignedProject = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   useEffect(() => {
     const loadProject = async () => {
       try {
-        const response = await axios.get<Project[]>(
-          `${API_BASE}/projects`,
-          { headers: getAuthHeaders() }
+        const response = await api.get<Project[]>(
+          '/projects'
         );
         // Engineer should only see one project they're assigned to
         if (response.data.length > 0) {
@@ -51,7 +45,7 @@ const AssignedProject = () => {
       }
     };
     loadProject();
-  }, [getAuthHeaders]);
+  }, []);
 
   if (loading) {
     return (

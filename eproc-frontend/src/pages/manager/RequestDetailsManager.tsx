@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
+import api from '../../lib/axios';
 import { 
   FileText, 
   Send, 
@@ -13,7 +13,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 
 interface RequestDetails {
   id: number;
@@ -59,16 +59,13 @@ const RequestDetailsManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   const loadData = useCallback(async () => {
     try {
       const [reqRes, histRes] = await Promise.all([
-        axios.get<RequestDetails>(`${API_BASE}/api/requests/${id}`, { headers: getAuthHeaders() }),
-        axios.get<AuditEntry[]>(`${API_BASE}/api/requests/${id}/history`, { headers: getAuthHeaders() }),
+        api.get<RequestDetails>(`/requests/${id}`),
+        api.get<AuditEntry[]>(`/requests/${id}/history`),
       ]);
       setRequest(reqRes.data);
       setHistory(histRes.data);
@@ -77,7 +74,7 @@ const RequestDetailsManager = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, getAuthHeaders]);
+  }, [id]);
 
   useEffect(() => {
     loadData();
@@ -86,10 +83,10 @@ const RequestDetailsManager = () => {
   const handleApprove = async () => {
     setError(null);
     try {
-      await axios.patch(
-        `${API_BASE}/api/requests/${id}/status`,
+      await api.patch(
+        `/requests/${id}/status`,
         { status: 'APPROVED' },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       setSuccess('Request approved!');
       loadData();
@@ -105,10 +102,10 @@ const RequestDetailsManager = () => {
     }
     setError(null);
     try {
-      await axios.patch(
-        `${API_BASE}/api/requests/${id}/status`,
+      await api.patch(
+        `/requests/${id}/status`,
         { status: 'REJECTED', comment: rejectComment },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       setSuccess('Request rejected');
       setRejectComment('');

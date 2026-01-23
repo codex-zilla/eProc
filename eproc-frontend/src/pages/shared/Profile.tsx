@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+import api from '../../lib/axios';
 
 /**
  * Profile page - view user info and change password.
@@ -15,10 +13,7 @@ const Profile = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
+
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,10 +31,10 @@ const Profile = () => {
 
     setLoading(true);
     try {
-      await axios.post(
-        `${API_BASE}/api/auth/change-password`,
+      await api.post(
+        '/auth/change-password',
         { currentPassword, newPassword },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       setMessage({ type: 'success', text: 'Password changed successfully!' });
       setCurrentPassword('');

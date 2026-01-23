@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 // Request interceptor to add auth token
@@ -22,8 +22,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth data on 401
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Clear auth data on 401 or 403
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       // Redirect to login if not already there

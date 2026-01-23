@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, CheckCircle, XCircle, FileText, Briefcase, ArrowRight } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL;
+
 
 interface EngineerDashboardData {
   assignedProjectId: number | null;
@@ -29,17 +29,13 @@ const EngineerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const response = await axios.get<EngineerDashboardData>(
-          `${API_BASE}/dashboard/engineer`,
-          { headers: getAuthHeaders() }
+        const response = await api.get<EngineerDashboardData>(
+          '/dashboard/engineer'
         );
         setDashboard(response.data);
       } catch (err) {
@@ -50,7 +46,7 @@ const EngineerDashboard = () => {
       }
     };
     loadDashboard();
-  }, [getAuthHeaders]);
+  }, []);
 
   if (loading) {
     return (

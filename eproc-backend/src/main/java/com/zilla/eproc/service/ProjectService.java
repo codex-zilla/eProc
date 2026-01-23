@@ -87,6 +87,32 @@ public class ProjectService {
                 .ward(dto.getWard())
                 .status(ProjectStatus.ACTIVE)
                 .isActive(true)
+                // NEW: Core Identification
+                .code(dto.getCode())
+                .industry(dto.getIndustry() != null ? com.zilla.eproc.model.Industry.valueOf(dto.getIndustry()) : null)
+                .projectType(
+                        dto.getProjectType() != null ? com.zilla.eproc.model.ProjectType.valueOf(dto.getProjectType())
+                                : null)
+                // NEW: Owner Rep
+                .ownerRepName(dto.getOwnerRepName())
+                .ownerRepContact(dto.getOwnerRepContact())
+                // NEW: Location Details
+                .plotNumber(dto.getPlotNumber())
+                .gpsCoordinates(dto.getGpsCoordinates())
+                .titleDeedAvailable(dto.getTitleDeedAvailable())
+                .siteAccessNotes(dto.getSiteAccessNotes())
+                // NEW: Project Context
+                .keyObjectives(dto.getKeyObjectives())
+                .expectedOutput(dto.getExpectedOutput())
+                // NEW: Timeline
+                .startDate(dto.getStartDate())
+                .expectedCompletionDate(dto.getExpectedCompletionDate())
+                // NEW: Contractual
+                .contractType(dto.getContractType() != null
+                        ? com.zilla.eproc.model.ContractType.valueOf(dto.getContractType())
+                        : null)
+                .defectsLiabilityPeriod(dto.getDefectsLiabilityPeriod())
+                .performanceSecurityRequired(dto.getPerformanceSecurityRequired())
                 .build();
 
         Project saved = projectRepository.save(project);

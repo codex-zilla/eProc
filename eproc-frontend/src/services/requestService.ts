@@ -1,20 +1,7 @@
-import axios from 'axios';
+import api from '../lib/axios';
 import type { MaterialRequest, CreateMaterialRequest, ApprovalAction, RequestStatus } from '../types/models';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-const api = axios.create({
-  baseURL: API_BASE,
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
 /**
  * Service for material request API operations.

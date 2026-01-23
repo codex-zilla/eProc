@@ -134,8 +134,8 @@ const ProjectWizard = () => {
     const wards = useMemo(() => (formData.region && formData.district) ? getWardData(formData.region, formData.district) : [], [formData.region, formData.district]);
 
     return (
-        <div className="max-w-3xl mx-auto py-10">
-            <h1 className="text-3xl font-bold mb-6 text-center">New Project Wizard</h1>
+        <div className="max-w-7xl mx-auto">
+            {/* <h1 className="text-3xl font-bold mb-6 text-center">New Project Wizard</h1> */}
             
             {/* Steps Indicator */}
             <div className="flex justify-between mb-8 px-10">

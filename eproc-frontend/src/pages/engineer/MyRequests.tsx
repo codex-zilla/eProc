@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL;
+import api from '../../lib/axios';
 
 interface MaterialRequest {
   id: number;
@@ -25,17 +23,13 @@ const MyRequests = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('ALL');
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   useEffect(() => {
     const loadRequests = async () => {
       try {
-        const response = await axios.get<MaterialRequest[]>(
-          `${API_BASE}/requests/my`,
-          { headers: getAuthHeaders() }
+        const response = await api.get<MaterialRequest[]>(
+          '/requests/my'
         );
         setRequests(response.data);
       } catch (err) {
@@ -45,7 +39,7 @@ const MyRequests = () => {
       }
     };
     loadRequests();
-  }, [getAuthHeaders]);
+  }, []);
 
   const filteredRequests = requests.filter(r => {
     if (filter === 'ALL') return true;

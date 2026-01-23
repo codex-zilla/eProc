@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_URL;
+import api from '../../lib/axios';
 
 interface PendingRequest {
   id: number;
@@ -31,16 +29,12 @@ const PendingRequests = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
+
 
   const loadRequests = useCallback(async () => {
     try {
-      const response = await axios.get<PendingRequest[]>(
-        `${API_BASE}/requests/pending`,
-        { headers: getAuthHeaders() }
+      const response = await api.get<PendingRequest[]>(
+        '/requests/pending'
       );
       setRequests(response.data);
     } catch (err) {
@@ -48,7 +42,7 @@ const PendingRequests = () => {
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   useEffect(() => {
     loadRequests();
@@ -57,10 +51,10 @@ const PendingRequests = () => {
   const handleApprove = async (requestId: number) => {
     setError(null);
     try {
-      await axios.patch(
-        `${API_BASE}/requests/${requestId}/status`,
+      await api.patch(
+        `/requests/${requestId}/status`,
         { status: 'APPROVED' },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       setSuccess('Request approved!');
       loadRequests();
@@ -77,10 +71,10 @@ const PendingRequests = () => {
     }
     setError(null);
     try {
-      await axios.patch(
-        `${API_BASE}/requests/${requestId}/status`,
+      await api.patch(
+        `/requests/${requestId}/status`,
         { status: 'REJECTED', comment },
-        { headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       setSuccess('Request rejected');
       setApprovalComment(prev => ({ ...prev, [requestId]: '' }));
