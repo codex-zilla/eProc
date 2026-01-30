@@ -43,6 +43,8 @@ public class RequestControllerIntegrationTest {
     @Autowired
     private MaterialRequestRepository requestRepository;
     @Autowired
+    private ProjectAssignmentRepository projectAssignmentRepository;
+    @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
@@ -52,10 +54,10 @@ public class RequestControllerIntegrationTest {
     private Long siteId;
     private Long materialId;
 
-    @SuppressWarnings("deprecation")
     @BeforeEach
     void setUp() {
         requestRepository.deleteAll();
+        projectAssignmentRepository.deleteAll();
         materialRepository.deleteAll();
         siteRepository.deleteAll();
         projectRepository.deleteAll();
@@ -74,20 +76,28 @@ public class RequestControllerIntegrationTest {
         pm.setEmail("pm@test.com");
         pm.setPasswordHash(passwordEncoder.encode("password"));
         pm.setName("PM");
-        pm.setRole(Role.PROJECT_MANAGER);
+        pm.setRole(Role.PROJECT_OWNER);
         userRepository.save(pm);
-        pmToken = jwtUtil.generateToken(pm.getEmail(), Role.PROJECT_MANAGER.name());
+        pmToken = jwtUtil.generateToken(pm.getEmail(), Role.PROJECT_OWNER.name());
 
         // Create Project & Site
         Project project = new Project();
         project.setName("Test Project");
-        project.setOwner("Client");
-        project.setBoss(pm); // ADR: Set boss
-        project.setEngineer(engineer); // ADR: Assign engineer
-        project.setStatus(ProjectStatus.ACTIVE); // ADR: Active status
+        project.setOwner(pm);
+        project.setStatus(ProjectStatus.ACTIVE);
         project.setCurrency("USD");
         project.setBudgetTotal(BigDecimal.valueOf(100000));
         projectRepository.save(project);
+
+        // Assign Engineer explicitly
+        ProjectAssignment assignment = ProjectAssignment.builder()
+                .project(project)
+                .user(engineer)
+                .role(ProjectRole.SITE_ENGINEER)
+                .startDate(java.time.LocalDate.now())
+                .isActive(true)
+                .build();
+        projectAssignmentRepository.save(assignment);
 
         Site site = new Site();
         site.setProject(project);

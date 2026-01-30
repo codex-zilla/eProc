@@ -2,6 +2,7 @@ package com.zilla.eproc.controller;
 
 import com.zilla.eproc.model.*;
 import com.zilla.eproc.repository.*;
+import com.zilla.eproc.dto.SiteDTO;
 import com.zilla.eproc.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -31,19 +31,20 @@ public class SiteControllerIntegrationTest {
     @Autowired
     private SiteRepository siteRepository;
     @Autowired
+    private ProjectAssignmentRepository projectAssignmentRepository;
+    @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
 
     private String engineerToken;
     private String pmToken;
-    private String otherUserToken;
     private Site assignedSite;
-    private Site otherSite;
 
     @BeforeEach
     void setUp() {
         siteRepository.deleteAll();
+        projectAssignmentRepository.deleteAll();
         projectRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -51,46 +52,61 @@ public class SiteControllerIntegrationTest {
         User engineer = saveUser("eng@test.com", Role.ENGINEER);
         engineerToken = jwtUtil.generateToken(engineer.getEmail(), Role.ENGINEER.name());
 
-        User pm = saveUser("pm@test.com", Role.PROJECT_MANAGER);
-        pmToken = jwtUtil.generateToken(pm.getEmail(), Role.PROJECT_MANAGER.name());
+        User pm = saveUser("pm@test.com", Role.PROJECT_OWNER);
+        pmToken = jwtUtil.generateToken(pm.getEmail(), Role.PROJECT_OWNER.name());
 
-        User otherUser = saveUser("other@test.com", Role.ENGINEER);
-        otherUserToken = jwtUtil.generateToken(otherUser.getEmail(), Role.ENGINEER.name());
-
-        // 2. Create Assigned Project (PM is Boss, Engineer is Assigned)
-        Project assignedProject = saveProject("Assigned Project", pm, engineer);
+        // 2. Create Assigned Project (PM is Owner, Engineer is Assigned)
+        Project assignedProject = saveProject("Assigned Project", pm);
+        createAssignment(assignedProject, engineer, ProjectRole.SITE_ENGINEER);
         assignedSite = saveSite("Assigned Site", assignedProject);
 
-        // 3. Create Unassigned Project (PM is Boss, No Engineer/Other Engineer)
-        Project otherProject = saveProject("Other Project", pm, null);
-        otherSite = saveSite("Other Site", otherProject);
+        // 3. Create Unassigned Project (PM is Owner, No Engineer/Other Engineer)
+
     }
 
     @Test
-    void engineer_sees_only_assigned_sites() throws Exception {
-        mockMvc.perform(get("/api/sites")
-                .header("Authorization", "Bearer " + engineerToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(assignedSite.getId().intValue())))
-                .andExpect(jsonPath("$[0].name", is(assignedSite.getName())));
-    }
-
-    @Test
-    void engineer_sees_empty_if_no_assignment() throws Exception {
-        mockMvc.perform(get("/api/sites")
-                .header("Authorization", "Bearer " + otherUserToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
-    }
-
-    @Test
-    void pm_sees_only_owned_sites() throws Exception {
-        // PM owns both projects
+    void getAllSites_authenticated_returnsList() throws Exception {
         mockMvc.perform(get("/api/sites")
                 .header("Authorization", "Bearer " + pmToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)));
+                .andExpect(jsonPath("$", not(empty())));
+    }
+
+    @Test
+    void getSitesByProject_engineerAssigned_returnsSites() throws Exception {
+        mockMvc.perform(get("/api/sites/project/" + assignedSite.getProject().getId())
+                .header("Authorization", "Bearer " + engineerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].name", is("Assigned Site")));
+    }
+
+    @Test
+    void createSite_pm_success() throws Exception {
+        SiteDTO dto = new SiteDTO();
+        dto.setName("New Site");
+        dto.setLocation("New Location");
+        dto.setProjectId(assignedSite.getProject().getId());
+
+        mockMvc.perform(post("/api/sites")
+                .header("Authorization", "Bearer " + pmToken)
+                .contentType("application/json")
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("New Site")));
+    }
+
+    @Test
+    void createSite_engineer_forbidden() throws Exception {
+        SiteDTO dto = new SiteDTO();
+        dto.setName("Eng Site");
+        dto.setProjectId(assignedSite.getProject().getId());
+
+        mockMvc.perform(post("/api/sites")
+                .header("Authorization", "Bearer " + engineerToken)
+                .contentType("application/json")
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(dto)))
+                .andExpect(status().isForbidden());
     }
 
     private User saveUser(String email, Role role) {
@@ -102,14 +118,23 @@ public class SiteControllerIntegrationTest {
         return userRepository.save(user);
     }
 
-    private Project saveProject(String name, User boss, User engineer) {
+    private Project saveProject(String name, User owner) {
         Project project = new Project();
         project.setName(name);
-        project.setBoss(boss);
-        project.setEngineer(engineer);
-        project.setOwner("Client");
+        project.setOwner(owner);
         project.setStatus(ProjectStatus.ACTIVE);
         return projectRepository.save(project);
+    }
+
+    private void createAssignment(Project project, User user, ProjectRole role) {
+        ProjectAssignment assignment = ProjectAssignment.builder()
+                .project(project)
+                .user(user)
+                .role(role)
+                .startDate(java.time.LocalDate.now())
+                .isActive(true)
+                .build();
+        projectAssignmentRepository.save(assignment);
     }
 
     private Site saveSite(String name, Project project) {

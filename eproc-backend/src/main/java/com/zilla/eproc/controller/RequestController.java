@@ -60,7 +60,7 @@ public class RequestController {
      * Only PROJECT_MANAGER can access this.
      */
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<List<MaterialRequestResponseDTO>> getPendingRequests(Authentication authentication) {
         String email = authentication.getName();
         List<MaterialRequestResponseDTO> requests = materialRequestService.getPendingRequests(email);
@@ -119,7 +119,7 @@ public class RequestController {
      * Only PROJECT_MANAGER can perform this action.
      */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<MaterialRequestResponseDTO> processApproval(
             @PathVariable Long id,
             @Valid @RequestBody ApprovalActionDTO dto,

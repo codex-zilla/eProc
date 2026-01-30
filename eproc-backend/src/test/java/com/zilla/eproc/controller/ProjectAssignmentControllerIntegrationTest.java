@@ -58,10 +58,10 @@ public class ProjectAssignmentControllerIntegrationTest {
                                 .email("boss@test.com")
                                 .passwordHash(passwordEncoder.encode("password"))
                                 .name("Boss")
-                                .role(Role.PROJECT_MANAGER)
+                                .role(Role.PROJECT_OWNER)
                                 .build();
                 boss = userRepository.save(boss);
-                bossToken = jwtUtil.generateToken(boss.getEmail(), Role.PROJECT_MANAGER.name());
+                bossToken = jwtUtil.generateToken(boss.getEmail(), Role.PROJECT_OWNER.name());
 
                 // Create Engineer with ERB number
                 engineer = User.builder()
@@ -77,8 +77,8 @@ public class ProjectAssignmentControllerIntegrationTest {
                 // Create Project owned by boss
                 project = Project.builder()
                                 .name("Test Project")
-                                .owner("Client")
-                                .boss(boss)
+                                .name("Test Project")
+                                .owner(boss)
                                 .status(ProjectStatus.ACTIVE)
                                 .isActive(true)
                                 .build();

@@ -26,154 +26,154 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class AuthControllerIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
+        @Autowired
+        private UserRepository userRepository;
 
-    @BeforeEach
-    void setUp() {
-        userRepository.deleteAll();
-    }
+        @BeforeEach
+        void setUp() {
+                userRepository.deleteAll();
+        }
 
-    @Test
-    void register_success_returnsToken() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("engineer@test.com")
-                .password("password123")
-                .name("Test Engineer")
-                .role(Role.ENGINEER)
-                .build();
+        @Test
+        void register_success_returnsToken() throws Exception {
+                RegisterRequest request = RegisterRequest.builder()
+                                .email("engineer@test.com")
+                                .password("password123")
+                                .name("Test Engineer")
+                                .role(Role.ENGINEER)
+                                .build();
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", notNullValue()))
-                .andExpect(jsonPath("$.email", is("engineer@test.com")))
-                .andExpect(jsonPath("$.role", is("ENGINEER")))
-                .andExpect(jsonPath("$.name", is("Test Engineer")));
-    }
+                mockMvc.perform(post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.token", notNullValue()))
+                                .andExpect(jsonPath("$.email", is("engineer@test.com")))
+                                .andExpect(jsonPath("$.role", is("ENGINEER")))
+                                .andExpect(jsonPath("$.name", is("Test Engineer")));
+        }
 
-    @Test
-    void register_duplicateEmail_returnsBadRequest() throws Exception {
-        // First registration
-        RegisterRequest request = RegisterRequest.builder()
-                .email("duplicate@test.com")
-                .password("password123")
-                .name("First User")
-                .role(Role.ENGINEER)
-                .build();
+        @Test
+        void register_duplicateEmail_returnsBadRequest() throws Exception {
+                // First registration
+                RegisterRequest request = RegisterRequest.builder()
+                                .email("duplicate@test.com")
+                                .password("password123")
+                                .name("First User")
+                                .role(Role.ENGINEER)
+                                .build();
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                mockMvc.perform(post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk());
 
-        // Second registration with same email
-        RegisterRequest duplicateRequest = RegisterRequest.builder()
-                .email("duplicate@test.com")
-                .password("password456")
-                .name("Second User")
-                .role(Role.ACCOUNTANT)
-                .build();
+                // Second registration with same email
+                RegisterRequest duplicateRequest = RegisterRequest.builder()
+                                .email("duplicate@test.com")
+                                .password("password456")
+                                .name("Second User")
+                                .role(Role.PROJECT_OWNER)
+                                .build();
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(duplicateRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Email already registered")));
-    }
+                mockMvc.perform(post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(duplicateRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("Email already registered")));
+        }
 
-    @Test
-    void register_invalidEmail_returnsValidationError() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("invalid-email")
-                .password("password123")
-                .name("Test User")
-                .role(Role.ENGINEER)
-                .build();
+        @Test
+        void register_invalidEmail_returnsValidationError() throws Exception {
+                RegisterRequest request = RegisterRequest.builder()
+                                .email("invalid-email")
+                                .password("password123")
+                                .name("Test User")
+                                .role(Role.ENGINEER)
+                                .build();
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fields.email", notNullValue()));
-    }
+                mockMvc.perform(post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.fields.email", notNullValue()));
+        }
 
-    @Test
-    void login_success_returnsToken() throws Exception {
-        // First register a user
-        RegisterRequest registerRequest = RegisterRequest.builder()
-                .email("login@test.com")
-                .password("password123")
-                .name("Login User")
-                .role(Role.PROJECT_MANAGER)
-                .build();
+        @Test
+        void login_success_returnsToken() throws Exception {
+                // First register a user
+                RegisterRequest registerRequest = RegisterRequest.builder()
+                                .email("login@test.com")
+                                .password("password123")
+                                .name("Login User")
+                                .role(Role.PROJECT_OWNER)
+                                .build();
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isOk());
+                mockMvc.perform(post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(registerRequest)))
+                                .andExpect(status().isOk());
 
-        // Then login
-        LoginRequest loginRequest = LoginRequest.builder()
-                .email("login@test.com")
-                .password("password123")
-                .build();
+                // Then login
+                LoginRequest loginRequest = LoginRequest.builder()
+                                .email("login@test.com")
+                                .password("password123")
+                                .build();
 
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", notNullValue()))
-                .andExpect(jsonPath("$.email", is("login@test.com")))
-                .andExpect(jsonPath("$.role", is("PROJECT_MANAGER")));
-    }
+                mockMvc.perform(post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.token", notNullValue()))
+                                .andExpect(jsonPath("$.email", is("login@test.com")))
+                                .andExpect(jsonPath("$.role", is("PROJECT_OWNER")));
+        }
 
-    @Test
-    void login_wrongPassword_returnsBadRequest() throws Exception {
-        // First register a user
-        RegisterRequest registerRequest = RegisterRequest.builder()
-                .email("wrongpass@test.com")
-                .password("correctpassword")
-                .name("Wrong Pass User")
-                .role(Role.ACCOUNTANT)
-                .build();
+        @Test
+        void login_wrongPassword_returnsBadRequest() throws Exception {
+                // First register a user
+                RegisterRequest registerRequest = RegisterRequest.builder()
+                                .email("wrongpass@test.com")
+                                .password("correctpassword")
+                                .name("Wrong Pass User")
+                                .role(Role.PROJECT_OWNER)
+                                .build();
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isOk());
+                mockMvc.perform(post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(registerRequest)))
+                                .andExpect(status().isOk());
 
-        // Try login with wrong password
-        LoginRequest loginRequest = LoginRequest.builder()
-                .email("wrongpass@test.com")
-                .password("wrongpassword")
-                .build();
+                // Try login with wrong password
+                LoginRequest loginRequest = LoginRequest.builder()
+                                .email("wrongpass@test.com")
+                                .password("wrongpassword")
+                                .build();
 
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Invalid email or password")));
-    }
+                mockMvc.perform(post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("Invalid email or password")));
+        }
 
-    @Test
-    void login_userNotFound_returnsBadRequest() throws Exception {
-        LoginRequest loginRequest = LoginRequest.builder()
-                .email("nonexistent@test.com")
-                .password("password123")
-                .build();
+        @Test
+        void login_userNotFound_returnsBadRequest() throws Exception {
+                LoginRequest loginRequest = LoginRequest.builder()
+                                .email("nonexistent@test.com")
+                                .password("password123")
+                                .build();
 
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Invalid email or password")));
-    }
+                mockMvc.perform(post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("Invalid email or password")));
+        }
 }

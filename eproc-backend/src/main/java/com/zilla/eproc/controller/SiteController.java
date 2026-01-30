@@ -30,7 +30,7 @@ public class SiteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<SiteDTO> createSite(@RequestBody SiteDTO dto) {
         return ResponseEntity.ok(siteService.createSite(dto));
     }
