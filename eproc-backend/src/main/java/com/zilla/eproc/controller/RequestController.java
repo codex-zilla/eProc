@@ -57,7 +57,7 @@ public class RequestController {
 
     /**
      * Get pending requests for approval queue.
-     * Only PROJECT_MANAGER can access this.
+     * Only PROJECT_OWNER can access this.
      */
     @GetMapping("/pending")
     @PreAuthorize("hasRole('PROJECT_OWNER')")
@@ -116,7 +116,7 @@ public class RequestController {
 
     /**
      * Approve or reject a request.
-     * Only PROJECT_MANAGER can perform this action.
+     * Only PROJECT_OWNER can perform this action.
      */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('PROJECT_OWNER')")

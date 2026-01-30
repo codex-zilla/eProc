@@ -40,6 +40,8 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .name(request.getName())
+                .erbNumber(request.getErbNumber())
+                .phoneNumber(request.getPhoneNumber())
                 .build();
 
         userRepository.save(user);

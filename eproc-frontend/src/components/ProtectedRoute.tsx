@@ -41,13 +41,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
 export function getRoleDefaultRoute(role: string): string {
   switch (role) {
     case 'ENGINEER':
-      return '/site-dashboard';
-    case 'PROJECT_MANAGER':
-      return '/approvals';
-    case 'ACCOUNTANT':
-      return '/procurement';
+      return '/engineer/dashboard';
+    case 'PROJECT_OWNER':
+      return '/manager/dashboard';
     default:
-      return '/dashboard';
+      return '/engineer/dashboard';
   }
 }
 

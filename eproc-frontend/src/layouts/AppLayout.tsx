@@ -42,7 +42,7 @@ const AppLayout = () => {
 
   // Fetch pending count for manager badge
   useEffect(() => {
-    if (user?.role === 'PROJECT_MANAGER') {
+    if (user?.role === 'PROJECT_OWNER') {
       const fetchPending = async () => {
         try {
           const res = await api.get('/dashboard/manager');
@@ -68,7 +68,7 @@ const AppLayout = () => {
         { label: 'Requests', path: '/engineer/requests', icon: ClipboardList },
       ];
     }
-    if (user?.role === 'PROJECT_MANAGER') {
+    if (user?.role === 'PROJECT_OWNER') {
       return [
         { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/manager/projects', icon: Briefcase },

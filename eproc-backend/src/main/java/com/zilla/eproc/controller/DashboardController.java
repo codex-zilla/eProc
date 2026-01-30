@@ -33,10 +33,10 @@ public class DashboardController {
     }
 
     /**
-     * Get dashboard statistics for a project manager.
+     * Get dashboard statistics for a project owner.
      */
     @GetMapping("/manager")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<ManagerDashboardDTO> getManagerDashboard(Authentication authentication) {
         String email = authentication.getName();
         ManagerDashboardDTO dashboard = dashboardService.getManagerDashboard(email);

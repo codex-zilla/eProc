@@ -13,6 +13,8 @@ export interface RegisterData {
   email: string;
   password: string;
   role: string;
+  erbNumber?: string;
+  phoneNumber?: string;
 }
 
 interface AuthContextType {

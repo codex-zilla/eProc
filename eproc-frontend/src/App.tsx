@@ -55,8 +55,8 @@ function App() {
                 <Route path="/engineer/requests/:id/edit" element={<CreateRequest />} />
               </Route>
 
-              {/* Manager Routes */}
-              <Route element={<ProtectedRoute allowedRoles={['PROJECT_MANAGER']} />}>
+              {/* Manager Routes (Project Owner) */}
+              <Route element={<ProtectedRoute allowedRoles={['PROJECT_OWNER']} />}>
                 <Route path="/manager/dashboard" element={<ManagerDashboard />} />
                 <Route path="/manager/projects" element={<MyProjects />} />
                 <Route path="/manager/projects/new" element={<ProjectWizard />} />

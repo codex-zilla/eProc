@@ -15,6 +15,7 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('ENGINEER');
+  const [erbNumber, setErbNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +33,7 @@ const Register = () => {
         email,
         password,
         role,
+        erbNumber: erbNumber || undefined,
       });
 
       const redirectPath = getRoleDefaultRoute(role as any);
@@ -55,14 +57,14 @@ const Register = () => {
       </CardHeader>
 
       <CardContent className="py-0">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {error && (
             <div className="p-2.5 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm font-medium text-center">
               {error}
             </div>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="name" className="text-black-900 font-medium text-sm">Full Name</Label>
             <div className="relative group">
               <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
@@ -72,13 +74,13 @@ const Register = () => {
                 placeholder=""
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="email" className="text-black-900 font-medium text-sm">Email Address</Label>
             <div className="relative group">
               <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
@@ -88,13 +90,13 @@ const Register = () => {
                 placeholder=""
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="password" className="text-black-900 font-medium text-sm">Password</Label>
             <div className="relative group">
               <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
@@ -104,7 +106,7 @@ const Register = () => {
                 placeholder=""
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                className="pl-9 pr-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
                 required
                 minLength={6}
               />
@@ -122,7 +124,7 @@ const Register = () => {
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="role" className="text-black-900 font-medium text-sm">Role</Label>
             <div className="relative group">
               <Users className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
@@ -130,14 +132,32 @@ const Register = () => {
                 id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full pl-9 pr-4 h-10 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors appearance-none"
+                className="w-full pl-9 pr-4 h-10 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:outline-none transition-colors appearance-none"
               >
                 <option value="ENGINEER">Engineer</option>
-                <option value="PROJECT_MANAGER">Project Manager</option>
-                <option value="ACCOUNTANT">Accountant</option>
+                <option value="PROJECT_OWNER">Project Owner</option>
               </select>
             </div>
           </div>
+
+          {role === 'ENGINEER' && (
+            <div className="space-y-1">
+              <Label htmlFor="erbNumber" className="text-black-900 font-medium text-sm">
+                ERB Number <span className="text-slate-500 text-xs">(Engineers Registration Board - Optional)</span>
+              </Label>
+              <div className="relative group">
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+                <Input
+                  id="erbNumber"
+                  type="text"
+                  placeholder="ERB/XXXX/XXXX"
+                  value={erbNumber}
+                  onChange={(e) => setErbNumber(e.target.value)}
+                  className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
+                />
+              </div>
+            </div>
+          )}
 
           <Button 
             type="submit" 

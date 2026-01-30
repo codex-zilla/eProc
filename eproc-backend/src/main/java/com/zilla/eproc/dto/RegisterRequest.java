@@ -32,4 +32,16 @@ public class RegisterRequest {
 
     @NotNull(message = "Role is required")
     private Role role;
+
+    /**
+     * ERB (Engineers Registration Board) number for engineers.
+     * Optional field, primarily for ENGINEER role.
+     */
+    private String erbNumber;
+
+    /**
+     * Phone number for site-level coordination.
+     * Optional but recommended for all users.
+     */
+    private String phoneNumber;
 }
