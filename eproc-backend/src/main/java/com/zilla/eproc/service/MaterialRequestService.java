@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 /**
  * Service for material request operations with permission and validation
  * checks.
+ * Updated for Role Model Overhaul: boss → owner, PROJECT_MANAGER →
+ * PROJECT_OWNER
  */
 @Service
 @RequiredArgsConstructor
@@ -29,10 +31,12 @@ public class MaterialRequestService {
     private final MaterialRepository materialRepository;
     private final UserRepository userRepository;
     private final RequestAuditLogRepository auditLogRepository;
+    private final ProjectAssignmentRepository projectAssignmentRepository;
 
     /**
      * Create a new material request.
-     * ADR: Engineer can only create requests for projects they are assigned to.
+     * ADR: Engineer can only create requests for projects they are assigned to (via
+     * ProjectAssignment).
      */
     @Transactional
     public MaterialRequestResponseDTO createRequest(CreateMaterialRequestDTO dto, String requesterEmail) {
@@ -47,11 +51,13 @@ public class MaterialRequestService {
         Site site = siteRepository.findById(dto.getSiteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Site not found with ID: " + dto.getSiteId()));
 
-        // ADR Authorization: Engineer can only create requests for their assigned
-        // project
+        // ADR Authorization: Engineer can only create requests for projects they have
+        // assignments on
         if (requester.getRole() == Role.ENGINEER) {
             Project project = site.getProject();
-            if (project.getEngineer() == null || !project.isEngineer(requester)) {
+            boolean hasAssignment = projectAssignmentRepository
+                    .existsByProjectIdAndUserIdAndIsActiveTrue(project.getId(), requester.getId());
+            if (!hasAssignment) {
                 throw new ForbiddenException(
                         "You can only create requests for projects you are assigned to");
             }
@@ -161,8 +167,8 @@ public class MaterialRequestService {
 
     /**
      * Approve or reject a request.
-     * Only PROJECT_MANAGER can perform this action.
-     * ADR: Boss can only approve/reject requests from their own projects.
+     * Only PROJECT_OWNER can perform this action.
+     * ADR: Owner can only approve/reject requests from their own projects.
      */
     @Transactional
     public MaterialRequestResponseDTO processApproval(Long requestId, ApprovalActionDTO dto, String approverEmail) {
@@ -172,14 +178,14 @@ public class MaterialRequestService {
         User approver = userRepository.findByEmail(approverEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Permission check: only PROJECT_MANAGER can approve/reject
-        if (approver.getRole() != Role.PROJECT_MANAGER) {
-            throw new ForbiddenException("Only Project Managers can approve or reject requests");
+        // Permission check: only PROJECT_OWNER can approve/reject
+        if (approver.getRole() != Role.PROJECT_OWNER) {
+            throw new ForbiddenException("Only Project Owners can approve or reject requests");
         }
 
-        // ADR Authorization: Boss can only approve/reject requests from their projects
+        // ADR Authorization: Owner can only approve/reject requests from their projects
         Project project = request.getSite().getProject();
-        if (!project.isBoss(approver)) {
+        if (!project.isOwner(approver)) {
             throw new ForbiddenException(
                     "You can only approve/reject requests from your own projects");
         }
@@ -219,16 +225,16 @@ public class MaterialRequestService {
 
     /**
      * Get all pending requests (for approval queue).
-     * ADR: Scoped to boss's projects only.
+     * ADR: Scoped to owner's projects only.
      */
     @Transactional(readOnly = true)
     public List<MaterialRequestResponseDTO> getPendingRequests(String approverEmail) {
         User approver = userRepository.findByEmail(approverEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // ADR: Boss sees only pending requests from their own projects
-        if (approver.getRole() == Role.PROJECT_MANAGER) {
-            return materialRequestRepository.findByProjectBossIdAndStatus(approver.getId(), RequestStatus.PENDING)
+        // ADR: Owner sees only pending requests from their own projects
+        if (approver.getRole() == Role.PROJECT_OWNER) {
+            return materialRequestRepository.findByProjectOwnerIdAndStatus(approver.getId(), RequestStatus.PENDING)
                     .stream()
                     .map(this::mapToResponseDTO)
                     .collect(Collectors.toList());

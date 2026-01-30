@@ -5,22 +5,25 @@ import com.zilla.eproc.dto.UserSummaryDTO;
 import com.zilla.eproc.exception.ForbiddenException;
 import com.zilla.eproc.exception.ResourceNotFoundException;
 import com.zilla.eproc.model.Project;
+import com.zilla.eproc.model.ProjectAssignment;
+import com.zilla.eproc.model.ProjectRole;
 import com.zilla.eproc.model.ProjectStatus;
 import com.zilla.eproc.model.Role;
 import com.zilla.eproc.model.User;
+import com.zilla.eproc.repository.ProjectAssignmentRepository;
 import com.zilla.eproc.repository.ProjectRepository;
 import com.zilla.eproc.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Service for project operations with project-centric authorization.
- * Implements ADR: Project-Based Access Control.
+ * Updated for Role Model Overhaul: boss → owner, engineer field removed.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,13 +31,12 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ProjectAssignmentRepository projectAssignmentRepository;
 
     /**
      * Get projects visible to the current user based on their role.
-     * - PROJECT_MANAGER: sees only projects they own (boss_id = user.id)
-     * - ENGINEER: sees only projects they are assigned to (engineer_id = user.id)
-     * - ACCOUNTANT: sees projects from bosses they are linked to (future
-     * enhancement)
+     * - PROJECT_OWNER: sees only projects they own (owner_id = user.id)
+     * - ENGINEER: sees projects where they have a ProjectAssignment
      */
     @Transactional(readOnly = true)
     public List<ProjectDTO> getProjectsForUser(String userEmail) {
@@ -43,15 +45,20 @@ public class ProjectService {
 
         List<Project> projects;
 
-        if (user.getRole() == Role.PROJECT_MANAGER) {
-            // Boss sees only their own projects
-            projects = projectRepository.findByBossIdAndIsActiveTrue(user.getId());
+        if (user.getRole() == Role.PROJECT_OWNER) {
+            // Owner sees their own projects
+            projects = projectRepository.findByOwnerIdAndIsActiveTrue(user.getId());
         } else if (user.getRole() == Role.ENGINEER) {
-            // Engineer sees only projects they are assigned to
-            projects = projectRepository.findByEngineerIdAndIsActiveTrue(user.getId());
+            // Engineer sees projects via team assignments
+            List<Long> projectIds = projectAssignmentRepository.findByUserIdAndIsActiveTrue(user.getId())
+                    .stream()
+                    .map(pa -> pa.getProject().getId())
+                    .collect(Collectors.toList());
+            projects = projectRepository.findAllById(projectIds).stream()
+                    .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
+                    .collect(Collectors.toList());
         } else {
-            // Accountant and others - for now show all active (future: scope by linked
-            // boss)
+            // SYSTEM_ADMIN and others - show all active
             projects = projectRepository.findByIsActiveTrue();
         }
 
@@ -61,23 +68,24 @@ public class ProjectService {
     }
 
     /**
-     * Create a new project with the authenticated user as the boss.
-     * Only PROJECT_MANAGER can create projects.
+     * Create a new project with the authenticated user as the owner.
+     * Only PROJECT_OWNER can create projects.
+     * Automatically creates an OWNER assignment for the creator.
      */
     @SuppressWarnings("deprecation")
     @Transactional
-    public ProjectDTO createProject(ProjectDTO dto, String bossEmail) {
-        User boss = userRepository.findByEmail(bossEmail)
+    public ProjectDTO createProject(ProjectDTO dto, String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (boss.getRole() != Role.PROJECT_MANAGER) {
-            throw new ForbiddenException("Only Project Managers can create projects");
+        if (owner.getRole() != Role.PROJECT_OWNER) {
+            throw new ForbiddenException("Only Project Owners can create projects");
         }
 
         Project project = Project.builder()
                 .name(dto.getName())
-                .owner(boss.getEmail()) // deprecated but kept for backward compat
-                .boss(boss)
+                .ownerEmail(owner.getEmail()) // deprecated legacy field
+                .owner(owner)
                 .currency(dto.getCurrency() != null ? dto.getCurrency() : "TZS")
                 .budgetTotal(dto.getBudgetTotal())
                 .description(dto.getDescription())
@@ -87,27 +95,27 @@ public class ProjectService {
                 .ward(dto.getWard())
                 .status(ProjectStatus.ACTIVE)
                 .isActive(true)
-                // NEW: Core Identification
+                // Core Identification
                 .code(dto.getCode())
                 .industry(dto.getIndustry() != null ? com.zilla.eproc.model.Industry.valueOf(dto.getIndustry()) : null)
                 .projectType(
                         dto.getProjectType() != null ? com.zilla.eproc.model.ProjectType.valueOf(dto.getProjectType())
                                 : null)
-                // NEW: Owner Rep
+                // Owner Rep
                 .ownerRepName(dto.getOwnerRepName())
                 .ownerRepContact(dto.getOwnerRepContact())
-                // NEW: Location Details
+                // Location Details
                 .plotNumber(dto.getPlotNumber())
                 .gpsCoordinates(dto.getGpsCoordinates())
                 .titleDeedAvailable(dto.getTitleDeedAvailable())
                 .siteAccessNotes(dto.getSiteAccessNotes())
-                // NEW: Project Context
+                // Project Context
                 .keyObjectives(dto.getKeyObjectives())
                 .expectedOutput(dto.getExpectedOutput())
-                // NEW: Timeline
+                // Timeline
                 .startDate(dto.getStartDate())
                 .expectedCompletionDate(dto.getExpectedCompletionDate())
-                // NEW: Contractual
+                // Contractual
                 .contractType(dto.getContractType() != null
                         ? com.zilla.eproc.model.ContractType.valueOf(dto.getContractType())
                         : null)
@@ -116,66 +124,34 @@ public class ProjectService {
                 .build();
 
         Project saved = projectRepository.save(project);
-        return mapToDTO(saved);
-    }
 
-    /**
-     * Assign an engineer to a project.
-     * Validates:
-     * 1. Boss owns the project
-     * 2. Engineer has no ACTIVE project assignment
-     */
-    @Transactional
-    public ProjectDTO assignEngineer(Long projectId, Long engineerId, String bossEmail) {
-        User boss = userRepository.findByEmail(bossEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        // Auto-create OWNER assignment (immutable)
+        ProjectAssignment ownerAssignment = ProjectAssignment.builder()
+                .project(saved)
+                .user(owner)
+                .role(ProjectRole.OWNER)
+                .startDate(LocalDate.now())
+                .isActive(true)
+                .build();
+        projectAssignmentRepository.save(ownerAssignment);
 
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
-
-        // Authorization: only project owner can assign engineers
-        if (!project.isBoss(boss)) {
-            throw new ForbiddenException("Only the project owner can assign engineers");
-        }
-
-        User engineer = userRepository.findById(engineerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Engineer not found"));
-
-        // Validate engineer role
-        if (engineer.getRole() != Role.ENGINEER) {
-            throw new IllegalArgumentException("User is not an engineer");
-        }
-
-        // Check engineer is not already assigned to an ACTIVE project
-        Optional<Project> existingAssignment = projectRepository
-                .findByEngineerIdAndStatus(engineerId, ProjectStatus.ACTIVE);
-
-        if (existingAssignment.isPresent() && !existingAssignment.get().getId().equals(projectId)) {
-            throw new IllegalStateException(
-                    "Engineer is already assigned to an active project: " +
-                            existingAssignment.get().getName());
-        }
-
-        project.setEngineer(engineer);
-        Project saved = projectRepository.save(project);
         return mapToDTO(saved);
     }
 
     /**
      * Update project status.
-     * Validates boss ownership.
-     * When project is COMPLETED or CANCELLED, engineer becomes available.
+     * Validates owner ownership.
      */
     @Transactional
-    public ProjectDTO updateProjectStatus(Long projectId, ProjectStatus newStatus, String bossEmail) {
-        User boss = userRepository.findByEmail(bossEmail)
+    public ProjectDTO updateProjectStatus(Long projectId, ProjectStatus newStatus, String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
         // Authorization: only project owner can update status
-        if (!project.isBoss(boss)) {
+        if (!project.isOwner(owner)) {
             throw new ForbiddenException("Only the project owner can update project status");
         }
 
@@ -192,11 +168,12 @@ public class ProjectService {
 
     /**
      * Get list of engineers available for assignment.
-     * An engineer is available if they are not assigned to any ACTIVE project.
+     * An engineer is available based on system role (actual availability
+     * logic can be enhanced later based on assignment count, etc.).
      */
     @Transactional(readOnly = true)
     public List<UserSummaryDTO> getAvailableEngineers() {
-        return userRepository.findAvailableEngineers().stream()
+        return userRepository.findByRoleAndActiveTrue(Role.ENGINEER).stream()
                 .map(this::mapUserToSummaryDTO)
                 .collect(Collectors.toList());
     }
@@ -213,11 +190,17 @@ public class ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
         // Authorization check
-        if (user.getRole() == Role.PROJECT_MANAGER && !project.isBoss(user)) {
+        if (user.getRole() == Role.PROJECT_OWNER && !project.isOwner(user)) {
             throw new ForbiddenException("You can only view your own projects");
         }
-        if (user.getRole() == Role.ENGINEER && !project.isEngineer(user)) {
-            throw new ForbiddenException("You can only view projects you are assigned to");
+        if (user.getRole() == Role.ENGINEER) {
+            // Check if user has an assignment on this project
+            boolean hasAssignment = projectAssignmentRepository
+                    .findByProjectIdAndUserIdAndIsActiveTrue(projectId, user.getId())
+                    .isPresent();
+            if (!hasAssignment) {
+                throw new ForbiddenException("You can only view projects you are assigned to");
+            }
         }
 
         return mapToDTO(project);
@@ -244,7 +227,7 @@ public class ProjectService {
         ProjectDTO.ProjectDTOBuilder builder = ProjectDTO.builder()
                 .id(project.getId())
                 .name(project.getName())
-                .owner(project.getOwner())
+                .ownerEmail(project.getOwnerEmail())
                 .currency(project.getCurrency())
                 .budgetTotal(project.getBudgetTotal())
                 .description(project.getDescription())
@@ -255,46 +238,38 @@ public class ProjectService {
                 .isActive(project.getIsActive())
                 .createdAt(project.getCreatedAt())
                 .status(project.getStatus() != null ? project.getStatus().name() : null)
-                // NEW: Core Identification
+                // Core Identification
                 .code(project.getCode())
                 .industry(project.getIndustry() != null ? project.getIndustry().name() : null)
                 .projectType(project.getProjectType() != null ? project.getProjectType().name() : null)
-                // NEW: Owner Rep
+                // Owner Rep
                 .ownerRepName(project.getOwnerRepName())
                 .ownerRepContact(project.getOwnerRepContact())
-                // NEW: Location Details
+                // Location Details
                 .plotNumber(project.getPlotNumber())
                 .gpsCoordinates(project.getGpsCoordinates())
                 .titleDeedAvailable(project.getTitleDeedAvailable())
                 .siteAccessNotes(project.getSiteAccessNotes())
-                // NEW: Project Context
+                // Project Context
                 .keyObjectives(project.getKeyObjectives())
                 .expectedOutput(project.getExpectedOutput())
-                // NEW: Timeline
+                // Timeline
                 .startDate(project.getStartDate())
                 .expectedCompletionDate(project.getExpectedCompletionDate())
-                // NEW: Contractual
+                // Contractual
                 .contractType(project.getContractType() != null ? project.getContractType().name() : null)
                 .defectsLiabilityPeriod(project.getDefectsLiabilityPeriod())
                 .performanceSecurityRequired(project.getPerformanceSecurityRequired())
-                // NEW: Summary counts
+                // Summary counts
                 .teamCount(project.getTeamAssignments() != null ? project.getTeamAssignments().size() : 0)
                 .scopeCount(project.getScopes() != null ? project.getScopes().size() : 0)
                 .milestoneCount(project.getMilestones() != null ? project.getMilestones().size() : 0)
                 .documentCount(project.getDocuments() != null ? project.getDocuments().size() : 0);
 
-        // Map boss info
-        if (project.getBoss() != null) {
-            builder.bossId(project.getBoss().getId())
-                    .bossName(project.getBoss().getName())
-                    .bossEmail(project.getBoss().getEmail());
-        }
-
-        // Map engineer info
-        if (project.getEngineer() != null) {
-            builder.engineerId(project.getEngineer().getId())
-                    .engineerName(project.getEngineer().getName())
-                    .engineerEmail(project.getEngineer().getEmail());
+        // Map owner info
+        if (project.getOwner() != null) {
+            builder.ownerId(project.getOwner().getId())
+                    .ownerName(project.getOwner().getName());
         }
 
         return builder.build();

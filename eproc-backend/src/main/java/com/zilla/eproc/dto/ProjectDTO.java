@@ -17,7 +17,7 @@ public class ProjectDTO {
     private String name;
 
     @Deprecated
-    private String owner; // kept for backward compatibility
+    private String ownerEmail; // Legacy - kept for backward compatibility
 
     private String currency;
     private BigDecimal budgetTotal;
@@ -29,46 +29,41 @@ public class ProjectDTO {
     private Boolean isActive;
     private LocalDateTime createdAt;
 
-    // ADR: Project-Centric Authorization fields
-    private Long bossId;
-    private String bossName;
-    private String bossEmail;
-
-    private Long engineerId;
-    private String engineerName;
-    private String engineerEmail;
+    // Project Owner (User relationship)
+    private Long ownerId;
+    private String ownerName;
 
     private String status; // ACTIVE, COMPLETED, CANCELLED
 
-    // === NEW: Core Identification ===
+    // === Core Identification ===
     private String code;
     private String industry; // Industry enum as string
     private String projectType; // ProjectType enum as string
 
-    // === NEW: Owner Rep ===
+    // === Owner Representative (the client's contact person) ===
     private String ownerRepName;
     private String ownerRepContact;
 
-    // === NEW: Location Details ===
+    // === Location Details ===
     private String plotNumber;
     private String gpsCoordinates;
     private Boolean titleDeedAvailable;
     private String siteAccessNotes;
 
-    // === NEW: Project Context ===
+    // === Project Context ===
     private String keyObjectives;
     private String expectedOutput;
 
-    // === NEW: Timeline ===
+    // === Timeline ===
     private java.time.LocalDate startDate;
     private java.time.LocalDate expectedCompletionDate;
 
-    // === NEW: Contractual ===
+    // === Contractual ===
     private String contractType; // ContractType enum as string
     private Integer defectsLiabilityPeriod;
     private Boolean performanceSecurityRequired;
 
-    // === NEW: Summary counts ===
+    // === Summary counts ===
     private Integer teamCount;
     private Integer scopeCount;
     private Integer milestoneCount;

@@ -3,7 +3,6 @@ package com.zilla.eproc.repository;
 import com.zilla.eproc.model.Role;
 import com.zilla.eproc.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -40,12 +39,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Find active users by role.
      */
     List<User> findByRoleAndActiveTrue(Role role);
-
-    /**
-     * Find engineers who are not assigned to any ACTIVE project.
-     * These engineers are available for assignment.
-     */
-    @Query("SELECT u FROM User u WHERE u.role = 'ENGINEER' AND u.active = true " +
-            "AND NOT EXISTS (SELECT p FROM Project p WHERE p.engineer = u AND p.status = 'ACTIVE')")
-    List<User> findAvailableEngineers();
 }

@@ -206,7 +206,7 @@ const ProjectDetails = () => {
 
                 {/* TEAM TAB */}
                 <TabsContent value="team" className="mt-6">
-                    <TeamManagement projectId={project.id} projectOwnerId={project.bossId} />
+                    <TeamManagement projectId={project.id} projectOwnerId={project.ownerId} />
                 </TabsContent>
 
                 {/* MILESTONES TAB */}

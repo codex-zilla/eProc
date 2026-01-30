@@ -16,8 +16,8 @@ public class EngineerDashboardDTO {
     private Long assignedProjectId;
     private String assignedProjectName;
     private String projectStatus;
-    private String bossName;
-    private String bossEmail;
+    private String ownerName;
+    private String ownerEmail;
 
     private int pendingRequests;
     private int approvedRequests;

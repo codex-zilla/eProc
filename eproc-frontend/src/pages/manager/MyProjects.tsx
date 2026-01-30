@@ -5,21 +5,9 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-
-interface Project {
-  id: number;
-  name: string;
-  currency: string;
-  budgetTotal: number;
-  status: string;
-  bossId: number;
-  bossName: string;
-  engineerId: number | null;
-  engineerName: string | null;
-  engineerEmail: string | null;
-}
+import type { Project } from '@/types/models';
 
 const MyProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -53,8 +41,7 @@ const MyProjects = () => {
   }, [loadProjects]);
 
   const filteredProjects = projects.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.engineerName?.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusBadgeVariant = (status: string) => {
@@ -120,7 +107,7 @@ const MyProjects = () => {
                     <TableHead className="font-semibold text-slate-700">Project Name</TableHead>
                     <TableHead className="font-semibold text-slate-700">Status</TableHead>
                     <TableHead className="font-semibold text-slate-700">Budget</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Engineer</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Team</TableHead>
                     <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -139,16 +126,10 @@ const MyProjects = () => {
                         {project.currency} {project.budgetTotal?.toLocaleString() || 0}
                       </TableCell>
                       <TableCell className="text-slate-600">
-                        {project.engineerName ? (
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
-                              {project.engineerName.charAt(0)}
-                            </div>
-                            {project.engineerName}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic">Unassigned</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-slate-400" />
+                          <span>{project.teamCount || 0} members</span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">

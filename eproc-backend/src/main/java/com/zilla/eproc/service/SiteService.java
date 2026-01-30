@@ -12,10 +12,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service for site operations.
+ * Updated for Role Model Overhaul: boss → owner, engineer uses
+ * ProjectAssignment.
+ */
 @Service
 @RequiredArgsConstructor
 public class SiteService {
@@ -32,12 +36,14 @@ public class SiteService {
         List<Site> sites;
 
         if (user.getRole() == Role.ENGINEER) {
-            sites = siteRepository.findByProjectEngineerIdAndIsActiveTrue(user.getId());
-        } else if (user.getRole() == Role.PROJECT_MANAGER) {
-            sites = siteRepository.findByProjectBossIdAndIsActiveTrue(user.getId());
+            // Engineer sees sites via ProjectAssignment
+            sites = siteRepository.findByUserAssignmentAndIsActiveTrue(user.getId());
+        } else if (user.getRole() == Role.PROJECT_OWNER) {
+            // Owner sees sites from their own projects
+            sites = siteRepository.findByProjectOwnerIdAndIsActiveTrue(user.getId());
         } else {
-            // Admin or other roles see nothing (strict access)
-            sites = Collections.emptyList();
+            // SYSTEM_ADMIN and other roles see all active sites (or restrict as needed)
+            sites = siteRepository.findByIsActiveTrue();
         }
 
         return sites.stream()

@@ -29,11 +29,11 @@ public class Project {
     private String name;
 
     /**
-     * @deprecated Use {@link #boss} instead. Kept for backward compatibility.
+     * @deprecated Legacy field. Use {@link #owner} User relationship instead.
      */
     @Deprecated
-    @Column(nullable = false)
-    private String owner;
+    @Column(name = "owner_email")
+    private String ownerEmail;
 
     @Column(length = 10, columnDefinition = "varchar(10) default 'TZS'")
     private String currency;
@@ -146,25 +146,16 @@ public class Project {
     // ADR: Project-Centric Authorization fields
 
     /**
-     * The project owner/manager (PROJECT_MANAGER role).
+     * The project owner (PROJECT_OWNER system role).
      * Required for project-scoped access control.
+     * Team members are managed via ProjectAssignment.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "boss_id")
-    private User boss;
-
-    /**
-     * The assigned engineer (ENGINEER role).
-     * Nullable - project may not have an engineer yet.
-     * One engineer can only be assigned to one ACTIVE project at a time.
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "engineer_id")
-    private User engineer;
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
     /**
      * Project lifecycle status.
-     * Engineer becomes available when project is COMPLETED or CANCELLED.
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -185,16 +176,9 @@ public class Project {
     }
 
     /**
-     * Check if a user is the boss/owner of this project.
+     * Check if a user is the owner of this project.
      */
-    public boolean isBoss(User user) {
-        return boss != null && boss.getId().equals(user.getId());
-    }
-
-    /**
-     * Check if a user is the assigned engineer for this project.
-     */
-    public boolean isEngineer(User user) {
-        return engineer != null && engineer.getId().equals(user.getId());
+    public boolean isOwner(User user) {
+        return owner != null && owner.getId().equals(user.getId());
     }
 }

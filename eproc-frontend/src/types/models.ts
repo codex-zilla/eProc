@@ -8,20 +8,19 @@ export interface Project {
   isActive: boolean;
   createdAt: string;
 
-  // Authorities
-  bossId?: number;
-  bossName?: string;
-  bossEmail?: string;
-  engineerId?: number;     // Legacy
-  engineerName?: string;   // Legacy
-  engineerEmail?: string;  // Legacy
+  // Project Owner (User relationship)
+  ownerId?: number;
+  ownerName?: string;
+
+  // @deprecated Legacy field
+  ownerEmail?: string;
 
   // Advanced Fields
   code?: string;
   industry?: string;       // Enum
   projectType?: string;    // Enum
   
-  // Owner Rep
+  // Owner Rep (the client's contact person)
   ownerRepName?: string;
   ownerRepContact?: string;
 
@@ -153,16 +152,35 @@ export const ContractType = {
   TIME_AND_MATERIALS: 'TIME_AND_MATERIALS'
 } as const;
 
+/**
+ * System-level roles for authentication and global access.
+ */
+export const SystemRole = {
+  SYSTEM_ADMIN: 'SYSTEM_ADMIN',
+  PROJECT_OWNER: 'PROJECT_OWNER',
+  ENGINEER: 'ENGINEER'
+} as const;
+
+export type SystemRole = (typeof SystemRole)[keyof typeof SystemRole];
+
+/**
+ * Contextual roles within a specific project.
+ */
 export const ProjectRole = {
+  OWNER: 'OWNER',
+  PROJECT_MANAGER: 'PROJECT_MANAGER',
+  PROJECT_ACCOUNTANT: 'PROJECT_ACCOUNTANT',
+  ENGINEER: 'ENGINEER',
   LEAD_ENGINEER: 'LEAD_ENGINEER',
   CIVIL_ENGINEER: 'CIVIL_ENGINEER',
   ELECTRICAL_ENGINEER: 'ELECTRICAL_ENGINEER',
   MECHANICAL_ENGINEER: 'MECHANICAL_ENGINEER',
   SITE_ENGINEER: 'SITE_ENGINEER',
-  PROJECT_MANAGER: 'PROJECT_MANAGER',
   QUANTITY_SURVEYOR: 'QUANTITY_SURVEYOR',
   CLERK_OF_WORKS: 'CLERK_OF_WORKS'
 } as const;
+
+export type ProjectRole = (typeof ProjectRole)[keyof typeof ProjectRole];
 
 export const ResponsibilityLevel = {
   FULL: 'FULL',

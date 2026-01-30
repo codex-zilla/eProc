@@ -29,7 +29,8 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
     const [responsibility, setResponsibility] = useState('FULL');
 
     // Only owner/admin can edit team
-    const canEdit = currentUser?.id === projectOwnerId || currentUser?.role === 'PROJECT_MANAGER'; // Simplified, really should be if isOwner
+    // Only project owner (or system admin) can edit team
+    const canEdit = currentUser?.id === projectOwnerId || currentUser?.role === 'SYSTEM_ADMIN';
 
     useEffect(() => {
         loadTeam();
@@ -92,9 +93,11 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
 
     // Filter users based on selected role to prevent mismatch (e.g. assigning QS as Engineer)
     // For now, allow all, but ideally we match user.role with ProjectRole
+    // Filter available users
+    // Ideally we match user.role with ProjectRole compatibility
     const filteredUsers = availableUsers.filter(u => {
         if (!selectedRole) return true;
-        // Simple heuristic: if Role contains ENGINEER, user role should be ENGINEER
+        // Engineer roles require an ENGINEER system user
         if (selectedRole.includes('ENGINEER')) return u.role === 'ENGINEER';
         return true;
     });

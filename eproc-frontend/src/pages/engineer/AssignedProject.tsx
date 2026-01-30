@@ -2,22 +2,11 @@ import { useState, useEffect } from 'react';
 
 import { Link } from 'react-router-dom';
 import api from '../../lib/axios';
-
-interface Project {
-  id: number;
-  name: string;
-  currency: string;
-  budgetTotal: number;
-  status: string;
-  bossId: number;
-  bossName: string;
-  bossEmail: string;
-  engineerId: number;
-  engineerName: string;
-}
+import type { Project } from '@/types/models';
 
 /**
  * Assigned Project page - read-only view of the engineer's assigned project.
+ * Updated for Role Model Overhaul: boss → owner
  */
 const AssignedProject = () => {
 
@@ -33,7 +22,7 @@ const AssignedProject = () => {
         const response = await api.get<Project[]>(
           '/projects'
         );
-        // Engineer should only see one project they're assigned to
+        // Engineer should only see projects they have assignments on
         if (response.data.length > 0) {
           setProject(response.data[0]);
         }
@@ -96,10 +85,10 @@ const AssignedProject = () => {
               </div>
             </div>
 
-            {/* Project Manager Info */}
+            {/* Project Owner Info */}
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-                Project Manager
+                Project Owner
               </h3>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -107,8 +96,8 @@ const AssignedProject = () => {
                     <span className="text-blue-600 text-xl">👔</span>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{project.bossName}</p>
-                    <p className="text-sm text-gray-500">{project.bossEmail}</p>
+                    <p className="font-medium text-gray-900">{project.ownerName || 'Not specified'}</p>
+                    <p className="text-sm text-gray-500">{project.ownerEmail || ''}</p>
                   </div>
                 </div>
                 {project.status === 'ACTIVE' && (
@@ -133,7 +122,7 @@ const AssignedProject = () => {
             You have not been assigned to any project yet.
           </p>
           <p className="text-gray-500">
-            Please contact your project manager for assignment.
+            Please contact your project owner for assignment.
           </p>
         </div>
       )}

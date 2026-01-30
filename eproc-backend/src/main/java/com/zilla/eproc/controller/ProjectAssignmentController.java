@@ -13,19 +13,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * REST controller for project team assignment operations.
+ * Controller for managing project team assignments.
+ * Endpoints:
+ * GET /projects/{projectId}/team - Get all active assignments
+ * POST /projects/{projectId}/team - Add a team member
+ * DELETE /projects/{projectId}/team/{assignmentId} - Remove a team member
  */
 @RestController
-@RequestMapping("/api/projects/{projectId}/team")
+@RequestMapping("/api/projects")
 @RequiredArgsConstructor
 public class ProjectAssignmentController {
 
     private final ProjectAssignmentService assignmentService;
 
-    /**
-     * Get all active team members for a project.
-     */
-    @GetMapping
+    @GetMapping("/{projectId}/team")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ProjectAssignmentDTO>> getProjectTeam(
             @PathVariable Long projectId,
@@ -34,12 +35,8 @@ public class ProjectAssignmentController {
         return ResponseEntity.ok(assignmentService.getProjectTeam(projectId, email));
     }
 
-    /**
-     * Add a team member to the project.
-     * Only the project boss can add members.
-     */
-    @PostMapping
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PostMapping("/{projectId}/team")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<ProjectAssignmentDTO> addTeamMember(
             @PathVariable Long projectId,
             @Valid @RequestBody CreateAssignmentRequest request,
@@ -48,12 +45,8 @@ public class ProjectAssignmentController {
         return ResponseEntity.ok(assignmentService.addTeamMember(projectId, request, email));
     }
 
-    /**
-     * Remove a team member from the project.
-     * Only the project boss can remove members.
-     */
-    @DeleteMapping("/{assignmentId}")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @DeleteMapping("/{projectId}/team/{assignmentId}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<Void> removeTeamMember(
             @PathVariable Long projectId,
             @PathVariable Long assignmentId,

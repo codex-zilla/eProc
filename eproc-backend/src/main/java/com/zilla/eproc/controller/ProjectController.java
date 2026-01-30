@@ -1,6 +1,5 @@
 package com.zilla.eproc.controller;
 
-import com.zilla.eproc.dto.AssignEngineerDTO;
 import com.zilla.eproc.dto.ProjectDTO;
 import com.zilla.eproc.dto.UpdateProjectStatusDTO;
 import com.zilla.eproc.dto.UserSummaryDTO;
@@ -17,7 +16,8 @@ import java.util.List;
 
 /**
  * REST controller for project operations.
- * Implements ADR: Project-Centric Authorization.
+ * Updated for Role Model Overhaul: boss → owner, PROJECT_MANAGER →
+ * PROJECT_OWNER
  */
 @RestController
 @RequestMapping("/api/projects")
@@ -28,8 +28,8 @@ public class ProjectController {
 
     /**
      * Get projects visible to the current user.
-     * PROJECT_MANAGER: sees only their own projects.
-     * ENGINEER: sees only projects they are assigned to.
+     * PROJECT_OWNER: sees only their own projects.
+     * ENGINEER: sees projects they have assignments on.
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -52,11 +52,11 @@ public class ProjectController {
 
     /**
      * Create a new project.
-     * Current user becomes the project owner (boss).
-     * Only PROJECT_MANAGER can create projects.
+     * Current user becomes the project owner.
+     * Only PROJECT_OWNER can create projects.
      */
     @PostMapping
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<ProjectDTO> createProject(
             @Valid @RequestBody ProjectDTO dto,
             Authentication authentication) {
@@ -65,27 +65,11 @@ public class ProjectController {
     }
 
     /**
-     * Assign an engineer to a project.
-     * Only the project owner (boss) can assign engineers.
-     * Engineer must not be assigned to another ACTIVE project.
-     */
-    @PatchMapping("/{id}/engineer")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
-    public ResponseEntity<ProjectDTO> assignEngineer(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignEngineerDTO dto,
-            Authentication authentication) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(projectService.assignEngineer(id, dto.getEngineerId(), email));
-    }
-
-    /**
      * Update project status.
-     * Only the project owner (boss) can update status.
-     * When status changes to COMPLETED or CANCELLED, engineer becomes available.
+     * Only the project owner can update status.
      */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<ProjectDTO> updateProjectStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProjectStatusDTO dto,
@@ -97,10 +81,10 @@ public class ProjectController {
 
     /**
      * Get list of engineers available for assignment.
-     * Only PROJECT_MANAGER can access this.
+     * Only PROJECT_OWNER can access this.
      */
     @GetMapping("/available-engineers")
-    @PreAuthorize("hasRole('PROJECT_MANAGER')")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
     public ResponseEntity<List<UserSummaryDTO>> getAvailableEngineers() {
         return ResponseEntity.ok(projectService.getAvailableEngineers());
     }

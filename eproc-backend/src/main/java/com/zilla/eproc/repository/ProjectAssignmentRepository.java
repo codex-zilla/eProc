@@ -43,4 +43,10 @@ public interface ProjectAssignmentRepository extends JpaRepository<ProjectAssign
      */
     @Query("SELECT pa FROM ProjectAssignment pa WHERE pa.project.id = :projectId AND pa.role = :role AND pa.isActive = true")
     List<ProjectAssignment> findByProjectIdAndRole(@Param("projectId") Long projectId, @Param("role") ProjectRole role);
+
+    /**
+     * Find a specific active assignment by project and user.
+     * Used for authorization checks.
+     */
+    Optional<ProjectAssignment> findByProjectIdAndUserIdAndIsActiveTrue(Long projectId, Long userId);
 }

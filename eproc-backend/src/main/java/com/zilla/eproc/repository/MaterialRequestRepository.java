@@ -99,23 +99,17 @@ public interface MaterialRequestRepository extends JpaRepository<MaterialRequest
         // ==================== ADR: Project-Scoped Queries ====================
 
         /**
-         * Find all requests from projects owned by a specific boss.
-         * Used for project managers to see only their projects' requests.
+         * Find all requests from projects owned by a specific owner.
+         * Used for project owners to see only their projects' requests.
          */
-        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.boss.id = :bossId")
-        List<MaterialRequest> findByProjectBossId(@Param("bossId") Long bossId);
+        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.owner.id = :ownerId")
+        List<MaterialRequest> findByProjectOwnerId(@Param("ownerId") Long ownerId);
 
         /**
-         * Find requests with specific status from projects owned by a specific boss.
-         * Used for pending requests queue scoped to boss's projects.
+         * Find requests with specific status from projects owned by a specific owner.
+         * Used for pending requests queue scoped to owner's projects.
          */
-        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.boss.id = :bossId AND mr.status = :status")
-        List<MaterialRequest> findByProjectBossIdAndStatus(@Param("bossId") Long bossId,
+        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.owner.id = :ownerId AND mr.status = :status")
+        List<MaterialRequest> findByProjectOwnerIdAndStatus(@Param("ownerId") Long ownerId,
                         @Param("status") RequestStatus status);
-
-        /**
-         * Find requests from projects where a specific engineer is assigned.
-         */
-        @Query("SELECT mr FROM MaterialRequest mr JOIN mr.site s WHERE s.project.engineer.id = :engineerId")
-        List<MaterialRequest> findByProjectEngineerId(@Param("engineerId") Long engineerId);
 }

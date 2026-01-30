@@ -12,8 +12,8 @@ interface EngineerDashboardData {
   assignedProjectId: number | null;
   assignedProjectName: string | null;
   projectStatus: string | null;
-  bossName: string | null;
-  bossEmail: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
   pendingRequests: number;
   approvedRequests: number;
   rejectedRequests: number;
@@ -22,6 +22,7 @@ interface EngineerDashboardData {
 
 /**
  * Engineer Dashboard - daily operational view.
+ * Updated for Role Model Overhaul: boss → owner
  */
 const EngineerDashboard = () => {
   const { user } = useAuth();
@@ -161,7 +162,7 @@ const EngineerDashboard = () => {
                                 {dashboard.assignedProjectName}
                               </Link>
                               <p className="text-sm text-slate-500 mt-1">
-                                Manager: <span className="font-medium text-slate-700">{dashboard.bossName}</span>
+                                Owner: <span className="font-medium text-slate-700">{dashboard.ownerName}</span>
                               </p>
                            </div>
                            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
@@ -187,7 +188,7 @@ const EngineerDashboard = () => {
                         </div>
                         <p className="text-slate-900 font-medium">No project assigned</p>
                         <p className="text-sm text-slate-500 mt-1">
-                          Contact your manager to get started.
+                          Contact your project owner to get started.
                         </p>
                       </div>
                     )}

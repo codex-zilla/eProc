@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 /**
  * Service for managing project team assignments.
  * Handles adding/removing users to projects with specific roles.
+ * Updated for Role Model Overhaul: boss → owner
  */
 @Service
 @RequiredArgsConstructor
@@ -38,8 +39,8 @@ public class ProjectAssignmentService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-        // Authorization: must be boss or assigned to project
-        if (!project.isBoss(user)
+        // Authorization: must be owner or assigned to project
+        if (!project.isOwner(user)
                 && !assignmentRepository.existsByProjectIdAndUserIdAndIsActiveTrue(projectId, user.getId())) {
             throw new ForbiddenException("You do not have access to this project");
         }
@@ -51,18 +52,18 @@ public class ProjectAssignmentService {
 
     /**
      * Add a user to a project with a specific role.
-     * Only the project boss can add team members.
+     * Only the project owner can add team members.
      */
     @Transactional
-    public ProjectAssignmentDTO addTeamMember(Long projectId, CreateAssignmentRequest request, String bossEmail) {
-        User boss = userRepository.findByEmail(bossEmail)
+    public ProjectAssignmentDTO addTeamMember(Long projectId, CreateAssignmentRequest request, String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-        // Authorization: only project boss can add team members
-        if (!project.isBoss(boss)) {
+        // Authorization: only project owner can add team members
+        if (!project.isOwner(owner)) {
             throw new ForbiddenException("Only the project owner can add team members");
         }
 
@@ -115,14 +116,14 @@ public class ProjectAssignmentService {
      * Remove a user from a project (end their assignment).
      */
     @Transactional
-    public void removeTeamMember(Long projectId, Long assignmentId, String bossEmail) {
-        User boss = userRepository.findByEmail(bossEmail)
+    public void removeTeamMember(Long projectId, Long assignmentId, String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-        if (!project.isBoss(boss)) {
+        if (!project.isOwner(owner)) {
             throw new ForbiddenException("Only the project owner can remove team members");
         }
 
