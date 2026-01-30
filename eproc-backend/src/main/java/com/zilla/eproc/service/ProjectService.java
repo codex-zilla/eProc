@@ -72,7 +72,6 @@ public class ProjectService {
      * Only PROJECT_OWNER can create projects.
      * Automatically creates an OWNER assignment for the creator.
      */
-    @SuppressWarnings("deprecation")
     @Transactional
     public ProjectDTO createProject(ProjectDTO dto, String ownerEmail) {
         User owner = userRepository.findByEmail(ownerEmail)
@@ -84,7 +83,7 @@ public class ProjectService {
 
         Project project = Project.builder()
                 .name(dto.getName())
-                .ownerEmail(owner.getEmail()) // deprecated legacy field
+
                 .owner(owner)
                 .currency(dto.getCurrency() != null ? dto.getCurrency() : "TZS")
                 .budgetTotal(dto.getBudgetTotal())
@@ -227,7 +226,7 @@ public class ProjectService {
         ProjectDTO.ProjectDTOBuilder builder = ProjectDTO.builder()
                 .id(project.getId())
                 .name(project.getName())
-                .ownerEmail(project.getOwnerEmail())
+                .ownerEmail(project.getOwner() != null ? project.getOwner().getEmail() : null)
                 .currency(project.getCurrency())
                 .budgetTotal(project.getBudgetTotal())
                 .description(project.getDescription())

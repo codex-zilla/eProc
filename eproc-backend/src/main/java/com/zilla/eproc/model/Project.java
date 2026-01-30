@@ -28,13 +28,6 @@ public class Project {
     @Column(nullable = false)
     private String name;
 
-    /**
-     * @deprecated Legacy field. Use {@link #owner} User relationship instead.
-     */
-    @Deprecated
-    @Column(name = "owner_email")
-    private String ownerEmail;
-
     @Column(length = 10, columnDefinition = "varchar(10) default 'TZS'")
     private String currency;
 
