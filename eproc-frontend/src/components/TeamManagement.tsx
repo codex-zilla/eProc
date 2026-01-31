@@ -28,9 +28,12 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
     const [startDate, setStartDate] = useState('');
     const [responsibility, setResponsibility] = useState('FULL');
 
-    // Only owner/admin can edit team
-    // Only project owner (or system admin) can edit team
-    const canEdit = currentUser?.id === projectOwnerId || currentUser?.role === 'SYSTEM_ADMIN';
+    const [editingAssignmentId, setEditingAssignmentId] = useState<number | null>(null);
+    const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Only the project owner or system admin can edit team
+    const canEdit = (currentUser?.id && projectOwnerId && Number(currentUser.id) === Number(projectOwnerId)) || currentUser?.role === 'SYSTEM_ADMIN';
 
     useEffect(() => {
         loadTeam();
@@ -56,31 +59,59 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
         }
     };
 
-    const handleAddMember = async () => {
+    const handleSaveMember = async () => {
         if (!selectedUser || !selectedRole || !startDate) return;
+        setError(null);
         try {
-            await projectService.addTeamMember(projectId, {
+            const payload = {
                 userId: parseInt(selectedUser),
                 role: selectedRole,
                 responsibilityLevel: responsibility,
                 startDate: startDate
-            });
+            };
+
+            if (editingAssignmentId) {
+                await projectService.updateTeamMember(projectId, editingAssignmentId, payload);
+            } else {
+                await projectService.addTeamMember(projectId, payload);
+            }
+            
             setIsAddOpen(false);
+            setEditingAssignmentId(null);
             resetForm();
             loadTeam();
-        } catch (e) {
-            console.error("Failed to add member", e);
-            // Optionally show error toast
+        } catch (e: any) {
+            const msg = e.response?.data?.message || "Failed to save member. Please try again.";
+            setError(msg);
         }
     };
 
-    const handleRemoveMember = async (assignmentId: number) => {
-        if (!confirm('Are you sure you want to remove this team member?')) return;
+    const handleEditMember = (member: ProjectAssignment) => {
+        setEditingAssignmentId(member.id);
+        setSelectedUser(member.userId.toString());
+        setSelectedRole(member.role);
+        setResponsibility(member.responsibilityLevel);
+        setStartDate(member.startDate);
+        // Ensure we have the user list loaded so the dropdown works
+        if (availableUsers.length === 0) {
+            loadAvailableUsers();
+        }
+        setIsAddOpen(true);
+    };
+
+    const handleRemoveMember = (assignmentId: number) => {
+        setDeleteConfirmationId(assignmentId);
+    };
+
+    const confirmRemoveMember = async () => {
+        if (!deleteConfirmationId) return;
         try {
-            await projectService.removeTeamMember(projectId, assignmentId);
+            await projectService.removeTeamMember(projectId, deleteConfirmationId);
             loadTeam();
         } catch (e) {
             console.error("Failed to remove", e);
+        } finally {
+            setDeleteConfirmationId(null);
         }
     };
 
@@ -89,6 +120,17 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
         setSelectedRole('');
         setStartDate('');
         setResponsibility('FULL');
+        setEditingAssignmentId(null);
+    };
+
+    const handleOpenDialog = (open: boolean) => {
+        setIsAddOpen(open);
+        setError(null);
+        if (!open) {
+            resetForm();
+        } else if (!editingAssignmentId) {
+           loadAvailableUsers();
+        }
     };
 
     // Filter users based on selected role to prevent mismatch (e.g. assigning QS as Engineer)
@@ -97,8 +139,14 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
     // Ideally we match user.role with ProjectRole compatibility
     const filteredUsers = availableUsers.filter(u => {
         if (!selectedRole) return true;
+        
         // Engineer roles require an ENGINEER system user
-        if (selectedRole.includes('ENGINEER')) return u.role === 'ENGINEER';
+        if (selectedRole.includes('ENGINEER')) {
+            if (u.role !== 'ENGINEER') return false;
+            // Also require valid ERB number for engineers
+            return u.erbNumber && u.erbNumber.length > 0;
+        }
+        
         return true;
     });
 
@@ -110,24 +158,33 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                     <CardDescription>Manage project staff and authorities.</CardDescription>
                 </div>
                 {canEdit && (
-                    <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                    <Dialog open={isAddOpen} onOpenChange={handleOpenDialog}>
                         <DialogTrigger asChild>
-                            <Button onClick={loadAvailableUsers} size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                            <Button size="sm" className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md">
                                 <UserPlus className="w-4 h-4 mr-2" /> Add Member
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Add Project Member</DialogTitle>
-                                <DialogDescription>Assign a user to a specific role on this project.</DialogDescription>
+                                <DialogTitle>{editingAssignmentId ? 'Edit Assignment' : 'Add Project Member'}</DialogTitle>
+                                <DialogDescription>
+                                    {editingAssignmentId ? 'Update role and responsibilities.' : 'Assign a user to a specific role on this project.'}
+                                </DialogDescription>
                             </DialogHeader>
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-2">
+                                    {error}
+                                </div>
+                            )}
                             <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
                                     <Label>Role</Label>
                                     <Select value={selectedRole} onValueChange={setSelectedRole}>
                                         <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
                                         <SelectContent>
-                                            {Object.values(ProjectRole).map(role => (
+                                            {Object.values(ProjectRole)
+                                                .filter(role => role !== ProjectRole.OWNER)
+                                                .map(role => (
                                                 <SelectItem key={role} value={role}>{role.replace('_', ' ')}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -135,14 +192,23 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>User</Label>
-                                    <Select value={selectedUser} onValueChange={setSelectedUser} disabled={!selectedRole}>
+                                    <Select value={selectedUser} onValueChange={setSelectedUser} disabled={!selectedRole || !!editingAssignmentId}>
                                         <SelectTrigger><SelectValue placeholder="Select User" /></SelectTrigger>
                                         <SelectContent>
-                                            {filteredUsers.map(u => (
-                                                <SelectItem key={u.id} value={u.id.toString()}>
-                                                    {u.name} ({u.role})
+                                            {/* If editing, show the current user even if not in available list immediately */}
+                                             {editingAssignmentId && !filteredUsers.find(u => u.id.toString() === selectedUser) && (
+                                                <SelectItem key={selectedUser} value={selectedUser}>
+                                                    Current User
                                                 </SelectItem>
-                                            ))}
+                                            )}
+                                            {filteredUsers.map(u => {
+                                                const isAssigned = team.some(member => member.userId === u.id);
+                                                return (
+                                                    <SelectItem key={u.id} value={u.id.toString()} disabled={isAssigned}>
+                                                        {u.name} ({u.role}) {isAssigned ? '(Active)' : ''}
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -163,7 +229,9 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button onClick={handleAddMember} disabled={!selectedUser || !selectedRole}>Assign</Button>
+                                <Button onClick={handleSaveMember} disabled={!selectedUser || !selectedRole || !startDate || !responsibility}>
+                                    {editingAssignmentId ? 'Update' : 'Assign'}
+                                </Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -184,15 +252,26 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                         <p className="text-xs text-gray-500">{member.role.replace('_', ' ')} • {member.responsibilityLevel}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right text-xs text-gray-500 hidden sm:block">
+                                <div className="flex items-center gap-2">
+                                    <div className="text-right text-xs text-gray-500 hidden sm:block mr-2">
                                         <p>Since: {member.startDate}</p>
                                         {member.endDate && <p>Until: {member.endDate}</p>}
                                     </div>
                                     {canEdit && (
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                        <>
+                                            {/* Edit/Delete Buttons - Hidden for self */}
+                                            {Number(member.userId) !== Number(currentUser?.id) && (
+                                                <>
+                                                    <Button variant="ghost" size="sm" onClick={() => handleEditMember(member)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 w-8 p-0">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                                    </Button>
+
+                                                    <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -200,6 +279,21 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                     </div>
                 )}
             </CardContent>
+             {/* Delete Confirmation Modal */}
+             <Dialog open={!!deleteConfirmationId} onOpenChange={(open) => !open && setDeleteConfirmationId(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Remove Team Member</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to remove this member from the project? This action can be undone by adding them back.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteConfirmationId(null)}>Cancel</Button>
+                        <Button variant="destructive" onClick={confirmRemoveMember}>Remove</Button>
+                    </DialogFooter>
+                </DialogContent>
+             </Dialog>
         </Card>
     );
 };

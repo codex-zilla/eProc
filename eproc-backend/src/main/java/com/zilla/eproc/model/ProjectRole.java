@@ -12,7 +12,7 @@ package com.zilla.eproc.model;
  * - ENGINEER: Generic technical role
  * 
  * Specific engineer types (for detailed role tracking):
- * - LEAD_ENGINEER, CIVIL_ENGINEER, ELECTRICAL_ENGINEER, etc.
+ * - LEAD_ENGINEER, SITE_ENGINEER, CONSULTANT_ENGINEER
  */
 public enum ProjectRole {
     // Core contextual roles
@@ -20,15 +20,8 @@ public enum ProjectRole {
     PROJECT_MANAGER,
     PROJECT_ACCOUNTANT,
 
-    // Generic engineer role
-    ENGINEER,
-
     // Specific engineer types
     LEAD_ENGINEER,
-    CIVIL_ENGINEER,
-    ELECTRICAL_ENGINEER,
-    MECHANICAL_ENGINEER,
     SITE_ENGINEER,
-    QUANTITY_SURVEYOR,
-    CLERK_OF_WORKS
+    CONSULTANT_ENGINEER
 }

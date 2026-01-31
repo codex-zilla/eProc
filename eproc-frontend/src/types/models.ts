@@ -170,14 +170,9 @@ export const ProjectRole = {
   OWNER: 'OWNER',
   PROJECT_MANAGER: 'PROJECT_MANAGER',
   PROJECT_ACCOUNTANT: 'PROJECT_ACCOUNTANT',
-  ENGINEER: 'ENGINEER',
   LEAD_ENGINEER: 'LEAD_ENGINEER',
-  CIVIL_ENGINEER: 'CIVIL_ENGINEER',
-  ELECTRICAL_ENGINEER: 'ELECTRICAL_ENGINEER',
-  MECHANICAL_ENGINEER: 'MECHANICAL_ENGINEER',
   SITE_ENGINEER: 'SITE_ENGINEER',
-  QUANTITY_SURVEYOR: 'QUANTITY_SURVEYOR',
-  CLERK_OF_WORKS: 'CLERK_OF_WORKS'
+  CONSULTANT_ENGINEER: 'CONSULTANT_ENGINEER'
 } as const;
 
 export type ProjectRole = (typeof ProjectRole)[keyof typeof ProjectRole];
@@ -300,4 +295,5 @@ export interface UserSummary {
     name: string;
     email: string;
     role: string;
+    erbNumber?: string;
 }

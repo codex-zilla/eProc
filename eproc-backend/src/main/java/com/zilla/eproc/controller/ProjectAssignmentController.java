@@ -55,4 +55,15 @@ public class ProjectAssignmentController {
         assignmentService.removeTeamMember(projectId, assignmentId, email);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{projectId}/team/{assignmentId}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    public ResponseEntity<ProjectAssignmentDTO> updateTeamMember(
+            @PathVariable Long projectId,
+            @PathVariable Long assignmentId,
+            @Valid @RequestBody CreateAssignmentRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(assignmentService.updateTeamMember(projectId, assignmentId, request, email));
+    }
 }

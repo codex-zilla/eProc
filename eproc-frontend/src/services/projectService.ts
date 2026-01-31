@@ -58,6 +58,11 @@ export const projectService = {
       await axiosInstance.delete(`/projects/${projectId}/team/${assignmentId}`);
   },
 
+  updateTeamMember: async (projectId: number, assignmentId: number, request: Partial<CreateAssignmentRequest>): Promise<ProjectAssignment> => {
+      const response = await axiosInstance.patch(`/projects/${projectId}/team/${assignmentId}`, request);
+      return response.data;
+  },
+
   getAvailableEngineers: async (): Promise<UserSummary[]> => {
       const response = await axiosInstance.get('/projects/available-engineers');
       return response.data;
