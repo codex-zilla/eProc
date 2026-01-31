@@ -1,4 +1,4 @@
-const CURRENCY_API_URL = import.meta.env.VITE_CURRENCY_API_URL || 'https://api.exchangerate-api.com/v4/latest/USD';
+const CURRENCY_API_URL = import.meta.env.VITE_CURRENCY_API_URL;
 
 // Default fallback rate if API fails (1 USD = 2500 TZS)
 const DEFAULT_EXCHANGE_RATE = 2500;

@@ -14,7 +14,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('ENGINEER');
+  const [role, setRole] = useState('PROJECT_OWNER');
   const [erbNumber, setErbNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +143,7 @@ const Register = () => {
           {role === 'ENGINEER' && (
             <div className="space-y-1">
               <Label htmlFor="erbNumber" className="text-black-900 font-medium text-sm">
-                ERB Number <span className="text-slate-500 text-xs">(Engineers Registration Board - Optional)</span>
+                ERB Number <span className="text-slate-500 text-xs">(Engineers Registration Board)</span>
               </Label>
               <div className="relative group">
                 <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />

@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Auth pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 
 // Shared pages
 import Profile from './pages/shared/Profile';
@@ -40,6 +41,7 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
           </Route>
 
           {/* Protected Routes */}
