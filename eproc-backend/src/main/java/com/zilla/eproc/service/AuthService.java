@@ -84,6 +84,26 @@ public class AuthService {
                 .role(user.getRole())
                 .name(user.getName())
                 .id(user.getId())
+                .requirePasswordChange(user.getRequirePasswordChange())
                 .build();
+    }
+
+    /**
+     * Change user password.
+     * Used for first-login password change or regular password updates.
+     */
+    public void changePassword(String userEmail, String oldPassword, String newPassword) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Verify old password
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        // Update password and clear requirePasswordChange flag
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setRequirePasswordChange(false);
+        userRepository.save(user);
     }
 }

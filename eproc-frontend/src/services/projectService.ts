@@ -66,5 +66,39 @@ export const projectService = {
   getAvailableEngineers: async (): Promise<UserSummary[]> => {
       const response = await axiosInstance.get('/projects/available-engineers');
       return response.data;
+  },
+
+  // === Project-Bound User Management ===
+  // Create a new user account (PROJECT_MANAGER or PROJECT_ACCOUNTANT)
+  createProjectUser: async (data: {
+    name: string;
+    email: string;
+    role: string;
+    projectId: number;
+    phoneNumber?: string;
+    startDate: string;
+    responsibilityLevel?: string;
+  }): Promise<any> => {
+      const response = await axiosInstance.post('/project-users', data);
+      return response.data;
+  },
+
+  // Get all users created by current owner
+  getMyProjectUsers: async (): Promise<any[]> => {
+      const response = await axiosInstance.get('/project-users');
+      return response.data;
+  },
+
+  // Assign existing user to a project
+  assignUserToProject: async (userId: number, projectId: number, role: string, startDate: string, responsibilityLevel: string = 'FULL'): Promise<any> => {
+      const response = await axiosInstance.post(`/project-users/${userId}/assign`, null, {
+          params: { projectId, role, startDate, responsibilityLevel }
+      });
+      return response.data;
+  },
+
+  // Remove user from a project (soft delete assignment)
+  removeUserFromProject: async (userId: number, projectId: number): Promise<void> => {
+      await axiosInstance.delete(`/project-users/${userId}/projects/${projectId}`);
   }
 };

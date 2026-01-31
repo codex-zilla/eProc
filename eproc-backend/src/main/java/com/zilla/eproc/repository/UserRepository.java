@@ -39,4 +39,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Find active users by role.
      */
     List<User> findByRoleAndActiveTrue(Role role);
+
+    /**
+     * Find all users created by a specific owner.
+     * Used by project owners to list their managed users.
+     */
+    List<User> findByCreatedBy(Long createdBy);
 }

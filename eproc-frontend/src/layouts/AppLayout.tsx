@@ -11,7 +11,7 @@ import {
   Settings, 
   AlertCircle,
   ChevronLeft,
-
+  Users,
   Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,7 @@ const AppLayout = () => {
       return [
         { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/manager/projects', icon: Briefcase },
+        { label: 'Project Users', path: '/manager/users', icon: Users },
         { label: 'Pending Requests', path: '/manager/pending', icon: ClipboardList, badge: pendingCount },
       ];
     }
@@ -108,6 +109,8 @@ const AppLayout = () => {
             label: 'Project Details',
             active: true
         });
+    } else if (location.pathname === '/manager/users') {
+        // No sub-breadcrumb needed, already handled by activeNavItem
     }
 
     // Engineer Routes Logic

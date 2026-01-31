@@ -6,6 +6,7 @@ interface User {
   email: string;
   role: string;
   name: string;
+  requirePasswordChange?: boolean;
 }
 
 export interface RegisterData {
@@ -26,6 +27,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   error: string | null;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,11 +59,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [token]);
 
   const handleAuthResponse = (response: any) => {
-    const { token: newToken, email: userEmail, role, name, id } = response.data;
+    const { token: newToken, email: userEmail, role, name, id, requirePasswordChange } = response.data;
     
     // Store token and user info
     localStorage.setItem('token', newToken);
-    const userData: User = { id, email: userEmail, role, name };
+    const userData: User = { id, email: userEmail, role, name, requirePasswordChange };
     localStorage.setItem('user', JSON.stringify(userData));
     
     setToken(newToken);
@@ -121,6 +123,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setError(null);
   };
 
+  const changePassword = async (oldPassword: string, newPassword: string) => {
+    setError(null);
+    try {
+      await api.post('/auth/change-password', { oldPassword, newPassword });
+      // Update user to clear requirePasswordChange flag
+      if (user) {
+        const updatedUser = { ...user, requirePasswordChange: false };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (err: any) {
+      handleError(err);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -130,6 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     error,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

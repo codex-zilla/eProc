@@ -63,6 +63,21 @@ public class User {
     @Builder.Default
     private Boolean active = true;
 
+    /**
+     * ID of the project owner who created this user.
+     * Null for self-registered users (ENGINEER role).
+     */
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    /**
+     * Whether the user must change their password on next login.
+     * Set to true when user is created by project owner with default password.
+     */
+    @Column(name = "require_password_change")
+    @Builder.Default
+    private Boolean requirePasswordChange = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

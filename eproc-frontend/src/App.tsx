@@ -27,10 +27,13 @@ import ProjectWizard from './components/ProjectWizard';
 import ProjectDetails from './pages/manager/ProjectDetails';
 import PendingRequests from './pages/manager/PendingRequests';
 import RequestDetailsManager from './pages/manager/RequestDetailsManager';
+import ManageProjectUsers from './pages/manager/ManageProjectUsers';
+import ChangePasswordModal from './components/ChangePasswordModal';
 
 function App() {
   return (
     <AuthProvider>
+      <ChangePasswordModal />
       <BrowserRouter>
         <Routes>
           {/* Public Routes (Login) */}
@@ -61,6 +64,7 @@ function App() {
                 <Route path="/manager/projects" element={<MyProjects />} />
                 <Route path="/manager/projects/new" element={<ProjectWizard />} />
                 <Route path="/manager/projects/:id" element={<ProjectDetails />} />
+                <Route path="/manager/users" element={<ManageProjectUsers />} />
                 <Route path="/manager/pending" element={<PendingRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
               </Route>

@@ -1,12 +1,15 @@
 package com.zilla.eproc.controller;
 
 import com.zilla.eproc.dto.AuthResponse;
+import com.zilla.eproc.dto.ChangePasswordRequest;
 import com.zilla.eproc.dto.LoginRequest;
 import com.zilla.eproc.dto.RegisterRequest;
 import com.zilla.eproc.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -41,5 +44,19 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Change user password.
+     * Used for first-login password change or regular password updates.
+     */
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        authService.changePassword(email, request.getOldPassword(), request.getNewPassword());
+        return ResponseEntity.ok().build();
     }
 }

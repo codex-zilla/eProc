@@ -7,10 +7,15 @@ package com.zilla.eproc.model;
  * 
  * - SYSTEM_ADMIN: Global system oversight (future)
  * - PROJECT_OWNER: Business owner who can create projects and manage staff
+ * - PROJECT_MANAGER: Manager role bound to specific projects, created by owners
+ * - PROJECT_ACCOUNTANT: Accountant role bound to specific projects, created by
+ * owners
  * - ENGINEER: Technical staff who can self-register with ERB verification
  */
 public enum Role {
     SYSTEM_ADMIN,
     PROJECT_OWNER,
+    PROJECT_MANAGER,
+    PROJECT_ACCOUNTANT,
     ENGINEER
 }
