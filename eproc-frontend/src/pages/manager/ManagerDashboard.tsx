@@ -63,19 +63,19 @@ const ManagerDashboard = () => {
       )}
 
       {/* Welcome Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-        <div>
-          <h2 className="text-slate-900 text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-tight font-semibold">
+      <div className="flex flex-row justify-between items-center gap-2 sm:gap-3">
+        <div className="flex-1">
+          <h2 className="text-slate-900 text-base sm:text-lg md:text-xl lg:text-2xl tracking-tight font-semibold">
             Welcome back, {user?.name}.
           </h2>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md text-xs sm:text-sm flex-1 sm:flex-none">
-            <Link to="/manager/projects/new">
-              + New Project
-            </Link>
-          </Button>
-        </div>
+        <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md text-xs sm:text-sm h-9 sm:h-10 flex-shrink-0">
+          <Link to="/manager/projects/new" className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4">
+            <span className="text-base sm:text-lg">+</span>
+            <span className="hidden sm:inline">New Project</span>
+            <span className="sm:hidden">New</span>
+          </Link>
+        </Button>
       </div>
 
       {/* Stats Grid */}

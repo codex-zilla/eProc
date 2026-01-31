@@ -21,6 +21,7 @@ const ProjectWizard = () => {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
     // Initial State
     const [formData, setFormData] = useState({
@@ -68,6 +69,14 @@ const ProjectWizard = () => {
 
     const handleChange = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        // Clear field error when user starts typing
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
     };
 
     // Geo Updates
@@ -95,7 +104,59 @@ const ProjectWizard = () => {
         handleChange('gpsCoordinates', `${lat.toFixed(6)},${lng.toFixed(6)}`);
     };
 
+    // Validation function
+    const validateStep = (currentStep: number): boolean => {
+        const errors: Record<string, string> = {};
+
+        if (currentStep === 1) {
+            if (!formData.name.trim()) {
+                errors.name = 'Project name is required';
+            }
+            if (!formData.industry) {
+                errors.industry = 'Industry selection is required';
+            }
+            if (!formData.projectType) {
+                errors.projectType = 'Project type is required';
+            }
+        }
+
+        if (currentStep === 2) {
+            if (!formData.region) {
+                errors.region = 'Region is required';
+            }
+            if (!formData.district) {
+                errors.district = 'District is required';
+            }
+            if (!formData.ward) {
+                errors.ward = 'Ward is required';
+            }
+        }
+
+        if (currentStep === 3) {
+            if (!formData.startDate) {
+                errors.startDate = 'Start date is required';
+            }
+            if (!formData.expectedCompletionDate) {
+                errors.expectedCompletionDate = 'Expected completion date is required';
+            }
+            if (formData.startDate && formData.expectedCompletionDate) {
+                if (new Date(formData.startDate) >= new Date(formData.expectedCompletionDate)) {
+                    errors.expectedCompletionDate = 'Completion date must be after start date';
+                }
+            }
+        }
+
+        setFieldErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleSubmit = async () => {
+        // Validate all steps before submission
+        if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+            setError('Please complete all required fields correctly');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
@@ -135,14 +196,40 @@ const ProjectWizard = () => {
             navigate('/manager/projects');
         } catch (err: any) {
             console.error(err);
-            setError(err.response?.data?.message || 'Failed to create project');
+            
+            // Enhanced error handling
+            if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+                setError('Connection failed. Please check your internet connection and try again.');
+            } else if (err.response?.status === 401) {
+                setError('Your session has expired. Please log in again.');
+            } else if (err.response?.status === 403) {
+                setError('You do not have permission to create projects.');
+            } else if (err.response?.status === 400) {
+                setError(err.response?.data?.message || 'Invalid project data. Please check all fields.');
+            } else if (err.response?.status >= 500) {
+                setError('Server error. Please try again later.');
+            } else {
+                setError(err.response?.data?.message || 'Failed to create project. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    const nextStep = () => setStep(prev => prev + 1);
-    const prevStep = () => setStep(prev => prev - 1);
+    const nextStep = () => {
+        if (validateStep(step)) {
+            setStep(prev => prev + 1);
+            setError(null);
+        } else {
+            setError('Please fill in all required fields before proceeding');
+        }
+    };
+
+    const prevStep = () => {
+        setStep(prev => prev - 1);
+        setError(null);
+        setFieldErrors({});
+    };
 
     // Derived Lists
     const regions = useMemo(() => getAllRegions(), []);
@@ -150,76 +237,127 @@ const ProjectWizard = () => {
     const wards = useMemo(() => (formData.region && formData.district) ? getWardData(formData.region, formData.district) : [], [formData.region, formData.district]);
 
     return (
-        <div className="max-w-7xl mx-auto">
-            {/* <h1 className="text-3xl font-bold mb-6 text-center">New Project Wizard</h1> */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
             
             {/* Steps Indicator */}
-            <div className="flex justify-between mb-8 px-10">
+            <div className="relative flex justify-between mb-6 sm:mb-8 px-2 sm:px-6 lg:px-10">
+                {/* Progress Line Background */}
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-300 -translate-y-1/2 mx-6 sm:mx-10 lg:mx-14"></div>
+                
+                {/* Progress Line Foreground */}
+                <div
+                    className="absolute top-1/2 left-0 h-0.5 bg-[#2a3455] -translate-y-1/2 mx-6 sm:mx-10 lg:mx-14 transition-all duration-500 ease-in-out"
+                    style={{ width: `calc(${((step - 1) / 4) * 100}% - ${step === 1 ? '0px' : '24px'})` }}
+                ></div>
+
                 {[1, 2, 3, 4, 5].map(s => (
-                    <div key={s} className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${step >= s ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 text-gray-400'}`}>
-                        {step > s ? <Check className="w-5 h-5" /> : s}
+                    <div key={s} className="relative z-10">
+                        <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full border-2 text-xs sm:text-sm lg:text-base font-medium transition-all duration-300 ${step >= s ? 'bg-[#2a3455] border-[#2a3455] text-white shadow-md' : 'border-gray-300 text-gray-400 bg-white'}`}>
+                            {step > s ? <Check className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5" /> : s}
+                        </div>
                     </div>
                 ))}
             </div>
 
-            {error && <div className="bg-red-50 text-red-700 p-4 rounded mb-6">{error}</div>}
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg mb-4 sm:mb-6 text-xs sm:text-sm">
+                    <span className="font-medium">Error:</span> {error}
+                </div>
+            )}
 
-            <Card>
+            <Card className="shadow-sm">
                 {/* Step 1: Core Identity */}
                 {step === 1 && (
                     <>
-                        <CardHeader>
-                            <CardTitle>Core Identity</CardTitle>
-                            <CardDescription>Basic details to identify the project.</CardDescription>
+                        <CardHeader className="p-4 sm:p-6">
+                            <CardTitle className="text-lg sm:text-xl lg:text-2xl">General Information</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Basic details to identify the project.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label>Project Name *</Label>
-                                <Input value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="e.g. Skyline Apartments" />
+                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">
+                                    Project Name <span className="text-red-500">*</span>
+                                </Label>
+                                <Input 
+                                    value={formData.name} 
+                                    onChange={e => handleChange('name', e.target.value)} 
+                                    placeholder="e.g. Skyline Apartments"
+                                    className={`h-9 sm:h-10 text-sm ${fieldErrors.name ? 'border-red-500' : ''}`}
+                                />
+                                {fieldErrors.name && <p className="text-xs text-red-500">{fieldErrors.name}</p>}
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Project Code</Label>
-                                <Input value={formData.code} onChange={e => handleChange('code', e.target.value)} placeholder="e.g. PRJ-2026-001" />
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Project Code</Label>
+                                <Input 
+                                    value={formData.code} 
+                                    onChange={e => handleChange('code', e.target.value)} 
+                                    placeholder="e.g. PRJ-2026-001"
+                                    className="h-9 sm:h-10 text-sm"
+                                />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Industry</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        Industry <span className="text-red-500">*</span>
+                                    </Label>
                                     <Select value={formData.industry} onValueChange={v => handleChange('industry', v)}>
-                                        <SelectTrigger><SelectValue placeholder="Select Industry" /></SelectTrigger>
+                                        <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.industry ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Industry" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {Object.values(Industry).map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                                            {Object.values(Industry).map(i => <SelectItem key={i} value={i} className="text-xs sm:text-sm">{i}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    {fieldErrors.industry && <p className="text-xs text-red-500">{fieldErrors.industry}</p>}
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Project Type</Label>
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        Project Type <span className="text-red-500">*</span>
+                                    </Label>
                                     <Select value={formData.projectType} onValueChange={v => handleChange('projectType', v)}>
-                                        <SelectTrigger><SelectValue placeholder="Select Type" /></SelectTrigger>
+                                        <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.projectType ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Type" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {Object.values(ProjectType).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                            {Object.values(ProjectType).map(t => <SelectItem key={t} value={t} className="text-xs sm:text-sm">{t}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    {fieldErrors.projectType && <p className="text-xs text-red-500">{fieldErrors.projectType}</p>}
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Currency</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">Currency</Label>
                                     <Select value={formData.currency} onValueChange={v => handleChange('currency', v)}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                                            <SelectValue />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="TZS">TZS</SelectItem>
-                                            <SelectItem value="USD">USD</SelectItem>
+                                            <SelectItem value="TZS" className="text-xs sm:text-sm">TZS - Tanzanian Shilling</SelectItem>
+                                            <SelectItem value="USD" className="text-xs sm:text-sm">USD - US Dollar</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground">Rate: 1 USD ≈ {exchangeRate.toLocaleString()} TZS</p>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Budget Estimate</Label>
-                                    <Input type="number" value={formData.budgetDisplay} onChange={e => handleChange('budgetDisplay', e.target.value)} placeholder="0.00" />
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">Budget Estimate</Label>
+                                    <Input 
+                                        type="number" 
+                                        value={formData.budgetDisplay} 
+                                        onChange={e => handleChange('budgetDisplay', e.target.value)} 
+                                        placeholder="0.00"
+                                        className="h-9 sm:h-10 text-sm"
+                                    />
                                 </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Description</Label>
-                                <Textarea value={formData.description} onChange={e => handleChange('description', e.target.value)} placeholder="Detailed project description..." />
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Description</Label>
+                                <Textarea 
+                                    value={formData.description} 
+                                    onChange={e => handleChange('description', e.target.value)} 
+                                    placeholder="Detailed project description..."
+                                    className="resize-none h-20 sm:h-24 text-sm"
+                                />
                             </div>
                         </CardContent>
                     </>
@@ -228,58 +366,92 @@ const ProjectWizard = () => {
                 {/* Step 2: Location */}
                 {step === 2 && (
                     <>
-                        <CardHeader>
-                            <CardTitle>Location Details</CardTitle>
-                            <CardDescription>Where is the project located?</CardDescription>
+                        <CardHeader className="p-4 sm:p-6">
+                            <CardTitle className="text-lg sm:text-xl lg:text-2xl">Location Details</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Where is the project located?</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Region</Label>
+                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        Region <span className="text-red-500">*</span>
+                                    </Label>
                                     <Select value={formData.region} onValueChange={v => handleChange('region', v)}>
-                                        <SelectTrigger><SelectValue placeholder="Select Region" /></SelectTrigger>
+                                        <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.region ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Region" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {regions.map(r => <SelectItem key={r.region} value={r.region}>{r.region}</SelectItem>)}
+                                            {regions.map(r => <SelectItem key={r.region} value={r.region} className="text-xs sm:text-sm">{r.region}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    {fieldErrors.region && <p className="text-xs text-red-500">{fieldErrors.region}</p>}
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>District</Label>
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        District <span className="text-red-500">*</span>
+                                    </Label>
                                     <Select value={formData.district} onValueChange={v => handleChange('district', v)} disabled={!formData.region}>
-                                        <SelectTrigger><SelectValue placeholder="Select District" /></SelectTrigger>
+                                        <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.district ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select District" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {districts.map(d => <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>)}
+                                            {districts.map(d => <SelectItem key={d.name} value={d.name} className="text-xs sm:text-sm">{d.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    {fieldErrors.district && <p className="text-xs text-red-500">{fieldErrors.district}</p>}
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Ward</Label>
+                                <div className="grid gap-1.5 sm:gap-2 sm:col-span-2 lg:col-span-1">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        Ward <span className="text-red-500">*</span>
+                                    </Label>
                                     <Select value={formData.ward} onValueChange={v => handleChange('ward', v)} disabled={!formData.district}>
-                                        <SelectTrigger><SelectValue placeholder="Select Ward" /></SelectTrigger>
+                                        <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.ward ? 'border-red-500' : ''}`}>
+                                            <SelectValue placeholder="Select Ward" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {wards.map(w => <SelectItem key={w.name} value={w.name}>{w.name}</SelectItem>)}
+                                            {wards.map(w => <SelectItem key={w.name} value={w.name} className="text-xs sm:text-sm">{w.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    {fieldErrors.ward && <p className="text-xs text-red-500">{fieldErrors.ward}</p>}
                                 </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Plot Number</Label>
-                                <Input value={formData.plotNumber} onChange={e => handleChange('plotNumber', e.target.value)} />
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Plot Number</Label>
+                                <Input 
+                                    value={formData.plotNumber} 
+                                    onChange={e => handleChange('plotNumber', e.target.value)}
+                                    className="h-9 sm:h-10 text-sm"
+                                />
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Checkbox id="titleDeed" checked={formData.titleDeedAvailable} onCheckedChange={(v: boolean | 'indeterminate') => handleChange('titleDeedAvailable', v === true)} />
-                                <Label htmlFor="titleDeed">Title Deed Available?</Label>
+                                <Checkbox 
+                                    id="titleDeed" 
+                                    checked={formData.titleDeedAvailable} 
+                                    onCheckedChange={(v: boolean | 'indeterminate') => handleChange('titleDeedAvailable', v === true)} 
+                                />
+                                <Label htmlFor="titleDeed" className="text-xs sm:text-sm font-normal cursor-pointer">Title Deed Available?</Label>
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Pin on Map</Label>
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">
+                                    Pin on Map
+                                    <span className="text-[10px] sm:text-xs text-muted-foreground ml-1 font-normal">(Click to refine location)</span>
+                                </Label>
                                 <LocationPicker center={mapCenter} markerPosition={markerPosition} onLocationSelect={handleLocationSelect} />
-                                {markerPosition && <p className="text-xs text-green-600">Selected: {markerPosition.lat.toFixed(5)}, {markerPosition.lng.toFixed(5)}</p>}
+                                {markerPosition && (
+                                    <p className="text-[10px] sm:text-xs text-green-600 flex items-center gap-1">
+                                        ✓ Selected: {markerPosition.lat.toFixed(5)}, {markerPosition.lng.toFixed(5)}
+                                    </p>
+                                )}
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Site Access Notes</Label>
-                                <Textarea value={formData.siteAccessNotes} onChange={e => handleChange('siteAccessNotes', e.target.value)} placeholder="e.g. 4x4 required, muddy road..." />
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Site Access Notes</Label>
+                                <Textarea 
+                                    value={formData.siteAccessNotes} 
+                                    onChange={e => handleChange('siteAccessNotes', e.target.value)} 
+                                    placeholder="e.g. 4x4 required, muddy road..."
+                                    className="resize-none h-20 sm:h-24 text-sm"
+                                />
                             </div>
-
                         </CardContent>
                     </>
                 )}
@@ -287,51 +459,87 @@ const ProjectWizard = () => {
                 {/* Step 3: Owner & Timeline */}
                 {step === 3 && (
                     <>
-                        <CardHeader>
-                            <CardTitle>Owner, Timeline & Contract</CardTitle>
+                        <CardHeader className="p-4 sm:p-6">
+                            <CardTitle className="text-lg sm:text-xl lg:text-2xl">Owner, Timeline & Contract</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Project ownership and scheduling details</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label>Owner Representative Name</Label>
-                                <Input value={formData.ownerRepName} onChange={e => handleChange('ownerRepName', e.target.value)} />
+                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Owner Representative Name</Label>
+                                <Input 
+                                    value={formData.ownerRepName} 
+                                    onChange={e => handleChange('ownerRepName', e.target.value)}
+                                    className="h-9 sm:h-10 text-sm"
+                                />
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Owner Rep Contact</Label>
-                                <Input value={formData.ownerRepContact} onChange={e => handleChange('ownerRepContact', e.target.value)} />
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Owner Rep Contact</Label>
+                                <Input 
+                                    value={formData.ownerRepContact} 
+                                    onChange={e => handleChange('ownerRepContact', e.target.value)}
+                                    placeholder="Phone or email"
+                                    className="h-9 sm:h-10 text-sm"
+                                />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Start Date</Label>
-                                    <Input type="date" value={formData.startDate} onChange={e => handleChange('startDate', e.target.value)} />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        Start Date <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input 
+                                        type="date" 
+                                        value={formData.startDate} 
+                                        onChange={e => handleChange('startDate', e.target.value)}
+                                        className={`h-9 sm:h-10 text-sm ${fieldErrors.startDate ? 'border-red-500' : ''}`}
+                                    />
+                                    {fieldErrors.startDate && <p className="text-xs text-red-500">{fieldErrors.startDate}</p>}
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Expected Completion</Label>
-                                    <Input type="date" value={formData.expectedCompletionDate} onChange={e => handleChange('expectedCompletionDate', e.target.value)} />
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">
+                                        Expected Completion <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input 
+                                        type="date" 
+                                        value={formData.expectedCompletionDate} 
+                                        onChange={e => handleChange('expectedCompletionDate', e.target.value)}
+                                        className={`h-9 sm:h-10 text-sm ${fieldErrors.expectedCompletionDate ? 'border-red-500' : ''}`}
+                                    />
+                                    {fieldErrors.expectedCompletionDate && <p className="text-xs text-red-500">{fieldErrors.expectedCompletionDate}</p>}
                                 </div>
                             </div>
 
-                            <hr className="my-2" />
+                            <hr className="my-3 sm:my-4" />
                             
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Contract Type</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">Contract Type</Label>
                                     <Select value={formData.contractType} onValueChange={v => handleChange('contractType', v)}>
-                                        <SelectTrigger><SelectValue placeholder="Select Contract Type" /></SelectTrigger>
+                                        <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                                            <SelectValue placeholder="Select Contract Type" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            {Object.values(ContractType).map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
+                                            {Object.values(ContractType).map(t => <SelectItem key={t} value={t} className="text-xs sm:text-sm">{t.replace(/_/g, ' ')}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Defects Liability Period (Days)</Label>
-                                    <Input type="number" value={formData.defectsLiabilityPeriod} onChange={e => handleChange('defectsLiabilityPeriod', parseInt(e.target.value) || 0)} />
+                                <div className="grid gap-1.5 sm:gap-2">
+                                    <Label className="text-xs sm:text-sm font-medium">Defects Liability Period (Days)</Label>
+                                    <Input 
+                                        type="number" 
+                                        value={formData.defectsLiabilityPeriod} 
+                                        onChange={e => handleChange('defectsLiabilityPeriod', parseInt(e.target.value) || 0)}
+                                        className="h-9 sm:h-10 text-sm"
+                                    />
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Checkbox id="perfSecurity" checked={formData.performanceSecurityRequired} onCheckedChange={(v) => handleChange('performanceSecurityRequired', v === true)} />
-                                <Label htmlFor="perfSecurity">Performance Security Required?</Label>
+                                <Checkbox 
+                                    id="perfSecurity" 
+                                    checked={formData.performanceSecurityRequired} 
+                                    onCheckedChange={(v) => handleChange('performanceSecurityRequired', v === true)} 
+                                />
+                                <Label htmlFor="perfSecurity" className="text-xs sm:text-sm font-normal cursor-pointer">Performance Security Required?</Label>
                             </div>
-
                         </CardContent>
                     </>
                 )}
@@ -339,18 +547,28 @@ const ProjectWizard = () => {
                 {/* Step 4: Context */}
                 {step === 4 && (
                     <>
-                        <CardHeader>
-                            <CardTitle>Project Context</CardTitle>
-                            <CardDescription>Objectives and Outputs (Scope definition comes later)</CardDescription>
+                        <CardHeader className="p-4 sm:p-6">
+                            <CardTitle className="text-lg sm:text-xl lg:text-2xl">Project Context</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Objectives and Outputs (Scope definition comes later)</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label>Key Objectives</Label>
-                                <Textarea value={formData.keyObjectives} onChange={e => handleChange('keyObjectives', e.target.value)} placeholder="Main goals..." />
+                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Key Objectives</Label>
+                                <Textarea 
+                                    value={formData.keyObjectives} 
+                                    onChange={e => handleChange('keyObjectives', e.target.value)} 
+                                    placeholder="Main goals and objectives of the project..."
+                                    className="resize-none h-24 sm:h-28 text-sm"
+                                />
                             </div>
-                            <div className="grid gap-2">
-                                <Label>Expected Output</Label>
-                                <Textarea value={formData.expectedOutput} onChange={e => handleChange('expectedOutput', e.target.value)} placeholder="Deliverables..." />
+                            <div className="grid gap-1.5 sm:gap-2">
+                                <Label className="text-xs sm:text-sm font-medium">Expected Output</Label>
+                                <Textarea 
+                                    value={formData.expectedOutput} 
+                                    onChange={e => handleChange('expectedOutput', e.target.value)} 
+                                    placeholder="Expected deliverables and outcomes..."
+                                    className="resize-none h-24 sm:h-28 text-sm"
+                                />
                             </div>
                         </CardContent>
                     </>
@@ -359,33 +577,103 @@ const ProjectWizard = () => {
                 {/* Step 5: Review */}
                 {step === 5 && (
                     <>
-                         <CardHeader>
-                            <CardTitle>Review & Submit</CardTitle>
+                         <CardHeader className="p-4 sm:p-6">
+                            <CardTitle className="text-lg sm:text-xl lg:text-2xl">Review & Submit</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Please review your project details before submitting</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4 text-sm">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><strong>Name:</strong> {formData.name}</div>
-                                <div><strong>Code:</strong> {formData.code}</div>
-                                <div><strong>Industry:</strong> {formData.industry}</div>
-                                <div><strong>Type:</strong> {formData.projectType}</div>
-                                <div><strong>Region:</strong> {formData.region}</div>
-                                <div><strong>Plot:</strong> {formData.plotNumber}</div>
-                                <div><strong>Contract:</strong> {formData.contractType}</div>
+                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Name:</span>
+                                    <p className="text-gray-900">{formData.name || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Code:</span>
+                                    <p className="text-gray-900">{formData.code || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Industry:</span>
+                                    <p className="text-gray-900">{formData.industry || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Type:</span>
+                                    <p className="text-gray-900">{formData.projectType || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Region:</span>
+                                    <p className="text-gray-900">{formData.region || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">District:</span>
+                                    <p className="text-gray-900">{formData.district || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Ward:</span>
+                                    <p className="text-gray-900">{formData.ward || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Plot:</span>
+                                    <p className="text-gray-900">{formData.plotNumber || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Start Date:</span>
+                                    <p className="text-gray-900">{formData.startDate || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Completion Date:</span>
+                                    <p className="text-gray-900">{formData.expectedCompletionDate || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Contract:</span>
+                                    <p className="text-gray-900">{formData.contractType || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="font-semibold text-gray-600">Budget:</span>
+                                    <p className="text-gray-900">{formData.budgetDisplay ? `${formData.currency} ${parseFloat(formData.budgetDisplay).toLocaleString()}` : '-'}</p>
+                                </div>
                             </div>
-                            <div className="bg-gray-50 p-3 rounded">
-                                <p><strong>Objectives:</strong> {formData.keyObjectives}</p>
-                            </div>
+                            {formData.keyObjectives && (
+                                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-1">
+                                    <p className="font-semibold text-gray-600 text-xs sm:text-sm">Objectives:</p>
+                                    <p className="text-gray-900 text-xs sm:text-sm">{formData.keyObjectives}</p>
+                                </div>
+                            )}
+                            {formData.expectedOutput && (
+                                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg space-y-1">
+                                    <p className="font-semibold text-gray-600 text-xs sm:text-sm">Expected Output:</p>
+                                    <p className="text-gray-900 text-xs sm:text-sm">{formData.expectedOutput}</p>
+                                </div>
+                            )}
                         </CardContent>
                     </>
                 )}
 
-                <CardFooter className="flex justify-between">
-                    {step > 1 && <Button variant="outline" onClick={prevStep}><ChevronLeft className="w-4 h-4 mr-2" /> Back</Button>}
+                <CardFooter className="flex flex-row justify-between gap-2 sm:gap-3 p-4 sm:p-6 pt-3 sm:pt-4 border-t">
+                    {step > 1 ? (
+                        <Button
+                            variant="outline"
+                            onClick={prevStep}
+                            className="h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4"
+                        >
+                            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Back
+                        </Button>
+                    ) : (
+                        <div></div>
+                    )}
                     <div className="flex-1"></div>
                     {step < 5 ? (
-                        <Button onClick={nextStep} disabled={step === 1 && !formData.name}>Next <ChevronRight className="w-4 h-4 ml-2" /></Button>
+                        <Button
+                            className='bg-[#2a3455] hover:bg-[#1e253e] text-white h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm px-3 sm:px-4'
+                            onClick={nextStep}
+                        >
+                            Next <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+                        </Button>
                     ) : (
-                        <Button onClick={handleSubmit} disabled={loading} className="bg-green-600 hover:bg-green-700">
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className="bg-green-600 hover:bg-green-700 text-white h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm px-3 sm:px-4"
+                        >
                             {loading ? 'Creating...' : 'Create Project'}
                         </Button>
                     )}

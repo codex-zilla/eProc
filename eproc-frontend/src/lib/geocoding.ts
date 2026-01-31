@@ -12,15 +12,22 @@ interface Coordinates {
  */
 export const getCoordinates = async (query: string): Promise<Coordinates | null> => {
     try {
-        // Nominatim requires a User-Agent header (browser automatically sets one, but good to be specific if proxying)
-        // We use fetch directly here to avoid sending our app's auth tokens to OSM
+        // Nominatim requires a User-Agent header
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
         
         const response = await fetch(url, {
+            method: 'GET',
             headers: {
-                'Accept-Language': 'en'
-            }
+                'Accept-Language': 'en',
+                'User-Agent': 'eProc-App/1.0'
+            },
+            mode: 'cors'
         });
+
+        if (!response.ok) {
+            console.warn(`Geocoding API returned status ${response.status} for query: ${query}`);
+            return null;
+        }
 
         const data = await response.json();
 
@@ -32,7 +39,8 @@ export const getCoordinates = async (query: string): Promise<Coordinates | null>
         }
         return null;
     } catch (error) {
-        console.error('Geocoding error:', error);
+        // Silently handle CORS and network errors - geocoding is optional
+        console.warn('Geocoding unavailable:', error instanceof Error ? error.message : 'Unknown error');
         return null;
     }
 };
