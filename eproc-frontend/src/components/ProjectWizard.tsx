@@ -390,12 +390,16 @@ const ProjectWizard = () => {
                                     <Label className="text-xs sm:text-sm font-medium">
                                         District <span className="text-red-500">*</span>
                                     </Label>
-                                    <Select value={formData.district} onValueChange={v => handleChange('district', v)} disabled={!formData.region}>
+                                    <Select value={formData.district} onValueChange={v => handleChange('district', v)} disabled={!formData.region || districts.length === 0}>
                                         <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.district ? 'border-red-500' : ''}`}>
-                                            <SelectValue placeholder="Select District" />
+                                            <SelectValue placeholder={!formData.region ? "Select Region First" : districts.length === 0 ? "No districts found" : "Select District"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {districts.map(d => <SelectItem key={d.name} value={d.name} className="text-xs sm:text-sm">{d.name}</SelectItem>)}
+                                            {districts.length === 0 ? (
+                                                <SelectItem value="no-districts" disabled className="text-xs sm:text-sm text-muted-foreground">No districts found</SelectItem>
+                                            ) : (
+                                                districts.map(d => <SelectItem key={d.name} value={d.name} className="text-xs sm:text-sm">{d.name}</SelectItem>)
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     {fieldErrors.district && <p className="text-xs text-red-500">{fieldErrors.district}</p>}
@@ -404,12 +408,16 @@ const ProjectWizard = () => {
                                     <Label className="text-xs sm:text-sm font-medium">
                                         Ward <span className="text-red-500">*</span>
                                     </Label>
-                                    <Select value={formData.ward} onValueChange={v => handleChange('ward', v)} disabled={!formData.district}>
+                                    <Select value={formData.ward} onValueChange={v => handleChange('ward', v)} disabled={!formData.district || wards.length === 0}>
                                         <SelectTrigger className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.ward ? 'border-red-500' : ''}`}>
-                                            <SelectValue placeholder="Select Ward" />
+                                            <SelectValue placeholder={!formData.district ? "Select District First" : wards.length === 0 ? "No wards found" : "Select Ward"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {wards.map(w => <SelectItem key={w.name} value={w.name} className="text-xs sm:text-sm">{w.name}</SelectItem>)}
+                                            {wards.length === 0 ? (
+                                                <SelectItem value="no-wards" disabled className="text-xs sm:text-sm text-muted-foreground">No wards found</SelectItem>
+                                            ) : (
+                                                wards.map(w => <SelectItem key={w.name} value={w.name} className="text-xs sm:text-sm">{w.name}</SelectItem>)
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     {fieldErrors.ward && <p className="text-xs text-red-500">{fieldErrors.ward}</p>}

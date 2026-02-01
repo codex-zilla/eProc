@@ -192,8 +192,18 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>User</Label>
-                                    <Select value={selectedUser} onValueChange={setSelectedUser} disabled={!selectedRole || !!editingAssignmentId}>
-                                        <SelectTrigger><SelectValue placeholder="Select User" /></SelectTrigger>
+                                    <Select 
+                                        value={selectedUser} 
+                                        onValueChange={setSelectedUser} 
+                                        disabled={!selectedRole || !!editingAssignmentId || (filteredUsers.length === 0 && !editingAssignmentId)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={
+                                                !selectedRole ? "Select Role first" :
+                                                (filteredUsers.length === 0 && !editingAssignmentId) ? "No eligible users found" : 
+                                                "Select User" 
+                                            } />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             {/* If editing, show the current user even if not in available list immediately */}
                                              {editingAssignmentId && !filteredUsers.find(u => u.id.toString() === selectedUser) && (
@@ -201,14 +211,18 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                                     Current User
                                                 </SelectItem>
                                             )}
-                                            {filteredUsers.map(u => {
-                                                const isAssigned = team.some(member => member.userId === u.id);
-                                                return (
-                                                    <SelectItem key={u.id} value={u.id.toString()} disabled={isAssigned}>
-                                                        {u.name} ({u.role}) {isAssigned ? '(Active)' : ''}
-                                                    </SelectItem>
-                                                );
-                                            })}
+                                            {filteredUsers.length === 0 && !editingAssignmentId ? (
+                                                <SelectItem value="no-users" disabled className="text-muted-foreground">No eligible users found</SelectItem>
+                                            ) : (
+                                                filteredUsers.map(u => {
+                                                    const isAssigned = team.some(member => member.userId === u.id);
+                                                    return (
+                                                        <SelectItem key={u.id} value={u.id.toString()} disabled={isAssigned}>
+                                                            {u.name} ({u.role}) {isAssigned ? '(Active)' : ''}
+                                                        </SelectItem>
+                                                    );
+                                                })
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>

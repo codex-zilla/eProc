@@ -178,18 +178,24 @@ export default function RequestWizard({ sites, materials, requestToEdit, onSucce
         {currentStep === 'site' && (
           <div className="step-site">
             <h3>Select a Site</h3>
-            <select
-              value={selectedSiteId ?? ''}
-              onChange={(e) => setSelectedSiteId(e.target.value ? Number(e.target.value) : null)}
-              className="site-select"
-            >
-              <option value="">Choose a site...</option>
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name} {site.location ? `(${site.location})` : ''}
-                </option>
-              ))}
-            </select>
+            {sites.length === 0 ? (
+              <div className="empty-state-message">
+                <p>⚠️ No sites available. Please contact your project manager to be assigned to a project with active sites.</p>
+              </div>
+            ) : (
+              <select
+                value={selectedSiteId ?? ''}
+                onChange={(e) => setSelectedSiteId(e.target.value ? Number(e.target.value) : null)}
+                className="site-select"
+              >
+                <option value="">Choose a site...</option>
+                {sites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name} {site.location ? `(${site.location})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 
@@ -214,18 +220,24 @@ export default function RequestWizard({ sites, materials, requestToEdit, onSucce
             </div>
 
             {materialMode === 'catalog' ? (
-              <select
-                value={selectedMaterialId ?? ''}
-                onChange={(e) => setSelectedMaterialId(e.target.value ? Number(e.target.value) : null)}
-                className="material-select"
-              >
-                <option value="">Choose a material...</option>
-                {materials.map((mat) => (
-                  <option key={mat.id} value={mat.id}>
-                    {mat.name} ({mat.category})
-                  </option>
-                ))}
-              </select>
+              materials.length === 0 ? (
+                <div className="empty-state-message">
+                  <p>⚠️ No materials in catalog. Please use manual entry or contact your administrator.</p>
+                </div>
+              ) : (
+                <select
+                  value={selectedMaterialId ?? ''}
+                  onChange={(e) => setSelectedMaterialId(e.target.value ? Number(e.target.value) : null)}
+                  className="material-select"
+                >
+                  <option value="">Choose a material...</option>
+                  {materials.map((mat) => (
+                    <option key={mat.id} value={mat.id}>
+                      {mat.name} ({mat.category})
+                    </option>
+                  ))}
+                </select>
+              )
             ) : (
               <div className="manual-material-form">
                 <input
@@ -493,6 +505,17 @@ export default function RequestWizard({ sites, materials, requestToEdit, onSucce
           padding: 0.75rem;
           border-radius: 6px;
           margin-top: 1rem;
+        }
+        .empty-state-message {
+          background: #fffbeb;
+          border: 1px solid #fcd34d;
+          color: #b45309;
+          padding: 1rem;
+          border-radius: 6px;
+          text-align: center;
+        }
+        .empty-state-message p {
+          margin: 0;
         }
       `}</style>
     </div>

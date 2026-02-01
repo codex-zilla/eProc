@@ -241,18 +241,29 @@ const CreateRequest = () => {
               <Label htmlFor="site" className="text-xs sm:text-sm">
                 Site <span className="text-red-500">*</span>
               </Label>
-              <Select value={siteId} onValueChange={setSiteId} required>
+              <Select value={siteId} onValueChange={setSiteId} required disabled={sites.length === 0}>
                 <SelectTrigger id="site" className="h-9 sm:h-10 text-xs sm:text-sm">
-                  <SelectValue placeholder="Select a site..." />
+                  <SelectValue placeholder={sites.length === 0 ? "No sites available" : "Select a site..."} />
                 </SelectTrigger>
                 <SelectContent>
-                  {sites.map(site => (
-                    <SelectItem key={site.id} value={site.id.toString()} className="text-xs sm:text-sm">
-                      {site.name} - {site.location}
+                  {sites.length === 0 ? (
+                    <SelectItem value="no-sites" disabled className="text-xs sm:text-sm text-muted-foreground">
+                      No sites available
                     </SelectItem>
-                  ))}
+                  ) : (
+                    sites.map(site => (
+                      <SelectItem key={site.id} value={site.id.toString()} className="text-xs sm:text-sm">
+                        {site.name} - {site.location}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {sites.length === 0 && (
+                <p className="text-[10px] sm:text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                  ⚠️ You have no sites available. Please contact your project manager to be assigned to a project with active sites.
+                </p>
+              )}
               {sites.length === 1 && (
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Auto-selected (only one site available)</p>
               )}
@@ -445,18 +456,29 @@ const CreateRequest = () => {
             {!useManualMaterial && (
               <div className="grid gap-1.5 sm:gap-2">
                 <Label htmlFor="material" className="text-xs sm:text-sm">Material</Label>
-                <Select value={materialId} onValueChange={setMaterialId}>
+                <Select value={materialId} onValueChange={setMaterialId} disabled={materials.length === 0}>
                   <SelectTrigger id="material" className="h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder="Select a material..." />
+                    <SelectValue placeholder={materials.length === 0 ? "No materials available" : "Select a material..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {materials.map(mat => (
-                      <SelectItem key={mat.id} value={mat.id.toString()} className="text-xs sm:text-sm">
-                        {mat.name} ({mat.unit}) - Est. {mat.estimatedPrice}
+                    {materials.length === 0 ? (
+                      <SelectItem value="no-materials" disabled className="text-xs sm:text-sm text-muted-foreground">
+                        No materials available
                       </SelectItem>
-                    ))}
+                    ) : (
+                      materials.map(mat => (
+                        <SelectItem key={mat.id} value={mat.id.toString()} className="text-xs sm:text-sm">
+                          {mat.name} ({mat.unit}) - Est. {mat.estimatedPrice}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {materials.length === 0 && (
+                  <p className="text-[10px] sm:text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                    ⚠️ No materials in catalog. Please use manual entry or contact your administrator.
+                  </p>
+                )}
               </div>
             )}
 

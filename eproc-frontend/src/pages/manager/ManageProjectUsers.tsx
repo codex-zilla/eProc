@@ -620,14 +620,18 @@ const ManageProjectUsers = () => {
                           return newErrors;
                         });
                       }
-                    }}>
+                    }} disabled={projects.length === 0}>
                       <SelectTrigger id="project" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.project ? 'border-red-500' : ''}`}>
-                        <SelectValue placeholder="Select project" />
+                        <SelectValue placeholder={projects.length === 0 ? "No projects available" : "Select project"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {projects.map(p => (
-                          <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
-                        ))}
+                        {projects.length === 0 ? (
+                            <SelectItem value="no-projects" disabled className="text-xs sm:text-sm text-muted-foreground">No projects available</SelectItem>
+                        ) : (
+                            projects.map(p => (
+                              <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
+                            ))
+                        )}
                       </SelectContent>
                     </Select>
                     {fieldErrors.project && <p className="text-xs text-red-500">{fieldErrors.project}</p>}
@@ -696,12 +700,18 @@ const ManageProjectUsers = () => {
           <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
             <div className="grid gap-1.5 sm:gap-2">
               <Label className="text-xs sm:text-sm">Project</Label>
-              <Select value={assignProjectId} onValueChange={setAssignProjectId}>
-                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm"><SelectValue placeholder="Select project" /></SelectTrigger>
+              <Select value={assignProjectId} onValueChange={setAssignProjectId} disabled={projects.length === 0}>
+                <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder={projects.length === 0 ? "No projects available" : "Select project"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
-                  ))}
+                  {projects.length === 0 ? (
+                      <SelectItem value="no-projects" disabled className="text-xs sm:text-sm text-muted-foreground">No projects available</SelectItem>
+                  ) : (
+                      projects.map(p => (
+                        <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
+                      ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
