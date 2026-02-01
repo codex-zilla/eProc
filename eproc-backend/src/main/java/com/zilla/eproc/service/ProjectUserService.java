@@ -6,8 +6,10 @@ import com.zilla.eproc.dto.ProjectUserDTO;
 import com.zilla.eproc.exception.ForbiddenException;
 import com.zilla.eproc.exception.ResourceNotFoundException;
 import com.zilla.eproc.model.*;
+import com.zilla.eproc.repository.MaterialRequestRepository;
 import com.zilla.eproc.repository.ProjectAssignmentRepository;
 import com.zilla.eproc.repository.ProjectRepository;
+import com.zilla.eproc.repository.UserDeletionAuditRepository;
 import com.zilla.eproc.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +32,8 @@ public class ProjectUserService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final ProjectAssignmentRepository assignmentRepository;
+    private final MaterialRequestRepository materialRequestRepository;
+    private final UserDeletionAuditRepository userDeletionAuditRepository;
     private final PasswordEncoder passwordEncoder;
 
     private static final String DEFAULT_PASSWORD = "123456";
@@ -243,6 +247,117 @@ public class ProjectUserService {
         assignment.setIsActive(false);
         assignment.setEndDate(LocalDate.now());
         assignmentRepository.save(assignment);
+    }
+
+    /**
+     * Update user details (name, email, phone).
+     */
+    @Transactional
+    public ProjectUserDTO updateUser(Long userId, CreateProjectUserRequest request, String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Verify this user was created by the owner
+        if (!user.getCreatedBy().equals(owner.getId())) {
+            throw new ForbiddenException("You can only manage users you created");
+        }
+
+        // Check if email is being changed and if it's already taken
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
+        // Update user details
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        User updatedUser = userRepository.save(user);
+        return mapToProjectUserDTO(updatedUser);
+    }
+
+    /**
+     * Delete a user completely (hard delete with audit trail).
+     *
+     * Unified deletion flow:
+     * 1. Detect active assignments
+     * 2. If active → auto-remove (soft delete assignments)
+     * 3. Capture audit snapshot
+     * 4. Nullify / snapshot references in historical records
+     * 5. Hard delete user
+     */
+    @Transactional
+    public void deleteUser(Long userId, String ownerEmail) {
+        User owner = userRepository.findByEmail(ownerEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Verify this user was created by the owner
+        if (!user.getCreatedBy().equals(owner.getId())) {
+            throw new ForbiddenException("You can only manage users you created");
+        }
+
+        // Step 1 & 2: Detect and remove active assignments (soft delete)
+        List<ProjectAssignment> activeAssignments = assignmentRepository
+                .findByUserIdAndIsActiveTrue(user.getId());
+
+        for (ProjectAssignment assignment : activeAssignments) {
+            assignment.setIsActive(false);
+            assignment.setEndDate(LocalDate.now());
+            assignmentRepository.save(assignment);
+        }
+
+        // Step 3: Capture full audit snapshot BEFORE deletion
+        UserDeletionAudit auditSnapshot = UserDeletionAudit.builder()
+                .deletedUserId(user.getId())
+                .deletedUserEmail(user.getEmail())
+                .deletedUserName(user.getName())
+                .deletedUserRole(user.getRole())
+                .deletedUserPhone(user.getPhoneNumber())
+                .deletedUserTitle(user.getTitle())
+                .deletedUserErbNumber(user.getErbNumber())
+                .wasActive(!activeAssignments.isEmpty())
+                .activeProjectCount(activeAssignments.size())
+                .deletedBy(owner.getId())
+                .deletedByEmail(owner.getEmail())
+                .deletedByName(owner.getName())
+                .build();
+
+        UserDeletionAudit savedAudit = userDeletionAuditRepository.save(auditSnapshot);
+
+        // Step 4: Replace user references with snapshot references in historical
+        // records
+
+        // 4a. Update all project assignments (both active and inactive)
+        List<ProjectAssignment> allAssignments = assignmentRepository
+                .findByUserIdAndIsActiveTrue(userId);
+        allAssignments.addAll(assignmentRepository.findAll().stream()
+                .filter(a -> a.getUser() != null && a.getUser().getId().equals(userId) && !a.getIsActive())
+                .toList());
+
+        for (ProjectAssignment assignment : allAssignments) {
+            assignment.setDeletedUserSnapshot(savedAudit);
+            assignment.setUser(null); // Nullify user reference
+            assignmentRepository.save(assignment);
+        }
+
+        // 4b. Update all material requests created by this user
+        List<MaterialRequest> materialRequests = materialRequestRepository
+                .findByRequestedById(userId);
+
+        for (MaterialRequest request : materialRequests) {
+            request.setDeletedUserSnapshot(savedAudit);
+            request.setRequestedBy(null); // Nullify user reference
+            materialRequestRepository.save(request);
+        }
+
+        // Step 5: Hard delete the user
+        userRepository.delete(user);
     }
 
     // ==================== Helper Methods ====================

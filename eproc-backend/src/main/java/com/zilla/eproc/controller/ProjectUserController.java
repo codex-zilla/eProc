@@ -82,4 +82,35 @@ public class ProjectUserController {
         projectUserService.removeUserFromProject(userId, projectId, email);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Update user details (name, email, phone).
+     * PATCH /api/project-users/{userId}
+     */
+    @PatchMapping("/{userId}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    public ResponseEntity<ProjectUserDTO> updateUser(
+            @PathVariable Long userId,
+            @RequestBody CreateProjectUserRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        ProjectUserDTO result = projectUserService.updateUser(userId, request, email);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Delete a user completely (hard delete with audit trail).
+     * Removes user from all active assignments, creates audit snapshot, and
+     * permanently deletes user.
+     * DELETE /api/project-users/{userId}
+     */
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        String email = authentication.getName();
+        projectUserService.deleteUser(userId, email);
+        return ResponseEntity.noContent().build();
+    }
 }

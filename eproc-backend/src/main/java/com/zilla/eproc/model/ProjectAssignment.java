@@ -39,10 +39,21 @@ public class ProjectAssignment {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Project project;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    /**
+     * Reference to the user assigned to this project.
+     * Nullable to allow preservation of historical assignments after user deletion.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
+
+    /**
+     * Reference to the user deletion audit record if the user was deleted.
+     * Used to retrieve historical user information after hard deletion.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_user_snapshot_id")
+    private UserDeletionAudit deletedUserSnapshot;
 
     /**
      * The role this user plays on this specific project.

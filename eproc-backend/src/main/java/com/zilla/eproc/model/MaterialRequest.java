@@ -66,9 +66,22 @@ public class MaterialRequest {
     @Column(name = "planned_usage_end")
     private LocalDateTime plannedUsageEnd;
 
+    /**
+     * Reference to the user who created this request.
+     * Nullable to allow preservation of historical requests after user deletion.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requested_by_id")
     private User requestedBy;
+
+    /**
+     * Reference to the user deletion audit record if the requesting user was
+     * deleted.
+     * Used to retrieve historical user information after hard deletion.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_user_snapshot_id")
+    private UserDeletionAudit deletedUserSnapshot;
 
     @Column(name = "rejection_comment")
     private String rejectionComment;

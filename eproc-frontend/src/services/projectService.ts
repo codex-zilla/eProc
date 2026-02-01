@@ -100,5 +100,20 @@ export const projectService = {
   // Remove user from a project (soft delete assignment)
   removeUserFromProject: async (userId: number, projectId: number): Promise<void> => {
       await axiosInstance.delete(`/project-users/${userId}/projects/${projectId}`);
+  },
+
+  // Update user details (name, email, phone)
+  updateUser: async (userId: number, data: {
+    name: string;
+    email: string;
+    phoneNumber?: string;
+  }): Promise<any> => {
+      const response = await axiosInstance.patch(`/project-users/${userId}`, data);
+      return response.data;
+  },
+
+  // Delete user completely (soft delete)
+  deleteUser: async (userId: number): Promise<void> => {
+      await axiosInstance.delete(`/project-users/${userId}`);
   }
 };
