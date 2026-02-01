@@ -381,7 +381,7 @@ const AppLayout = () => {
                </DropdownMenu>
             </div>
         </header>
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto animate-in fade-in duration-500">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 w-full max-w-7xl mx-auto animate-in fade-in duration-500">
           <Outlet />
         </main>
       </div>

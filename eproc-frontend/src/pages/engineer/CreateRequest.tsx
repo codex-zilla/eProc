@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, DollarSign, Calendar, Package } from 'lucide-react';
+import { AlertCircle, DollarSign } from 'lucide-react';
 
 interface Site {
   id: number;
@@ -232,10 +232,10 @@ const CreateRequest = () => {
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Section 1: BOQ Context */}
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">1. BOQ Context</CardTitle>
+          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
+            <CardTitle className="text-sm sm:text-base text-white">BOQ Context</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
             {/* Site Selection */}
             <div className="grid gap-1.5 sm:gap-2">
               <Label htmlFor="site" className="text-xs sm:text-sm">
@@ -263,7 +263,7 @@ const CreateRequest = () => {
               <Label htmlFor="boqCode" className="text-xs sm:text-sm">
                 BOQ Item Code
                 <span className="ml-2 text-[10px] sm:text-xs text-muted-foreground font-normal">
-                  ℹ️ Pattern: BOQ-{'{section}'}-{'{trade}'}-{'{sequence}'} (e.g., BOQ-03-RC-001)
+                  (Pattern: BOQ-{'{section}'}-{'{trade}'}-{'{sequence}'} e.g., BOQ-03-RC-001)
                 </span>
               </Label>
               <Input
@@ -300,10 +300,10 @@ const CreateRequest = () => {
 
         {/* Section 2: Measurement & Quantity */}
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">2. Measurement & Quantity</CardTitle>
+          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
+            <CardTitle className="text-sm sm:text-base text-white">Measurement & Quantity</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
+          <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {/* Measurement Unit */}
               <div className="grid gap-1.5 sm:gap-2">
@@ -348,10 +348,10 @@ const CreateRequest = () => {
 
         {/* Section 3: Cost Information */}
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">3. Cost Information</CardTitle>
+          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
+            <CardTitle className="text-sm sm:text-base text-white">Cost Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {/* Rate Type */}
               <div className="grid gap-1.5 sm:gap-2">
@@ -410,13 +410,12 @@ const CreateRequest = () => {
 
         {/* Section 4: Material Breakdown (Optional) */}
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Package className="h-4 w-4 sm:h-5 sm:w-5" />
-              4. Material Breakdown (Optional)
+          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-white">
+              Material Breakdown (Optional)
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
             {/* Material Type Toggle */}
             <div className="grid gap-1.5 sm:gap-2">
               <Label className="text-xs sm:text-sm">Material Type</Label>
@@ -508,13 +507,12 @@ const CreateRequest = () => {
 
         {/* Section 5: Timeline & Priority */}
         <Card>
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-              5. Timeline & Priority
+          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-white">
+              Timeline & Priority
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="grid gap-1.5 sm:gap-2">
                 <Label htmlFor="plannedStart" className="text-xs sm:text-sm">Planned Start</Label>
@@ -548,7 +546,7 @@ const CreateRequest = () => {
                 className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
               />
               <label htmlFor="emergency" className="text-xs sm:text-sm text-red-900 font-medium cursor-pointer">
-                🚨 Mark as <strong>Emergency/Urgent</strong>
+                Mark as <strong>Emergency/Urgent</strong>
               </label>
             </div>
           </CardContent>
@@ -566,7 +564,7 @@ const CreateRequest = () => {
           </Button>
           <Button 
             type="submit" 
-            className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm" 
+            className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm" 
             disabled={submitting}
           >
             {submitting ? 'Submitting...' : (isEditMode ? 'Resubmit Request' : 'Create Request')}
