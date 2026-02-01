@@ -268,6 +268,16 @@ export interface MaterialRequest {
   requestedById: number;
   requestedByName: string;
   requestedByEmail: string;
+  
+  // BOQ (Bill of Quantities) fields - Phase 1
+  boqReferenceCode?: string;
+  workDescription?: string;
+  measurementUnit?: string;
+  rateEstimate?: number;
+  rateType?: string; // 'ENGINEER_ESTIMATE' | 'MARKET_RATE' | 'TENDER_RATE'
+  revisionNumber?: number;
+  totalEstimate?: number; // Computed: quantity × rateEstimate
+  
   createdAt: string;
   updatedAt: string;
 }
@@ -283,6 +293,13 @@ export interface CreateMaterialRequest {
   plannedUsageStart: string;
   plannedUsageEnd: string;
   emergencyFlag?: boolean;
+  
+  // BOQ (Bill of Quantities) fields - Phase 1
+  boqReferenceCode?: string; // Pattern: BOQ-XX-XXXX-XXX
+  workDescription?: string; // Min 10 chars if boqReferenceCode is set
+  measurementUnit?: string; // Constrained vocabulary
+  rateEstimate?: number;
+  rateType?: string;
 }
 
 export interface ApprovalAction {

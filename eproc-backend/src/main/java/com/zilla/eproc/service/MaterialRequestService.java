@@ -93,6 +93,14 @@ public class MaterialRequestService {
             request.setManualEstimatedPrice(dto.getManualEstimatedPrice());
         }
 
+        // Set BOQ fields (Phase 1)
+        request.setBoqReferenceCode(dto.getBoqReferenceCode());
+        request.setWorkDescription(dto.getWorkDescription());
+        request.setMeasurementUnit(dto.getMeasurementUnit());
+        request.setRateEstimate(dto.getRateEstimate());
+        request.setRateType(dto.getRateType() != null ? dto.getRateType() : "ENGINEER_ESTIMATE");
+        request.setRevisionNumber(1); // Initial revision
+
         MaterialRequest saved = materialRequestRepository.save(request);
 
         // Log audit: CREATED
@@ -148,6 +156,16 @@ public class MaterialRequestService {
             request.setManualUnit(dto.getManualUnit());
             request.setManualEstimatedPrice(dto.getManualEstimatedPrice());
         }
+
+        // Update BOQ fields (Phase 1)
+        request.setBoqReferenceCode(dto.getBoqReferenceCode());
+        request.setWorkDescription(dto.getWorkDescription());
+        request.setMeasurementUnit(dto.getMeasurementUnit());
+        request.setRateEstimate(dto.getRateEstimate());
+        request.setRateType(dto.getRateType() != null ? dto.getRateType() : "ENGINEER_ESTIMATE");
+
+        // Increment revision number on resubmission
+        request.setRevisionNumber(request.getRevisionNumber() + 1);
 
         // Reset to PENDING and clear rejection comment
         request.setStatus(RequestStatus.PENDING);
@@ -371,6 +389,15 @@ public class MaterialRequestService {
                     .requestedByName(request.getRequestedBy().getName())
                     .requestedByEmail(request.getRequestedBy().getEmail());
         }
+
+        // BOQ fields (Phase 1)
+        builder.boqReferenceCode(request.getBoqReferenceCode())
+                .workDescription(request.getWorkDescription())
+                .measurementUnit(request.getMeasurementUnit())
+                .rateEstimate(request.getRateEstimate())
+                .rateType(request.getRateType())
+                .revisionNumber(request.getRevisionNumber())
+                .totalEstimate(request.getTotalEstimate()); // Computed: quantity × rateEstimate
 
         return builder.build();
     }

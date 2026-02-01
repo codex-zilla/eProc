@@ -13,9 +13,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Material request entity representing a request for materials at a site.
+ * Material request entity representing a BOQ (Bill of Quantities) item request.
+ * Combines traditional material requisition with structured BOQ practices.
  * Supports both catalog materials (via material_id) and manual entry (via
  * manual_material_name).
+ * 
+ * Phase 1 (BOQ Alignment): Added BOQ code, work description, measurement units,
+ * and cost estimation.
  */
 @Entity
 @Table(name = "material_requests")
@@ -90,6 +94,52 @@ public class MaterialRequest {
     @Builder.Default
     private Boolean emergencyFlag = false;
 
+    // BOQ (Bill of Quantities) fields - Phase 1
+
+    /**
+     * BOQ reference code following pattern: BOQ-{section}-{trade}-{sequence}
+     * Example: BOQ-03-RC-001 (Section 03, Reinforced Concrete, Item 001)
+     */
+    @Column(name = "boq_reference_code", length = 50)
+    private String boqReferenceCode;
+
+    /**
+     * Detailed description of the work item.
+     * Mandatory when boqReferenceCode is provided.
+     */
+    @Column(name = "work_description", columnDefinition = "TEXT")
+    private String workDescription;
+
+    /**
+     * Standard measurement unit for this work item.
+     * Constrained vocabulary: m³, m², m, kg, No, LS, ton, bag, bundle, trip, drum,
+     * pcs
+     */
+    @Column(name = "measurement_unit", length = 20)
+    private String measurementUnit;
+
+    /**
+     * Rate estimate per measurement unit.
+     */
+    @Column(name = "rate_estimate", precision = 18, scale = 2)
+    private BigDecimal rateEstimate;
+
+    /**
+     * Type of rate estimate.
+     * Values: ENGINEER_ESTIMATE, MARKET_RATE, TENDER_RATE
+     */
+    @Column(name = "rate_type", length = 30)
+    @Builder.Default
+    private String rateType = "ENGINEER_ESTIMATE";
+
+    /**
+     * Revision number for tracking BOQ item evolution.
+     * Incremented on each resubmission after rejection.
+     */
+    @Column(name = "revision_number")
+    @Builder.Default
+    private Integer revisionNumber = 1;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -105,6 +155,18 @@ public class MaterialRequest {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Computed total estimate = quantity × rateEstimate.
+     * NOT persisted to database; calculated dynamically in DTOs.
+     */
+    @Transient
+    public BigDecimal getTotalEstimate() {
+        if (quantity != null && rateEstimate != null) {
+            return quantity.multiply(rateEstimate).setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO;
     }
 
     /**

@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * DTO for material request responses.
+ * DTO for material request responses (BOQ Item Request).
+ * Phase 1: Includes BOQ fields and computed totalEstimate.
  */
 @Data
 @Builder
@@ -39,6 +40,20 @@ public class MaterialRequestResponseDTO {
     private RequestStatus status;
     private String rejectionComment;
     private Boolean emergencyFlag;
+
+    // BOQ (Bill of Quantities) fields - Phase 1
+    private String boqReferenceCode;
+    private String workDescription;
+    private String measurementUnit;
+    private BigDecimal rateEstimate;
+    private String rateType;
+    private Integer revisionNumber;
+
+    /**
+     * Computed total estimate = quantity × rateEstimate.
+     * Calculated dynamically, not persisted in database.
+     */
+    private BigDecimal totalEstimate;
 
     // Usage window
     private LocalDateTime plannedUsageStart;
