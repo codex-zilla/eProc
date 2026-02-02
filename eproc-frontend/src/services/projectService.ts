@@ -23,6 +23,11 @@ export const projectService = {
     return response.data;
   },
 
+  updateProject: async (id: number, data: Partial<Project>): Promise<Project> => {
+      const response = await axiosInstance.put(`/projects/${id}`, data);
+      return response.data;
+  },
+
   updateProjectStatus: async (id: number, status: string): Promise<Project> => {
       const response = await axiosInstance.patch(`/projects/${id}/status`, { status });
       return response.data;
@@ -41,6 +46,15 @@ export const projectService = {
   createSite: async (data: Partial<Site>): Promise<Site> => {
     const response = await axiosInstance.post('/sites', data);
     return response.data;
+  },
+
+  updateSite: async (id: number, data: Partial<Site>): Promise<Site> => {
+      const response = await axiosInstance.put(`/sites/${id}`, data);
+      return response.data;
+  },
+
+  deleteSite: async (id: number): Promise<void> => {
+      await axiosInstance.delete(`/sites/${id}`);
   },
 
   // === Team Management ===

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { projectService } from '@/services/projectService';
-import type { Project } from '@/types/models';
+import type { Project, Site } from '@/types/models';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import TeamManagement from '@/components/TeamManagement';
 const ProjectDetails = () => {
     const { id } = useParams<{ id: string }>();
     const [project, setProject] = useState<Project | null>(null);
+    const [sites, setSites] = useState<Site[]>([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +26,14 @@ const ProjectDetails = () => {
         try {
             const data = await projectService.getProjectById(parseInt(id));
             setProject(data);
+            
+            // Fetch Sites
+            try {
+                const sitesData = await projectService.getSitesByProject(parseInt(id));
+                setSites(sitesData);
+            } catch (siteErr) {
+                console.warn('Failed to load sites', siteErr);
+            }
         } catch (err) {
             console.error('Failed to load project:', err);
             setError('Failed to load project details');
@@ -136,6 +145,7 @@ const ProjectDetails = () => {
             <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent gap-1 sm:gap-4 lg:gap-6 overflow-x-auto flex-nowrap">
                     <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Overview</TabsTrigger>
+                    <TabsTrigger value="sites" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Sites</TabsTrigger>
                     <TabsTrigger value="team" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Team</TabsTrigger>
                     <TabsTrigger value="milestones" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Milestones</TabsTrigger>
                     <TabsTrigger value="scopes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Scopes</TabsTrigger>
@@ -223,6 +233,50 @@ const ProjectDetails = () => {
                             </Card>
                         </div>
                     </div>
+                </TabsContent>
+
+
+
+                {/* SITES TAB */}
+                <TabsContent value="sites" className="mt-4 sm:mt-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-semibold">Active Sites</h2>
+                        <Button variant="outline" size="sm" asChild>
+                             <a href={`/manager/projects/${project.id}/sites`}>Manage Sites</a>
+                        </Button>
+                    </div>
+                    {sites.length === 0 ? (
+                        <Card>
+                            <CardContent className="p-6 text-center text-gray-500">
+                                No sites found. <a href={`/manager/projects/${project.id}/sites`} className="text-indigo-600 hover:underline">Add a site</a>.
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sites.map(site => (
+                                <Card key={site.id}>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base font-medium">{site.name}</CardTitle>
+                                        <CardDescription>{site.location}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="text-sm space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Budget Cap:</span>
+                                            <span className="font-medium">{project.currency} {site.budgetCap?.toLocaleString() || '0'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">GPS:</span>
+                                            <span className="font-mono text-xs bg-gray-100 px-1 rounded">{site.gpsCenter || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Status:</span>
+                                            <Badge variant={site.isActive ? "default" : "secondary"} className="text-[10px] h-5">{site.isActive ? 'Active' : 'Inactive'}</Badge>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </TabsContent>
 
                 {/* TEAM TAB */}

@@ -7,16 +7,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Plus, Trash2 } from 'lucide-react';
 import { LocationPicker } from '@/components/ui/location-picker';
 import { getExchangeRate, convertToTZS } from '@/lib/currency';
 import { getAllRegions, getDistrictData, getWardData } from 'tz-geo-data';
 
 import { getCoordinates } from '@/lib/geocoding';
 import { projectService } from '@/services/projectService';
+import type { Project } from '@/types/models';
 import { Industry, ProjectType, ContractType } from '@/types/models';
 
-const ProjectWizard = () => {
+interface ProjectWizardProps {
+    initialData?: Project;
+    isEditMode?: boolean;
+}
+
+const ProjectWizard = ({ initialData, isEditMode = false }: ProjectWizardProps) => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -55,9 +61,60 @@ const ProjectWizard = () => {
         performanceSecurityRequired: false,
         
         // Step 4: Context
-        keyObjectives: '',
-        expectedOutput: ''
+        keyObjectives: initialData?.keyObjectives || '',
+        expectedOutput: initialData?.expectedOutput || '',
+
+        // Multi-site
+        initialSites: isEditMode && initialData ? [] : [{ name: 'Main Site', budgetCap: '', location: '', gpsCenter: '' }]
     });
+
+    // Populate existing sites if available (fetched separately or included in Project model)
+    // For now, we assume initialSites might be needed if we fetch them. 
+    // If the backend returns sites with the project, we would map them here.
+    // However, existing sites are stored in `sites` table. 
+    // If we want to manage sites in Edit, we need to fetch them.
+    
+    // For this implementation, we will assume generic Edit Mode prepopulates basic fields.
+    // Enhanced Site Management in Edit Mode requires fetching existing sites.
+    
+    useEffect(() => {
+        if (initialData && isEditMode) {
+             setFormData(prev => ({
+                ...prev,
+                name: initialData.name,
+                currency: initialData.currency,
+                description: initialData.description || '',
+                budgetTotal: initialData.budgetTotal?.toString() || '',
+                code: initialData.code || '',
+                industry: initialData.industry || '',
+                projectType: initialData.projectType || '',
+                ownerRepName: initialData.ownerRepName || '',
+                ownerRepContact: initialData.ownerRepContact || '',
+                
+                region: initialData.region || '',
+                district: initialData.district || '',
+                ward: initialData.ward || '',
+                plotNumber: initialData.plotNumber || '',
+                gpsCoordinates: initialData.gpsCoordinates || '',
+                titleDeedAvailable: initialData.titleDeedAvailable || false,
+                siteAccessNotes: initialData.siteAccessNotes || '',
+                
+                startDate: initialData.startDate || '',
+                expectedCompletionDate: initialData.expectedCompletionDate || '',
+                contractType: initialData.contractType || '',
+                defectsLiabilityPeriod: initialData.defectsLiabilityPeriod || 0,
+                performanceSecurityRequired: initialData.performanceSecurityRequired || false,
+                
+                keyObjectives: initialData.keyObjectives || '',
+                expectedOutput: initialData.expectedOutput || ''
+            }));
+            
+            if (initialData.gpsCoordinates) {
+                 const [lat, lng] = initialData.gpsCoordinates.split(',').map(s => parseFloat(s.trim()));
+                 if (!isNaN(lat) && !isNaN(lng)) setMarkerPosition({ lat, lng });
+            }
+        }
+    }, [initialData, isEditMode]);
 
     const [exchangeRate, setExchangeRate] = useState<number>(2500);
     const [mapCenter, setMapCenter] = useState<{lat: number, lng: number}>({ lat: -6.7924, lng: 39.2083 });
@@ -91,7 +148,16 @@ const ProjectWizard = () => {
 
     useEffect(() => {
         if (formData.ward) {
-            updateMapLocation(`${formData.ward}, ${formData.district}, ${formData.region}, Tanzania`);
+            const loc = `${formData.ward}, ${formData.district}, ${formData.region}, Tanzania`;
+            updateMapLocation(loc);
+            // Update default site location text
+            setFormData(prev => {
+                const newSites = [...prev.initialSites];
+                if (newSites.length > 0) {
+                     newSites[0] = { ...newSites[0], location: loc };
+                }
+                return { ...prev, initialSites: newSites };
+            });
         } else if (formData.district) {
             updateMapLocation(`${formData.district}, ${formData.region}, Tanzania`);
         } else if (formData.region) {
@@ -101,7 +167,40 @@ const ProjectWizard = () => {
 
     const handleLocationSelect = (lat: number, lng: number) => {
         setMarkerPosition({ lat, lng });
-        handleChange('gpsCoordinates', `${lat.toFixed(6)},${lng.toFixed(6)}`);
+        const gps = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+        handleChange('gpsCoordinates', gps);
+        
+        // Update default site GPS
+        setFormData(prev => {
+            const newSites = [...prev.initialSites];
+             if (newSites.length > 0) {
+                 newSites[0] = { ...newSites[0], gpsCenter: gps };
+            }
+            return { ...prev, initialSites: newSites };
+        });
+    };
+
+    const addSite = () => {
+        setFormData(prev => ({
+            ...prev,
+            initialSites: [...prev.initialSites, { name: '', budgetCap: '', location: '', gpsCenter: '' }]
+        }));
+    };
+
+    const removeSite = (index: number) => {
+        if (formData.initialSites.length <= 1) return; // Prevent deleting last site
+        setFormData(prev => ({
+            ...prev,
+            initialSites: prev.initialSites.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateSite = (index: number, field: string, value: string) => {
+         setFormData(prev => {
+            const newSites = [...prev.initialSites];
+            newSites[index] = { ...newSites[index], [field]: value };
+            return { ...prev, initialSites: newSites };
+        });
     };
 
     // Validation function
@@ -163,7 +262,7 @@ const ProjectWizard = () => {
             const budgetVal = parseFloat(formData.budgetDisplay);
             const budgetInTZS = convertToTZS(isNaN(budgetVal) ? 0 : budgetVal, formData.currency, exchangeRate);
 
-            await projectService.createProject({
+            const payload = {
                 name: formData.name,
                 code: formData.code,
                 industry: formData.industry,
@@ -191,8 +290,25 @@ const ProjectWizard = () => {
                 description: formData.description,
 
                 keyObjectives: formData.keyObjectives,
-                expectedOutput: formData.expectedOutput
-            });
+                expectedOutput: formData.expectedOutput,
+
+                initialSites: formData.initialSites
+                    .filter(s => s.name)
+                    .map(s => ({
+                        id: (s as any).id,
+                        name: s.name,
+                        budgetCap: s.budgetCap ? parseFloat(s.budgetCap) : 0,
+                        location: s.location || `${formData.ward}, ${formData.district}`,
+                        gpsCenter: s.gpsCenter
+                    }))
+            };
+
+            if (isEditMode && initialData) {
+                await projectService.updateProject(initialData.id, payload);
+            } else {
+                await projectService.createProject(payload);
+            }
+            
             navigate('/manager/projects');
         } catch (err: any) {
             console.error(err);
@@ -203,13 +319,13 @@ const ProjectWizard = () => {
             } else if (err.response?.status === 401) {
                 setError('Your session has expired. Please log in again.');
             } else if (err.response?.status === 403) {
-                setError('You do not have permission to create projects.');
+                setError('You do not have permission to perform this action.');
             } else if (err.response?.status === 400) {
-                setError(err.response?.data?.message || 'Invalid project data. Please check all fields.');
+                setError(err.response?.data?.message || 'Invalid data. Please check all fields.');
             } else if (err.response?.status >= 500) {
                 setError('Server error. Please try again later.');
             } else {
-                setError(err.response?.data?.message || 'Failed to create project. Please try again.');
+                setError(err.response?.data?.message || 'Action failed. Please try again.');
             }
         } finally {
             setLoading(false);
@@ -461,6 +577,64 @@ const ProjectWizard = () => {
                                 />
                             </div>
                         </CardContent>
+
+                        <div className="px-4 sm:px-6 pb-6">
+                             <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-900">Work Sites</h3>
+                                    <p className="text-xs text-muted-foreground">Define sites for this project (at least one).</p>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={addSite} className="text-xs h-8">
+                                    <Plus className="w-3 h-3 mr-1" /> Add Site
+                                </Button>
+                             </div>
+
+                             <div className="space-y-3">
+                                {formData.initialSites.map((site, index) => (
+                                    <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-3 p-3 bg-white rounded-lg border shadow-sm">
+                                        <div className="sm:col-span-3 grid gap-1.5">
+                                            <Label className="text-xs">Site Name <span className="text-red-500">*</span></Label>
+                                            <Input 
+                                                value={site.name} 
+                                                onChange={e => updateSite(index, 'name', e.target.value)}
+                                                placeholder="e.g. Main Site"
+                                                className="h-8 text-xs"
+                                            />
+                                        </div>
+                                         <div className="sm:col-span-3 grid gap-1.5">
+                                            <Label className="text-xs">Budget Cap (Optional)</Label>
+                                            <Input 
+                                                type="number"
+                                                value={site.budgetCap} 
+                                                onChange={e => updateSite(index, 'budgetCap', e.target.value)}
+                                                placeholder="0.00"
+                                                className="h-8 text-xs"
+                                            />
+                                        </div>
+                                         <div className="sm:col-span-5 grid gap-1.5">
+                                             <Label className="text-xs">Location</Label>
+                                             <Input 
+                                                value={site.location} 
+                                                 onChange={e => updateSite(index, 'location', e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                         </div>
+                                        <div className="sm:col-span-1 flex items-end justify-center pb-0.5">
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                onClick={() => removeSite(index)}
+                                                disabled={formData.initialSites.length === 1}
+                                                className="h-8 w-8 text-gray-400 hover:text-red-600"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
                     </>
                 )}
 

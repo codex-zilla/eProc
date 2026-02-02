@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -68,4 +69,7 @@ public class ProjectDTO {
     private Integer scopeCount;
     private Integer milestoneCount;
     private Integer documentCount;
+
+    // === Multi-Site Creation ===
+    private List<SiteDTO> initialSites;
 }

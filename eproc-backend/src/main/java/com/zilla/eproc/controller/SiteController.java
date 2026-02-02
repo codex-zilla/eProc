@@ -34,4 +34,17 @@ public class SiteController {
     public ResponseEntity<SiteDTO> createSite(@RequestBody SiteDTO dto) {
         return ResponseEntity.ok(siteService.createSite(dto));
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    public ResponseEntity<SiteDTO> updateSite(@PathVariable Long id, @RequestBody SiteDTO dto) {
+        return ResponseEntity.ok(siteService.updateSite(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    public ResponseEntity<Void> deleteSite(@PathVariable Long id) {
+        siteService.deleteSite(id);
+        return ResponseEntity.noContent().build();
+    }
 }

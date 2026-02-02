@@ -148,17 +148,30 @@ const MyProjects = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-2 sm:px-4 py-2.5 sm:py-3 hidden md:table-cell">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            asChild 
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Link to={`/manager/projects/${project.id}`}>
-                              View Details
-                            </Link>
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                asChild 
+                                className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Link to={`/manager/projects/${project.id}/edit`}>
+                                  Edit
+                                </Link>
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                asChild 
+                                className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Link to={`/manager/projects/${project.id}`}>
+                                  View
+                                </Link>
+                              </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

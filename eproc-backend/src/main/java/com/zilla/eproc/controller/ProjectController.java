@@ -65,6 +65,20 @@ public class ProjectController {
     }
 
     /**
+     * Update an existing project.
+     * Only PROJECT_OWNER can update.
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    public ResponseEntity<ProjectDTO> updateProject(
+            @PathVariable Long id,
+            @Valid @RequestBody ProjectDTO dto,
+            Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(projectService.updateProject(id, dto, email));
+    }
+
+    /**
      * Update project status.
      * Only the project owner can update status.
      */

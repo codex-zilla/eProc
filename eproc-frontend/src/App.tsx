@@ -30,6 +30,8 @@ import PendingRequests from './pages/manager/PendingRequests';
 import RequestDetailsManager from './pages/manager/RequestDetailsManager';
 import ManageProjectUsers from './pages/manager/ManageProjectUsers';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import EditProject from './pages/manager/EditProject';
+import ManageSites from './pages/manager/ManageSites';
 
 function App() {
   return (
@@ -66,6 +68,8 @@ function App() {
                 <Route path="/manager/projects" element={<MyProjects />} />
                 <Route path="/manager/projects/new" element={<ProjectWizard />} />
                 <Route path="/manager/projects/:id" element={<ProjectDetails />} />
+                <Route path="/manager/projects/:id/edit" element={<EditProject />} />
+                <Route path="/manager/projects/:id/sites" element={<ManageSites />} />
                 <Route path="/manager/users" element={<ManageProjectUsers />} />
                 <Route path="/manager/pending" element={<PendingRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />

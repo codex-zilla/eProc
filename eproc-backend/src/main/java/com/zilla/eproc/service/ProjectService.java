@@ -32,6 +32,7 @@ public class ProjectService {
         private final ProjectRepository projectRepository;
         private final UserRepository userRepository;
         private final ProjectAssignmentRepository projectAssignmentRepository;
+        private final com.zilla.eproc.repository.SiteRepository siteRepository;
 
         /**
          * Get projects visible to the current user based on their role.
@@ -71,6 +72,7 @@ public class ProjectService {
          * Create a new project with the authenticated user as the owner.
          * Only PROJECT_OWNER can create projects.
          * Automatically creates an OWNER assignment for the creator.
+         * Also creates initial sites if provided.
          */
         @Transactional
         public ProjectDTO createProject(ProjectDTO dto, String ownerEmail) {
@@ -138,6 +140,21 @@ public class ProjectService {
                                 .build();
                 projectAssignmentRepository.save(ownerAssignment);
 
+                // Create Initial Sites if provided
+                if (dto.getInitialSites() != null && !dto.getInitialSites().isEmpty()) {
+                        List<com.zilla.eproc.model.Site> sites = dto.getInitialSites().stream()
+                                        .map(siteDto -> com.zilla.eproc.model.Site.builder()
+                                                        .project(saved)
+                                                        .name(siteDto.getName())
+                                                        .location(siteDto.getLocation())
+                                                        .gpsCenter(siteDto.getGpsCenter())
+                                                        .budgetCap(siteDto.getBudgetCap())
+                                                        .isActive(true)
+                                                        .build())
+                                        .collect(Collectors.toList());
+                        siteRepository.saveAll(sites);
+                }
+
                 return mapToDTO(saved);
         }
 
@@ -167,6 +184,89 @@ public class ProjectService {
 
                 Project saved = projectRepository.save(project);
                 return mapToDTO(saved);
+        }
+
+        /**
+         * Update an existing project and its sites.
+         * Only PROJECT_OWNER can update.
+         */
+        @Transactional
+        public ProjectDTO updateProject(Long id, ProjectDTO dto, String ownerEmail) {
+                User owner = userRepository.findByEmail(ownerEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                Project project = projectRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
+
+                if (!project.isOwner(owner)) {
+                        throw new ForbiddenException("Only the project owner can update this project");
+                }
+
+                // Update Project Fields
+                project.setName(dto.getName());
+                project.setCurrency(dto.getCurrency());
+                project.setBudgetTotal(dto.getBudgetTotal());
+                project.setDescription(dto.getDescription());
+                project.setRegion(dto.getRegion());
+                project.setDistrict(dto.getDistrict());
+                project.setWard(dto.getWard());
+                project.setSiteLocation(dto.getSiteLocation());
+
+                project.setCode(dto.getCode());
+                if (dto.getIndustry() != null)
+                        project.setIndustry(com.zilla.eproc.model.Industry.valueOf(dto.getIndustry()));
+                if (dto.getProjectType() != null)
+                        project.setProjectType(com.zilla.eproc.model.ProjectType.valueOf(dto.getProjectType()));
+
+                project.setOwnerRepName(dto.getOwnerRepName());
+                project.setOwnerRepContact(dto.getOwnerRepContact());
+                project.setPlotNumber(dto.getPlotNumber());
+                project.setGpsCoordinates(dto.getGpsCoordinates());
+                project.setTitleDeedAvailable(dto.getTitleDeedAvailable());
+                project.setSiteAccessNotes(dto.getSiteAccessNotes());
+
+                project.setKeyObjectives(dto.getKeyObjectives());
+                project.setExpectedOutput(dto.getExpectedOutput());
+                project.setStartDate(dto.getStartDate());
+                project.setExpectedCompletionDate(dto.getExpectedCompletionDate());
+
+                if (dto.getContractType() != null)
+                        project.setContractType(com.zilla.eproc.model.ContractType.valueOf(dto.getContractType()));
+                project.setDefectsLiabilityPeriod(dto.getDefectsLiabilityPeriod());
+                project.setPerformanceSecurityRequired(dto.getPerformanceSecurityRequired());
+
+                Project savedProject = projectRepository.save(project);
+
+                // Update Sites
+                if (dto.getInitialSites() != null) {
+                        for (com.zilla.eproc.dto.SiteDTO siteDto : dto.getInitialSites()) {
+                                if (siteDto.getId() != null) {
+                                        // Update existing site
+                                        siteRepository.findById(siteDto.getId()).ifPresent(site -> {
+                                                if (site.getProject().getId().equals(project.getId())) {
+                                                        site.setName(siteDto.getName());
+                                                        site.setBudgetCap(siteDto.getBudgetCap());
+                                                        site.setLocation(siteDto.getLocation());
+                                                        site.setGpsCenter(siteDto.getGpsCenter());
+                                                        siteRepository.save(site);
+                                                }
+                                        });
+                                } else {
+                                        // Create new site
+                                        com.zilla.eproc.model.Site newSite = com.zilla.eproc.model.Site.builder()
+                                                        .project(savedProject)
+                                                        .name(siteDto.getName())
+                                                        .location(siteDto.getLocation())
+                                                        .gpsCenter(siteDto.getGpsCenter())
+                                                        .budgetCap(siteDto.getBudgetCap())
+                                                        .isActive(true)
+                                                        .build();
+                                        siteRepository.save(newSite);
+                                }
+                        }
+                }
+
+                return mapToDTO(savedProject);
         }
 
         /**

@@ -76,6 +76,35 @@ public class SiteService {
         return mapToDTO(saved);
     }
 
+    @Transactional
+    public SiteDTO updateSite(Long id, SiteDTO dto) {
+        Site site = siteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Site not found"));
+
+        site.setName(dto.getName());
+        site.setLocation(dto.getLocation());
+        site.setBudgetCap(dto.getBudgetCap());
+        site.setGpsCenter(dto.getGpsCenter());
+
+        // Optional: Allow toggling active status via update
+        if (dto.getIsActive() != null) {
+            site.setIsActive(dto.getIsActive());
+        }
+
+        Site saved = siteRepository.save(site);
+        return mapToDTO(saved);
+    }
+
+    @Transactional
+    public void deleteSite(Long id) {
+        Site site = siteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Site not found"));
+
+        // Soft delete
+        site.setIsActive(false);
+        siteRepository.save(site);
+    }
+
     private SiteDTO mapToDTO(Site site) {
         return SiteDTO.builder()
                 .id(site.getId())
