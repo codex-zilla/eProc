@@ -132,14 +132,14 @@ const MyRequests = () => {
           <Card className="border-slate-200 shadow-sm hidden md:block">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-[#2a3455] rounded-t-lg">
                   <TableRow>
-                    <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3">Material</TableHead>
-                    <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Site</TableHead>
-                    <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Quantity</TableHead>
-                    <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Status</TableHead>
-                    <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Date</TableHead>
-                    <TableHead className="text-right font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Actions</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3">Material</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Site</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Quantity</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Status</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Date</TableHead>
+                    <TableHead className="text-right font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

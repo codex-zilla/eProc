@@ -68,6 +68,7 @@ const RequestDetailsManager = () => {
   const [loading, setLoading] = useState(true);
   const [rejectComment, setRejectComment] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [rejectionError, setRejectionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
 
@@ -111,9 +112,10 @@ const RequestDetailsManager = () => {
 
   const handleReject = async () => {
     if (!rejectComment.trim()) {
-      setError('Please provide a rejection reason');
+      setRejectionError('Please provide a rejection reason');
       return;
     }
+    setRejectionError(null);
     setError(null);
     setSuccess(null);
     try {
@@ -376,10 +378,21 @@ const RequestDetailsManager = () => {
                 <Textarea
                   placeholder="Rejection reason (required for rejection)..."
                   value={rejectComment}
-                  onChange={(e) => setRejectComment(e.target.value)}
-                  className="w-full resize-none border-slate-200 bg-white text-xs sm:text-sm h-16 sm:h-20"
+                  onChange={(e) => {
+                    setRejectComment(e.target.value);
+                    if (rejectionError) setRejectionError(null);
+                  }}
+                  className={`w-full resize-none border-slate-200 bg-white text-xs sm:text-sm h-16 sm:h-20 ${
+                    rejectionError ? 'border-red-300 focus:ring-red-200' : ''
+                  }`}
                   rows={2}
                 />
+                {rejectionError && (
+                  <div className="flex items-center gap-1.5 text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">{rejectionError}</span>
+                  </div>
+                )}
                 <Button
                   onClick={handleReject}
                   variant="destructive"

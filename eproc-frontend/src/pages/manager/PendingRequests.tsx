@@ -36,6 +36,7 @@ const PendingRequests = () => {
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvalComment, setApprovalComment] = useState<{ [key: number]: string }>({});
+  const [rejectionErrors, setRejectionErrors] = useState<{ [key: number]: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -75,9 +76,17 @@ const PendingRequests = () => {
   const handleReject = async (requestId: number) => {
     const comment = approvalComment[requestId];
     if (!comment?.trim()) {
-      setError('Please provide a rejection reason');
+      setRejectionErrors(prev => ({ ...prev, [requestId]: 'Please provide a rejection reason' }));
       return;
     }
+    
+    // Clear specific error
+    setRejectionErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[requestId];
+      return newErrors;
+    });
+    
     setError(null);
     setSuccess(null);
     try {
@@ -267,12 +276,30 @@ const PendingRequests = () => {
                 {/* Quick Actions */}
                 <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4 border-t border-slate-200">
                   <Textarea
-                    placeholder="Optional: Add comment for approval or reason for rejection"
+                    placeholder="Add comment for approval or reason for rejection"
                     value={approvalComment[request.id] || ''}
-                    onChange={(e) => setApprovalComment(prev => ({ ...prev, [request.id]: e.target.value }))}
-                    className="w-full resize-none border-slate-200 bg-slate-50 focus:bg-white transition-colors text-xs sm:text-sm h-16 sm:h-20"
+                    onChange={(e) => {
+                      setApprovalComment(prev => ({ ...prev, [request.id]: e.target.value }));
+                      // Clear error when user types
+                      if (rejectionErrors[request.id]) {
+                        setRejectionErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors[request.id];
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    className={`w-full resize-none border-slate-200 bg-slate-50 focus:bg-white transition-colors text-xs sm:text-sm h-16 sm:h-20 ${
+                      rejectionErrors[request.id] ? 'border-red-300 focus:ring-red-200' : ''
+                    }`}
                     rows={2}
                   />
+                  {rejectionErrors[request.id] && (
+                    <div className="flex items-center gap-1.5 text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">{rejectionErrors[request.id]}</span>
+                    </div>
+                  )}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       onClick={() => handleApprove(request.id)}

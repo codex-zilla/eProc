@@ -76,6 +76,7 @@ const CreateRequest = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   // Form state - existing fields
   const [siteId, setSiteId] = useState<string>('');
@@ -157,8 +158,57 @@ const CreateRequest = () => {
     loadData();
   }, [id, isEditMode]);
 
+  const validateForm = () => {
+    const errors: { [key: string]: string } = {};
+    const now = new Date();
+    // Buffer for "current" time to avoid frustration with seconds
+    now.setMinutes(now.getMinutes() - 5);
+
+    if (!siteId) errors.siteId = 'Site is required';
+    if (!quantity || parseFloat(quantity) <= 0) errors.quantity = 'Valid quantity is required';
+    
+    // BOQ conditional requirements
+    if (boqReferenceCode) {
+      if (!workDescription || workDescription.length < 10) {
+        errors.workDescription = 'Work description is required (min 10 chars) for BOQ items';
+      }
+      if (!measurementUnit) errors.measurementUnit = 'Measurement unit is required for BOQ items';
+    }
+
+    // Material validation
+    if (!useManualMaterial && !materialId) {
+      errors.materialId = 'Material is required';
+    }
+    if (useManualMaterial && !manualMaterialName) {
+      errors.manualMaterialName = 'Material name is required';
+    }
+
+    // Date validation
+    if (plannedUsageStart) {
+      const startDate = new Date(plannedUsageStart);
+      if (startDate < now) {
+        errors.plannedUsageStart = 'Planned start date cannot be in the past';
+      }
+    }
+    
+    if (plannedUsageEnd) {
+      const endDate = new Date(plannedUsageEnd);
+      if (endDate < now) {
+        errors.plannedUsageEnd = 'Planned end date cannot be in the past';
+      }
+      if (plannedUsageStart && endDate < new Date(plannedUsageStart)) {
+        errors.plannedUsageEnd = 'End date cannot be before start date';
+      }
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setError(null);
     setSubmitting(true);
 
@@ -241,8 +291,16 @@ const CreateRequest = () => {
               <Label htmlFor="site" className="text-xs sm:text-sm">
                 Site <span className="text-red-500">*</span>
               </Label>
-              <Select value={siteId} onValueChange={setSiteId} required disabled={sites.length === 0}>
-                <SelectTrigger id="site" className="h-9 sm:h-10 text-xs sm:text-sm">
+              <Select 
+                value={siteId} 
+                onValueChange={(val) => {
+                  setSiteId(val);
+                  setFieldErrors(prev => ({ ...prev, siteId: '' }));
+                }} 
+                required 
+                disabled={sites.length === 0}
+              >
+                <SelectTrigger id="site" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.siteId ? 'border-red-500 focus:ring-red-200' : ''}`}>
                   <SelectValue placeholder={sites.length === 0 ? "No sites available" : "Select a site..."} />
                 </SelectTrigger>
                 <SelectContent>
@@ -259,6 +317,7 @@ const CreateRequest = () => {
                   )}
                 </SelectContent>
               </Select>
+              {fieldErrors.siteId && <span className="text-xs text-red-500 font-medium">{fieldErrors.siteId}</span>}
               {sites.length === 0 && (
                 <p className="text-[10px] sm:text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
                   ⚠️ You have no sites available. Please contact your project manager to be assigned to a project with active sites.
@@ -297,13 +356,17 @@ const CreateRequest = () => {
               <Textarea
                 id="workDescription"
                 value={workDescription}
-                onChange={(e) => setWorkDescription(e.target.value)}
+                onChange={(e) => {
+                  setWorkDescription(e.target.value);
+                  setFieldErrors(prev => ({ ...prev, workDescription: '' }));
+                }}
                 required={!!boqReferenceCode}
                 minLength={10}
                 rows={4}
                 placeholder="Detailed description of the work item (minimum 10 characters)"
-                className="resize-none text-sm"
+                className={`resize-none text-sm ${fieldErrors.workDescription ? 'border-red-500 focus:ring-red-200' : ''}`}
               />
+              {fieldErrors.workDescription && <span className="text-xs text-red-500 font-medium">{fieldErrors.workDescription}</span>}
               <p className="text-[10px] sm:text-xs text-muted-foreground">{workDescription.length} characters</p>
             </div>
           </CardContent>
@@ -322,8 +385,15 @@ const CreateRequest = () => {
                   Measurement Unit
                   {boqReferenceCode && <span className="text-red-500 ml-1">*</span>}
                 </Label>
-                <Select value={measurementUnit} onValueChange={setMeasurementUnit} required={!!boqReferenceCode}>
-                  <SelectTrigger id="measurementUnit" className="h-9 sm:h-10 text-xs sm:text-sm">
+                <Select 
+                  value={measurementUnit} 
+                  onValueChange={(val) => {
+                    setMeasurementUnit(val);
+                    setFieldErrors(prev => ({ ...prev, measurementUnit: '' }));
+                  }} 
+                  required={!!boqReferenceCode}
+                >
+                  <SelectTrigger id="measurementUnit" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.measurementUnit ? 'border-red-500 focus:ring-red-200' : ''}`}>
                     <SelectValue placeholder="Select unit..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -334,6 +404,7 @@ const CreateRequest = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldErrors.measurementUnit && <span className="text-xs text-red-500 font-medium">{fieldErrors.measurementUnit}</span>}
               </div>
 
               {/* Quantity */}
@@ -345,13 +416,17 @@ const CreateRequest = () => {
                   id="quantity"
                   type="number"
                   value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  onChange={(e) => {
+                    setQuantity(e.target.value);
+                    setFieldErrors(prev => ({ ...prev, quantity: '' }));
+                  }}
                   required
                   min="0.01"
                   step="0.01"
                   placeholder="Enter quantity"
-                  className="h-9 sm:h-10 text-sm"
+                  className={`h-9 sm:h-10 text-sm ${fieldErrors.quantity ? 'border-red-500 focus:ring-red-200' : ''}`}
                 />
+                {fieldErrors.quantity && <span className="text-xs text-red-500 font-medium">{fieldErrors.quantity}</span>}
               </div>
             </div>
           </CardContent>
@@ -456,8 +531,15 @@ const CreateRequest = () => {
             {!useManualMaterial && (
               <div className="grid gap-1.5 sm:gap-2">
                 <Label htmlFor="material" className="text-xs sm:text-sm">Material</Label>
-                <Select value={materialId} onValueChange={setMaterialId} disabled={materials.length === 0}>
-                  <SelectTrigger id="material" className="h-9 sm:h-10 text-xs sm:text-sm">
+                <Select 
+                  value={materialId} 
+                  onValueChange={(val) => {
+                    setMaterialId(val);
+                    setFieldErrors(prev => ({ ...prev, materialId: '' }));
+                  }} 
+                  disabled={materials.length === 0}
+                >
+                  <SelectTrigger id="material" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.materialId ? 'border-red-500 focus:ring-red-200' : ''}`}>
                     <SelectValue placeholder={materials.length === 0 ? "No materials available" : "Select a material..."} />
                   </SelectTrigger>
                   <SelectContent>
@@ -474,6 +556,7 @@ const CreateRequest = () => {
                     )}
                   </SelectContent>
                 </Select>
+                {fieldErrors.materialId && <span className="text-xs text-red-500 font-medium">{fieldErrors.materialId}</span>}
                 {materials.length === 0 && (
                   <p className="text-[10px] sm:text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
                     ⚠️ No materials in catalog. Please use manual entry or contact your administrator.
@@ -491,10 +574,14 @@ const CreateRequest = () => {
                     id="manualMaterialName"
                     type="text"
                     value={manualMaterialName}
-                    onChange={(e) => setManualMaterialName(e.target.value)}
+                    onChange={(e) => {
+                      setManualMaterialName(e.target.value);
+                      setFieldErrors(prev => ({ ...prev, manualMaterialName: '' }));
+                    }}
                     placeholder="e.g., Custom Steel Beam"
-                    className="h-9 sm:h-10 text-sm"
+                    className={`h-9 sm:h-10 text-sm ${fieldErrors.manualMaterialName ? 'border-red-500 focus:ring-red-200' : ''}`}
                   />
+                  {fieldErrors.manualMaterialName && <span className="text-xs text-red-500 font-medium">{fieldErrors.manualMaterialName}</span>}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="grid gap-1.5 sm:gap-2">
@@ -542,9 +629,13 @@ const CreateRequest = () => {
                   id="plannedStart"
                   type="datetime-local"
                   value={plannedUsageStart}
-                  onChange={(e) => setPlannedUsageStart(e.target.value)}
-                  className="h-9 sm:h-10 text-xs sm:text-sm"
+                  onChange={(e) => {
+                    setPlannedUsageStart(e.target.value);
+                    setFieldErrors(prev => ({ ...prev, plannedUsageStart: '' }));
+                  }}
+                  className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.plannedUsageStart ? 'border-red-500 focus:ring-red-200' : ''}`}
                 />
+                {fieldErrors.plannedUsageStart && <span className="text-xs text-red-500 font-medium">{fieldErrors.plannedUsageStart}</span>}
               </div>
               <div className="grid gap-1.5 sm:gap-2">
                 <Label htmlFor="plannedEnd" className="text-xs sm:text-sm">Planned End</Label>
@@ -552,9 +643,13 @@ const CreateRequest = () => {
                   id="plannedEnd"
                   type="datetime-local"
                   value={plannedUsageEnd}
-                  onChange={(e) => setPlannedUsageEnd(e.target.value)}
-                  className="h-9 sm:h-10 text-xs sm:text-sm"
+                  onChange={(e) => {
+                    setPlannedUsageEnd(e.target.value);
+                    setFieldErrors(prev => ({ ...prev, plannedUsageEnd: '' }));
+                  }}
+                  className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.plannedUsageEnd ? 'border-red-500 focus:ring-red-200' : ''}`}
                 />
+                {fieldErrors.plannedUsageEnd && <span className="text-xs text-red-500 font-medium">{fieldErrors.plannedUsageEnd}</span>}
               </div>
             </div>
 

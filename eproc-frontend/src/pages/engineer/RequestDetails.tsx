@@ -14,8 +14,7 @@ import {
   AlertOctagon,
   AlertCircle,
   Calendar,
-  FileDown,
-  Info
+  FileDown
 } from 'lucide-react';
 
 interface RequestDetails {
@@ -132,15 +131,15 @@ const RequestDetails = () => {
 
   if (!request) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-          <AlertCircle className="h-8 w-8 text-red-600" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 sm:gap-4">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center">
+          <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
         </div>
         <div className="text-center">
-          <p className="text-lg font-semibold text-slate-900 mb-1">Request not found</p>
-          <p className="text-sm text-slate-500">The request you're looking for doesn't exist or has been removed.</p>
+          <p className="text-base sm:text-lg font-semibold text-slate-900 mb-1">Request not found</p>
+          <p className="text-xs sm:text-sm text-slate-500">The request you're looking for doesn't exist or has been removed.</p>
         </div>
-        <Link to="/engineer/requests" className="text-indigo-600 hover:text-indigo-800 hover:underline text-sm font-medium">
+        <Link to="/engineer/requests" className="text-indigo-600 hover:text-indigo-800 hover:underline text-xs sm:text-sm font-medium">
           Go back to My Requests
         </Link>
       </div>
@@ -150,24 +149,22 @@ const RequestDetails = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Breadcrumb & Header */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 mb-1">
         
-        <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap mb-2">
-              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+        <div className="flex flex-col lg:flex-row justify-between items-start gap-3 sm:gap-4">
+          <div className="flex-1 w-full">
+            <div className="flex justify-between w-full gap-3 flex-wrap mb-1.5 sm:mb-2">
+              <h1 className="text-lg sm:text-xl lg:text-xl font-bold text-slate-900">
                 {request.boqReferenceCode || `Request #${request.id}`}
               </h1>
-              <Badge className={`${getStatusBadgeClass(request.status)} lg:hidden text-sm px-3 py-1 font-semibold uppercase`}>
+              <Badge className={`${getStatusBadgeClass(request.status)} lg:hidden text-[10px] sm:text-xs px-2 py-0.5 sm:px-3 sm:py-1 font-semibold uppercase me-2`}>
                 {request.status}
               </Badge>
             </div>
-            {request.boqReferenceCode && request.workDescription && (
-              <p className="text-base text-slate-700">{request.workDescription}</p>
-            )}
+
           </div>
           
-          <Badge className={`${getStatusBadgeClass(request.status)} hidden lg:inline-flex text-sm px-4 py-2 font-semibold uppercase`}>
+          <Badge className={`${getStatusBadgeClass(request.status)} hidden lg:inline-flex text-xs px-3 py-1 font-semibold uppercase me-2`}>
             {request.status}
           </Badge>
         </div>
@@ -197,47 +194,48 @@ const RequestDetails = () => {
             <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
               <CardTitle className="text-sm sm:text-base text-white">Work Details</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               {request.workDescription && (
-                <div className="mb-6">
-                  <p className="text-sm text-slate-700 leading-relaxed">
+                <div className="mb-4 sm:mb-6">
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                     {request.workDescription}
                   </p>
+                  <hr className="border-slate-200 mt-4 sm:mt-6 mb-4 sm:mb-6" />
                 </div>
               )}
               
-              <hr className="border-slate-200 mb-6" />
-              <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
                 {request.measurementUnit && (
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide min-w-[140px]">
+                    <h4 className="text-xs sm:text-xs font-medium text-slate-500 uppercase tracking-wide min-w-[120px] sm:min-w-[140px]">
                       Measurement Unit:
-                    </h3>
+                    </h4>
                     <div className="flex items-center gap-2">
-                      <p className="text-base font-bold text-slate-900">{request.measurementUnit}</p>
-                      <Info className="h-3.5 w-3.5 text-slate-400" />
+                      <p className="text-sm sm:text-base font-semibold text-slate-900">{request.measurementUnit}</p>
                     </div>
                   </div>
                 )}
                 
                 <div className="flex items-baseline gap-2">
-                  <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide min-w-[140px]">Quantity:</h3>
-                  <p className="text-base font-bold text-slate-900">
+                  <h3 className="text-xs sm:text-xs font-medium text-slate-500 uppercase tracking-wide min-w-[120px] sm:min-w-[140px]">
+                    Quantity:
+                  </h3>
+                  <p className="text-sm sm:text-base font-semibold text-slate-900">
                     {request.quantity.toFixed(2)}
                   </p>
                 </div>
                 
                 {request.rateEstimate && (
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide min-w-[140px]">
+                    <h4 className="text-xs sm:text-xs font-medium text-slate-500 uppercase tracking-wide min-w-[120px] sm:min-w-[140px]">
                       Rate Estimate:
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-bold text-slate-900">
+                    </h4>
+                    <div className="flex flex-col min-[376px]:flex-row min-[376px]:items-center gap-1 min-[376px]:gap-2">
+                      <p className="text-sm sm:text-base font-semibold text-slate-900">
                         TZS {request.rateEstimate.toLocaleString()}
                       </p>
                       {request.rateType && (
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-[10px] px-2 py-0.5 ml-2">
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-[10px] px-2 py-0.5 min-[376px]:ml-0 w-fit">
                           {request.rateType.replace('_', ' ')}
                         </Badge>
                       )}
@@ -247,10 +245,10 @@ const RequestDetails = () => {
               </div>
               
               {request.totalEstimate && (
-                <div className="pt-6 border-t border-slate-200">
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-amber-900 mb-2">Total Estimate</h3>
-                    <p className="text-3xl font-bold text-amber-900">
+                <div className="pt-4 sm:pt-6 border-t border-slate-200">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-base font-semibold text-amber-900 mb-1 lg:mb-2">Total Estimate</h3>
+                    <p className="text-xl sm:text-2xl font-bold text-amber-900">
                       TZS {request.totalEstimate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -267,31 +265,31 @@ const RequestDetails = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs sm:text-sm">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="text-left p-4 font-semibold text-slate-700">Material</th>
-                        <th className="text-right p-4 font-semibold text-slate-700">Quantity & Unit</th>
-                        <th className="text-right p-4 font-semibold text-slate-700">Rate</th>
+                        <th className="text-left p-3 sm:p-4 font-semibold text-slate-700">Material</th>
+                        <th className="text-right p-3 sm:p-4 font-semibold text-slate-700">Quantity & Unit</th>
+                        <th className="text-right p-3 sm:p-4 font-semibold text-slate-700">Rate</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr className="border-b border-slate-100">
-                        <td className="p-4 text-slate-900 font-medium">
+                        <td className="p-3 sm:p-4 text-slate-900 font-medium">
                           {request.materialName || request.manualMaterialName || 'Material'}
                         </td>
-                        <td className="p-4 text-right text-slate-900">
+                        <td className="p-3 sm:p-4 text-right text-slate-900">
                           {request.quantity} {request.measurementUnit || request.manualUnit || ''}
                         </td>
-                        <td className="p-4 text-right text-slate-900">
+                        <td className="p-3 sm:p-4 text-right text-slate-900">
                           @ TZS {(request.rateEstimate || request.manualEstimatedPrice || 0).toLocaleString()}
                         </td>
                       </tr>
                     </tbody>
-                    <tfoot className="border-t border-black">
+                    <tfoot className="border-t border-slate-200">
                       <tr>
-                        <td colSpan={2} className="p-4 text-right font-semibold text-slate-900">Subtotal:</td>
-                        <td className="p-4 text-right font-bold text-slate-900">
+                        <td colSpan={2} className="p-3 sm:p-4 text-right font-semibold text-slate-900">Subtotal:</td>
+                        <td className="p-3 sm:p-4 text-right font-bold text-slate-900">
                           TZS {(request.totalEstimate || 0).toLocaleString()}
                         </td>
                       </tr>
@@ -307,28 +305,28 @@ const RequestDetails = () => {
             <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
               <CardTitle className="text-sm sm:text-base text-white">Timeline</CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-3 sm:space-y-4">
                 {request.plannedUsageStart && request.plannedUsageEnd && (
-                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between py-2 sm:py-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-slate-500" />
-                      <span className="text-sm font-medium text-slate-700">Planned Usage:</span>
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
+                      <span className="text-xs sm:text-sm font-medium text-slate-700">Planned Usage:</span>
                     </div>
-                    <span className="text-sm text-slate-900 font-semibold">
+                    <span className="text-xs sm:text-sm text-slate-900 font-semibold">
                       {new Date(request.plannedUsageStart).toLocaleDateString()} - {new Date(request.plannedUsageEnd).toLocaleDateString()}
                     </span>
                   </div>
                 )}
                 
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between py-2 sm:py-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-4 h-4 rounded-full flex items-center justify-center ${request.emergencyFlag ? 'bg-red-500' : 'bg-slate-300'}`}>
                       {request.emergencyFlag && <XCircle className="h-3 w-3 text-white" />}
                     </div>
-                    <span className="text-sm font-medium text-slate-700">Emergency Flag:</span>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">Emergency Flag:</span>
                   </div>
-                  <Badge variant={request.emergencyFlag ? "destructive" : "secondary"} className="text-xs">
+                  <Badge variant={request.emergencyFlag ? "destructive" : "secondary"} className="text-[10px] sm:text-xs">
                     {request.emergencyFlag ? (
                       <><AlertOctagon className="h-3 w-3 mr-1" /> Yes</>
                     ) : 'No'}
@@ -473,8 +471,8 @@ const RequestDetails = () => {
               <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-red-600 rounded-t-lg">
                 <CardTitle className="text-sm sm:text-base text-white">Rejection Reason</CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-sm text-red-700 italic">"{request.rejectionComment}"</p>
+              <CardContent className="p-4 sm:p-6">
+                <p className="text-xs sm:text-sm text-red-700 italic">"{request.rejectionComment}"</p>
               </CardContent>
             </Card>
           )}
