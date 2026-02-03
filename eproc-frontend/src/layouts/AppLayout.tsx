@@ -118,59 +118,72 @@ const AppLayout = () => {
   // Breadcrumb Logic
   const breadcrumbs: { label: string; path?: string; active?: boolean }[] = [];
   
-  // Find key root section
-  const activeNavItem = navItems.find(i => location.pathname.startsWith(i.path));
-  
-  if (activeNavItem) {
-    // Level 1: Sidebar Item
+  // Special handling for manager request details (doesn't match /manager/pending path)
+  if (/^\/manager\/requests\/\d+$/.test(location.pathname)) {
     breadcrumbs.push({
-      label: activeNavItem.label,
-      path: activeNavItem.path,
-      active: location.pathname === activeNavItem.path
+      label: 'Pending Requests',
+      path: '/manager/pending',
+      active: false
     });
-
-    // Level 2: Sub-pages
-    // Hardcoded logic for now as requested, can be made recursive later
-    if (location.pathname === '/manager/projects/new') {
-       breadcrumbs[0].active = false; // Parent is no longer active
-       breadcrumbs.push({
-         label: 'Create New Project',
-         active: true
-       });
-    } else if (/^\/manager\/projects\/\d+$/.test(location.pathname)) {
-        breadcrumbs[0].active = false;
-        breadcrumbs.push({
-            label: 'Project Details',
-            active: true
-        });
-    } else if (location.pathname === '/manager/users') {
-        // No sub-breadcrumb needed, already handled by activeNavItem
-    }
-
-    // Engineer Routes Logic
-    if (location.pathname === '/engineer/requests/new') {
-        if (breadcrumbs.length > 0) breadcrumbs[0].active = false;
-        breadcrumbs.push({
-            label: 'Create New Request',
-            active: true
-        });
-    } else if (/^\/engineer\/requests\/\d+$/.test(location.pathname)) {
-        if (breadcrumbs.length > 0) breadcrumbs[0].active = false;
-        breadcrumbs.push({
-            label: 'Request Details',
-            active: true
-        });
-    } else if (/^\/engineer\/requests\/\d+\/edit$/.test(location.pathname)) {
-         if (breadcrumbs.length > 0) breadcrumbs[0].active = false;
-         breadcrumbs.push({
-             label: 'Edit Request',
-             active: true
-         });
-    }
-    // Add other sub-page logic here if needed
+    breadcrumbs.push({
+      label: 'Details',
+      active: true
+    });
   } else {
-    // Fallback
-    breadcrumbs.push({ label: 'Dashboard', active: true });
+    // Find key root section
+    const activeNavItem = navItems.find(i => location.pathname.startsWith(i.path));
+    
+    if (activeNavItem) {
+      // Level 1: Sidebar Item
+      breadcrumbs.push({
+        label: activeNavItem.label,
+        path: activeNavItem.path,
+        active: location.pathname === activeNavItem.path
+      });
+
+      // Level 2: Sub-pages
+      // Hardcoded logic for now as requested, can be made recursive later
+      if (location.pathname === '/manager/projects/new') {
+         breadcrumbs[0].active = false; // Parent is no longer active
+         breadcrumbs.push({
+           label: 'Create New Project',
+           active: true
+         });
+      } else if (/^\/manager\/projects\/\d+$/.test(location.pathname)) {
+          breadcrumbs[0].active = false;
+          breadcrumbs.push({
+              label: 'Project Details',
+              active: true
+          });
+      } else if (location.pathname === '/manager/users') {
+          // No sub-breadcrumb needed, already handled by activeNavItem
+      }
+
+      // Engineer Routes Logic
+      if (location.pathname === '/engineer/requests/new') {
+          breadcrumbs[0].active = false;
+          breadcrumbs.push({
+              label: 'Create New Request',
+              active: true
+          });
+      } else if (/^\/engineer\/requests\/\d+$/.test(location.pathname)) {
+          breadcrumbs[0].active = false;
+          breadcrumbs.push({
+              label: 'Request Details',
+              active: true
+          });
+      } else if (/^\/engineer\/requests\/\d+\/edit$/.test(location.pathname)) {
+           breadcrumbs[0].active = false;
+           breadcrumbs.push({
+               label: 'Edit Request',
+               active: true
+           });
+      }
+      // Add other sub-page logic here if needed
+    } else {
+      // Fallback
+      breadcrumbs.push({ label: 'Dashboard', active: true });
+    }
   }
 
   // Sidebar content component (reused for both desktop and mobile)
