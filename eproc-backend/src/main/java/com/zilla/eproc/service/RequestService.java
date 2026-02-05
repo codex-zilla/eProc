@@ -29,6 +29,7 @@ public class RequestService {
         private final ProjectRepository projectRepository;
         private final SiteRepository siteRepository;
         private final UserRepository userRepository;
+        private final RequestAuditLogRepository auditLogRepository;
 
         /**
          * Create multiple requests at once.
@@ -271,6 +272,48 @@ public class RequestService {
                                 .revisionNumber(material.getRevisionNumber())
                                 .totalEstimate(material.getTotalEstimate())
                                 .createdAt(material.getCreatedAt())
+                                .build();
+        }
+
+        /**
+         * Get audit history for a request.
+         */
+        public List<RequestAuditLogDTO> getRequestHistory(Long requestId, String userEmail) {
+                // Verify request exists and user has access
+                Request request = requestRepository.findById(requestId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+                User user = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                // Verify access
+                boolean hasAccess = request.getCreatedBy().getId().equals(user.getId())
+                                || user.getRole() == Role.PROJECT_OWNER;
+
+                if (!hasAccess) {
+                        throw new ForbiddenException("You don't have access to this request");
+                }
+
+                // Get audit logs
+                List<RequestAuditLog> auditLogs = auditLogRepository.findByRequestIdOrderByTimestampDesc(requestId);
+
+                return auditLogs.stream()
+                                .map(this::mapAuditLogToDTO)
+                                .collect(Collectors.toList());
+        }
+
+        /**
+         * Map RequestAuditLog to DTO.
+         */
+        private RequestAuditLogDTO mapAuditLogToDTO(RequestAuditLog auditLog) {
+                return RequestAuditLogDTO.builder()
+                                .id(auditLog.getId())
+                                .action(auditLog.getAction())
+                                .comment(auditLog.getDetails())
+                                .timestamp(auditLog.getTimestamp())
+                                .actorName(auditLog.getPerformedBy().getName())
+                                .actorEmail(auditLog.getPerformedBy().getEmail())
+                                .actorRole(auditLog.getPerformedBy().getRole().name())
                                 .build();
         }
 }

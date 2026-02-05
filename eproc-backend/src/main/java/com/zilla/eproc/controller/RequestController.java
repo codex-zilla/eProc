@@ -74,4 +74,18 @@ public class RequestController {
         List<RequestResponseDTO> response = requestService.getProjectRequests(projectId, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Get audit history for a request.
+     * GET /api/requests/{id}/history
+     */
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<com.zilla.eproc.dto.RequestAuditLogDTO>> getRequestHistory(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<com.zilla.eproc.dto.RequestAuditLogDTO> response = requestService.getRequestHistory(id,
+                userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
 }
