@@ -39,8 +39,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role));
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email, null,
-                    authorities);
+            // Create UserDetails object for the principal
+            JwtUserDetails userDetails = new JwtUserDetails(email, authorities);
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, authorities);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }

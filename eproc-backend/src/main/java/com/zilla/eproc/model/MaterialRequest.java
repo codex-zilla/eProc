@@ -42,6 +42,13 @@ public class MaterialRequest {
     @JoinColumn(name = "work_package_id")
     private WorkPackage workPackage;
 
+    /**
+     * Optional: Link to a BOQ batch if this request is part of a batch submission.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id")
+    private BoqBatch batch;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "material_id")
     private Material material;
