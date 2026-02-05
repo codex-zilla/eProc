@@ -71,8 +71,8 @@ class ProjectAssignmentServiceTest {
                 when(userRepository.findByEmail("boss@test.com")).thenReturn(Optional.of(boss));
                 when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
                 when(userRepository.findById(2L)).thenReturn(Optional.of(engineer));
-                when(assignmentRepository.existsByProjectIdAndUserIdAndRoleAndIsActiveTrue(anyLong(), anyLong(), any()))
-                                .thenReturn(false);
+                when(assignmentRepository.findByProjectIdAndUserIdAndRole(1L, 2L, ProjectRole.SITE_ENGINEER))
+                                .thenReturn(Optional.empty());
                 when(assignmentRepository.save(any(ProjectAssignment.class))).thenAnswer(inv -> {
                         ProjectAssignment pa = inv.getArgument(0);
                         pa.setId(1L);
@@ -134,8 +134,6 @@ class ProjectAssignmentServiceTest {
                 when(userRepository.findByEmail("boss@test.com")).thenReturn(Optional.of(boss));
                 when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
                 when(userRepository.findById(4L)).thenReturn(Optional.of(engineerNoErb));
-                when(assignmentRepository.existsByProjectIdAndUserIdAndRoleAndIsActiveTrue(anyLong(), anyLong(), any()))
-                                .thenReturn(false);
 
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(4L)
@@ -152,12 +150,19 @@ class ProjectAssignmentServiceTest {
         @Test
         void addTeamMember_failsIfAlreadyAssigned() {
                 // Given
+                ProjectAssignment activeAssignment = ProjectAssignment.builder()
+                                .id(1L)
+                                .project(project)
+                                .user(engineer)
+                                .role(ProjectRole.SITE_ENGINEER)
+                                .isActive(true)
+                                .build();
+
                 when(userRepository.findByEmail("boss@test.com")).thenReturn(Optional.of(boss));
                 when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
                 when(userRepository.findById(2L)).thenReturn(Optional.of(engineer));
-                when(assignmentRepository.existsByProjectIdAndUserIdAndRoleAndIsActiveTrue(1L, 2L,
-                                ProjectRole.SITE_ENGINEER))
-                                .thenReturn(true);
+                when(assignmentRepository.findByProjectIdAndUserIdAndRole(1L, 2L, ProjectRole.SITE_ENGINEER))
+                                .thenReturn(Optional.of(activeAssignment));
 
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(2L)
@@ -167,7 +172,7 @@ class ProjectAssignmentServiceTest {
 
                 // When/Then
                 assertThatThrownBy(() -> service.addTeamMember(1L, request, "boss@test.com"))
-                                .isInstanceOf(IllegalStateException.class)
+                                .isInstanceOf(IllegalArgumentException.class)
                                 .hasMessageContaining("already has this role");
         }
 

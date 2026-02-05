@@ -1,131 +1,77 @@
 package com.zilla.eproc.controller;
 
-import com.zilla.eproc.dto.ApprovalActionDTO;
-import com.zilla.eproc.dto.CreateMaterialRequestDTO;
-import com.zilla.eproc.dto.MaterialRequestResponseDTO;
-import com.zilla.eproc.dto.RequestAuditDTO;
-import com.zilla.eproc.model.RequestStatus;
-import com.zilla.eproc.service.MaterialRequestService;
+import com.zilla.eproc.dto.CreateRequestDTO;
+import com.zilla.eproc.dto.RequestResponseDTO;
+import com.zilla.eproc.service.RequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 /**
- * REST controller for material request operations.
+ * Controller for Request (BOQ Request) operations.
  */
 @RestController
 @RequestMapping("/api/requests")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class RequestController {
 
-    private final MaterialRequestService materialRequestService;
+    private final RequestService requestService;
 
     /**
-     * Create a new material request.
-     * Only ENGINEER role can create requests.
+     * Create one or more requests.
+     * POST /api/requests
      */
     @PostMapping
-    @PreAuthorize("hasRole('ENGINEER')")
-    public ResponseEntity<MaterialRequestResponseDTO> createRequest(
-            @Valid @RequestBody CreateMaterialRequestDTO dto,
-            Authentication authentication) {
-        String email = authentication.getName();
-        MaterialRequestResponseDTO response = materialRequestService.createRequest(dto, email);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<RequestResponseDTO>> createRequests(
+            @Valid @RequestBody List<CreateRequestDTO> dtos,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<RequestResponseDTO> response = requestService.createRequests(dtos, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
-     * Get all requests with optional filters.
-     */
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<MaterialRequestResponseDTO>> getRequests(
-            @RequestParam(required = false) RequestStatus status,
-            @RequestParam(required = false) Long siteId,
-            @RequestParam(required = false, defaultValue = "false") boolean myRequests,
-            Authentication authentication) {
-
-        String userEmail = myRequests ? authentication.getName() : null;
-        List<MaterialRequestResponseDTO> requests = materialRequestService.getAllRequests(status, siteId, userEmail);
-        return ResponseEntity.ok(requests);
-    }
-
-    /**
-     * Get pending requests for approval queue.
-     * Only PROJECT_OWNER can access this.
-     */
-    @GetMapping("/pending")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
-    public ResponseEntity<List<MaterialRequestResponseDTO>> getPendingRequests(Authentication authentication) {
-        String email = authentication.getName();
-        List<MaterialRequestResponseDTO> requests = materialRequestService.getPendingRequests(email);
-        return ResponseEntity.ok(requests);
-    }
-
-    /**
-     * Get requests by the current user.
-     */
-    @GetMapping("/my")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<MaterialRequestResponseDTO>> getMyRequests(Authentication authentication) {
-        String email = authentication.getName();
-        List<MaterialRequestResponseDTO> requests = materialRequestService.getRequestsByUser(email);
-        return ResponseEntity.ok(requests);
-    }
-
-    /**
-     * Get a single request by ID.
+     * Get request by ID.
+     * GET /api/requests/{id}
      */
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<MaterialRequestResponseDTO> getRequestById(@PathVariable Long id) {
-        MaterialRequestResponseDTO request = materialRequestService.getRequestById(id);
-        return ResponseEntity.ok(request);
-    }
-
-    /**
-     * Get the audit history for a request.
-     * Returns timeline of all status changes.
-     */
-    @GetMapping("/{id}/history")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<RequestAuditDTO>> getRequestHistory(@PathVariable Long id) {
-        List<RequestAuditDTO> history = materialRequestService.getRequestHistory(id);
-        return ResponseEntity.ok(history);
-    }
-
-    /**
-     * Update a rejected request (resubmit).
-     * Only ENGINEER who owns the request can update.
-     */
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ENGINEER')")
-    public ResponseEntity<MaterialRequestResponseDTO> updateRequest(
+    public ResponseEntity<RequestResponseDTO> getRequestById(
             @PathVariable Long id,
-            @Valid @RequestBody CreateMaterialRequestDTO dto,
-            Authentication authentication) {
-        String email = authentication.getName();
-        MaterialRequestResponseDTO response = materialRequestService.updateRequest(id, dto, email);
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        RequestResponseDTO response = requestService.getRequestById(id, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Approve or reject a request.
-     * Only PROJECT_OWNER can perform this action.
+     * Get all requests created by the current user.
+     * GET /api/requests/my-requests
      */
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
-    public ResponseEntity<MaterialRequestResponseDTO> processApproval(
-            @PathVariable Long id,
-            @Valid @RequestBody ApprovalActionDTO dto,
-            Authentication authentication) {
-        String email = authentication.getName();
-        MaterialRequestResponseDTO response = materialRequestService.processApproval(id, dto, email);
+    @GetMapping("/my-requests")
+    public ResponseEntity<List<RequestResponseDTO>> getMyRequests(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<RequestResponseDTO> response = requestService.getMyRequests(userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get all requests for a specific project (for project owners).
+     * GET /api/requests/project/{projectId}
+     */
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<List<RequestResponseDTO>> getProjectRequests(
+            @PathVariable Long projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<RequestResponseDTO> response = requestService.getProjectRequests(projectId, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
 }

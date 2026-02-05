@@ -102,7 +102,7 @@ const AssignedProject = () => {
                 </div>
                 {project.status === 'ACTIVE' && (
                   <Link
-                    to="/engineer/requests/new"
+                    to="/engineer/create-batch"
                     className="inline-flex items-center px-4 py-2 bg-[#2a3455] text-white rounded-lg hover:bg-[#1e253e] transition-colors"
                   >
                     + Create New Request

@@ -6,20 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-/**
- * Repository for request audit log entries.
- */
 @Repository
 public interface RequestAuditLogRepository extends JpaRepository<RequestAuditLog, Long> {
 
     /**
-     * Find all audit entries for a request, ordered by creation time descending.
+     * Find all audit logs for a specific request.
      */
-    List<RequestAuditLog> findByRequestIdOrderByCreatedAtDesc(Long requestId);
-
-    /**
-     * Find all audit entries for a request, ordered by creation time ascending
-     * (timeline order).
-     */
-    List<RequestAuditLog> findByRequestIdOrderByCreatedAtAsc(Long requestId);
+    List<RequestAuditLog> findByRequestIdOrderByTimestampDesc(Long requestId);
 }

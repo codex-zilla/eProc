@@ -6,7 +6,6 @@ import com.zilla.eproc.dto.ProjectUserDTO;
 import com.zilla.eproc.exception.ForbiddenException;
 import com.zilla.eproc.exception.ResourceNotFoundException;
 import com.zilla.eproc.model.*;
-import com.zilla.eproc.repository.MaterialRequestRepository;
 import com.zilla.eproc.repository.ProjectAssignmentRepository;
 import com.zilla.eproc.repository.ProjectRepository;
 import com.zilla.eproc.repository.UserDeletionAuditRepository;
@@ -32,7 +31,6 @@ public class ProjectUserService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final ProjectAssignmentRepository assignmentRepository;
-    private final MaterialRequestRepository materialRequestRepository;
     private final UserDeletionAuditRepository userDeletionAuditRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -344,16 +342,6 @@ public class ProjectUserService {
             assignment.setDeletedUserSnapshot(savedAudit);
             assignment.setUser(null); // Nullify user reference
             assignmentRepository.save(assignment);
-        }
-
-        // 4b. Update all material requests created by this user
-        List<MaterialRequest> materialRequests = materialRequestRepository
-                .findByRequestedById(userId);
-
-        for (MaterialRequest request : materialRequests) {
-            request.setDeletedUserSnapshot(savedAudit);
-            request.setRequestedBy(null); // Nullify user reference
-            materialRequestRepository.save(request);
         }
 
         // Step 5: Hard delete the user

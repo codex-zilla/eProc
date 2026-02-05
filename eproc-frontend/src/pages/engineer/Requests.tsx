@@ -11,7 +11,7 @@ interface BatchSummary {
   id: number;
   title: string;
   description: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'PARTIALLY_APPROVED' | 'APPROVED' | 'REJECTED';
+  status: 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   siteName?: string;
   plannedStartDate?: string;
   totalValue: number;
@@ -30,7 +30,7 @@ const MyBatches = () => {
   useEffect(() => {
     const loadBatches = async () => {
       try {
-        const response = await api.get<BatchSummary[]>('/boq-batches/my-batches');
+        const response = await api.get<BatchSummary[]>('/requests/my-requests');
         setBatches(response.data);
       } catch (err) {
         console.error('Failed to load batches:', err);
@@ -48,12 +48,8 @@ const MyBatches = () => {
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'DRAFT':
-        return 'bg-slate-100 text-slate-800 hover:bg-slate-200';
       case 'SUBMITTED':
         return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'PARTIALLY_APPROVED':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'APPROVED':
         return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'REJECTED':

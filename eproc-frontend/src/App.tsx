@@ -18,10 +18,9 @@ import NotAuthorized from './pages/shared/NotAuthorized';
 import EngineerDashboard from './pages/engineer/EngineerDashboard';
 import AssignedProject from './pages/engineer/AssignedProject';
 import MyRequests from './pages/engineer/MyRequests';
-import CreateRequest from './pages/engineer/CreateRequest';
 import RequestDetails from './pages/engineer/RequestDetails';
-import CreateBatch from './pages/engineer/CreateBatch';
-import MyBatches from './pages/engineer/MyBatches';
+import CreateRequest from './pages/engineer/CreateRequest';
+import Requests from './pages/engineer/Requests';
 import BatchDetails from './pages/engineer/BatchDetails';
 
 // Manager pages
@@ -60,12 +59,10 @@ function App() {
                 <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
                 <Route path="/engineer/project" element={<AssignedProject />} />
                 <Route path="/engineer/requests" element={<MyRequests />} />
-                <Route path="/engineer/requests/new" element={<CreateRequest />} />
                 <Route path="/engineer/requests/:id" element={<RequestDetails />} />
-                <Route path="/engineer/requests/:id/edit" element={<CreateRequest />} />
-                <Route path="/engineer/batches" element={<MyBatches />} />
+                <Route path="/engineer/batches" element={<Requests />} />
                 <Route path="/engineer/batches/:id" element={<BatchDetails />} />
-                <Route path="/engineer/create-batch" element={<CreateBatch />} />
+                <Route path="/engineer/create-batch" element={<CreateRequest />} />
               </Route>
 
               {/* Manager Routes (Project Owner) */}

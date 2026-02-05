@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,41 +7,49 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, DollarSign } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 
 interface Site {
   id: number;
   name: string;
   location: string;
+  projectId: number;
 }
 
-interface Material {
-  id: number;
-  name: string;
-  unit: string;
-  estimatedPrice: number;
+interface MaterialItem {
+  tempId: string;
+  materialName: string;
+  quantity: string;
+  measurementUnit: string;
+  rateEstimate: string;
+  rateEstimateType: string;
 }
 
-interface ExistingRequest {
-  id: number;
-  siteId: number;
-  materialId?: number;
-  manualMaterialName?: string;
-  manualUnit?: string;
-  manualEstimatedPrice?: number;
-  quantity: number;
+interface LabourItem {
+  tempId: string;
+  labourType: string;
+  quantity: string;
+  measurementUnit: string;
+  rateEstimate: string;
+}
+
+interface BOQEntry {
+  tempId: string;
+  siteId: string;
+  boqDescription: string;
+  workDescription: string;
+  plannedStart: string;
+  plannedEnd: string;
   emergencyFlag: boolean;
-  plannedUsageStart?: string;
-  plannedUsageEnd?: string;
-  // BOQ fields
-  boqReferenceCode?: string;
-  workDescription?: string;
-  measurementUnit?: string;
-  rateEstimate?: number;
-  rateType?: string;
+  materials: MaterialItem[];
+  labour: LabourItem[];
 }
 
-// Constrained measurement units (industry standard + Tanzania-specific)
+const RATE_TYPES = [
+  { value: 'ENGINEER_ESTIMATE', label: 'Engineer Estimate' },
+  { value: 'MARKET_RATE', label: 'Market Rate' },
+];
+
 const MEASUREMENT_UNITS = [
   { value: 'm³', label: 'm³ - Cubic Meter' },
   { value: 'm²', label: 'm² - Square Meter' },
@@ -55,196 +63,332 @@ const MEASUREMENT_UNITS = [
   { value: 'trip', label: 'trip - Trip (lorry deliveries)' },
   { value: 'drum', label: 'drum - Drum (bitumen/asphalt)' },
   { value: 'pcs', label: 'pcs - Pieces' },
-];
-
-const RATE_TYPES = [
-  { value: 'ENGINEER_ESTIMATE', label: 'Engineer Estimate' },
-  { value: 'MARKET_RATE', label: 'Market Rate' },
-  { value: 'TENDER_RATE', label: 'Tender Rate' },
+  { value: 'Days', label: 'Days - Labour duration' },
 ];
 
 /**
- * Create/Edit BOQ Item Request page for engineers.
- * Phase 1: Enhanced with BOQ fields for structured work item requests.
+ * Create BOQ Request page for Engineers.
+ * Each BOQ is a card with details, materials, and labour.
  */
-const CreateRequest = () => {
-  const { id } = useParams<{ id: string }>(); // Edit mode if ID present
+const CreateBatch = () => {
   const navigate = useNavigate();
-  
+
   const [sites, setSites] = useState<Site[]>([]);
-  const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
-  // Form state - existing fields
-  const [siteId, setSiteId] = useState<string>('');
-  const [useManualMaterial, setUseManualMaterial] = useState(false);
-  const [materialId, setMaterialId] = useState<string>('');
-  const [manualMaterialName, setManualMaterialName] = useState('');
-  const [manualUnit, setManualUnit] = useState('');
-  const [manualEstimatedPrice, setManualEstimatedPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [emergencyFlag, setEmergencyFlag] = useState(false);
-  const [plannedUsageStart, setPlannedUsageStart] = useState('');
-  const [plannedUsageEnd, setPlannedUsageEnd] = useState('');
+  const [boqEntries, setBoqEntries] = useState<BOQEntry[]>([
+    {
+      tempId: crypto.randomUUID(),
+      siteId: '',
+      boqDescription: '',
+      workDescription: '',
+      plannedStart: '',
+      plannedEnd: '',
+      emergencyFlag: false,
+      materials: [
+        {
+          tempId: crypto.randomUUID(),
+          materialName: '',
+          quantity: '',
+          measurementUnit: '',
+          rateEstimate: '',
+          rateEstimateType: 'ENGINEER_ESTIMATE',
+        },
+      ],
+      labour: [
+        {
+          tempId: crypto.randomUUID(),
+          labourType: '',
+          quantity: '',
+          measurementUnit: 'Days',
+          rateEstimate: '',
+        },
+      ],
+    },
+  ]);
 
-  // Form state - BOQ fields (Phase 1)
-  const [boqReferenceCode, setBoqReferenceCode] = useState('');
-  const [workDescription, setWorkDescription] = useState('');
-  const [measurementUnit, setMeasurementUnit] = useState('');
-  const [rateEstimate, setRateEstimate] = useState('');
-  const [rateType, setRateType] = useState('ENGINEER_ESTIMATE');
-
-  const isEditMode = !!id;
-
-  // Computed total estimate (real-time calculation)
-  const totalEstimate = useMemo(() => {
-    const qty = parseFloat(quantity) || 0;
-    const rate = parseFloat(rateEstimate) || 0;
-    return qty * rate;
-  }, [quantity, rateEstimate]);
-
-  useEffect(() => {
-    const loadData = async () => {
+  // Load sites on mount
+  useState(() => {
+    const loadSites = async () => {
       try {
-        const [sitesRes, materialsRes] = await Promise.all([
-          api.get<Site[]>('/sites'),
-          api.get<Material[]>('/materials'),
-        ]);
-        setSites(sitesRes.data);
-        setMaterials(materialsRes.data);
-
-        // Auto-select if only one site
-        if (sitesRes.data.length === 1) {
-          setSiteId(sitesRes.data[0].id.toString());
-        }
-
-        // Load existing request if edit mode
-        if (isEditMode) {
-          const reqRes = await api.get<ExistingRequest>(`/requests/${id}`);
-          const req = reqRes.data;
-          setSiteId(req.siteId.toString());
-          setQuantity(req.quantity.toString());
-          setEmergencyFlag(req.emergencyFlag);
-          if (req.plannedUsageStart) setPlannedUsageStart(req.plannedUsageStart.slice(0, 16));
-          if (req.plannedUsageEnd) setPlannedUsageEnd(req.plannedUsageEnd.slice(0, 16));
-          
-          if (req.materialId) {
-            setMaterialId(req.materialId.toString());
-            setUseManualMaterial(false);
-          } else {
-            setUseManualMaterial(true);
-            setManualMaterialName(req.manualMaterialName || '');
-            setManualUnit(req.manualUnit || '');
-            setManualEstimatedPrice(req.manualEstimatedPrice?.toString() || '');
-          }
-
-          // Load BOQ fields
-          setBoqReferenceCode(req.boqReferenceCode || '');
-          setWorkDescription(req.workDescription || '');
-          setMeasurementUnit(req.measurementUnit || '');
-          setRateEstimate(req.rateEstimate?.toString() || '');
-          setRateType(req.rateType || 'ENGINEER_ESTIMATE');
+        const res = await api.get<Site[]>('/sites');
+        setSites(res.data);
+        if (res.data.length === 1) {
+          // Auto-select if only one site
+          setBoqEntries(prev => prev.map((entry, idx) => 
+            idx === 0 ? { ...entry, siteId: res.data[0].id.toString() } : entry
+          ));
         }
       } catch (err) {
-        console.error('Failed to load data:', err);
-        setError('Failed to load form data');
+        console.error('Failed to load sites:', err);
+        setError('Failed to load sites');
       } finally {
         setLoading(false);
       }
     };
-    loadData();
-  }, [id, isEditMode]);
+    loadSites();
+  });
 
-  const validateForm = () => {
-    const errors: { [key: string]: string } = {};
-    const now = new Date();
-    // Buffer for "current" time to avoid frustration with seconds
-    now.setMinutes(now.getMinutes() - 5);
+  const addBOQEntry = () => {
+    setBoqEntries([
+      ...boqEntries,
+      {
+        tempId: crypto.randomUUID(),
+        siteId: '',
+        boqDescription: '',
+        workDescription: '',
+        plannedStart: '',
+        plannedEnd: '',
+        emergencyFlag: false,
+        materials: [
+          {
+            tempId: crypto.randomUUID(),
+            materialName: '',
+            quantity: '',
+            measurementUnit: '',
+            rateEstimate: '',
+            rateEstimateType: 'ENGINEER_ESTIMATE',
+          },
+        ],
+        labour: [
+          {
+            tempId: crypto.randomUUID(),
+            labourType: '',
+            quantity: '',
+            measurementUnit: 'Days',
+            rateEstimate: '',
+          },
+        ],
+      },
+    ]);
+  };
 
-    if (!siteId) errors.siteId = 'Site is required';
-    if (!quantity || parseFloat(quantity) <= 0) errors.quantity = 'Valid quantity is required';
-    
-    // BOQ conditional requirements
-    if (boqReferenceCode) {
-      if (!workDescription || workDescription.length < 10) {
-        errors.workDescription = 'Work description is required (min 10 chars) for BOQ items';
+  const removeBOQEntry = (tempId: string) => {
+    if (boqEntries.length > 1) {
+      setBoqEntries(boqEntries.filter(entry => entry.tempId !== tempId));
+    }
+  };
+
+  const updateBOQEntry = (tempId: string, field: keyof BOQEntry, value: any) => {
+    setBoqEntries(boqEntries.map(entry => 
+      entry.tempId === tempId ? { ...entry, [field]: value } : entry
+    ));
+  };
+
+  const addMaterial = (boqTempId: string) => {
+    setBoqEntries(boqEntries.map(entry => {
+      if (entry.tempId === boqTempId) {
+        return {
+          ...entry,
+          materials: [
+            ...entry.materials,
+            {
+              tempId: crypto.randomUUID(),
+              materialName: '',
+              quantity: '',
+              measurementUnit: '',
+              rateEstimate: '',
+              rateEstimateType: 'ENGINEER_ESTIMATE',
+            },
+          ],
+        };
       }
-      if (!measurementUnit) errors.measurementUnit = 'Measurement unit is required for BOQ items';
-    }
+      return entry;
+    }));
+  };
 
-    // Material validation
-    if (!useManualMaterial && !materialId) {
-      errors.materialId = 'Material is required';
-    }
-    if (useManualMaterial && !manualMaterialName) {
-      errors.manualMaterialName = 'Material name is required';
-    }
+  const removeMaterial = (boqTempId: string, materialTempId: string) => {
+    setBoqEntries(boqEntries.map(entry => {
+      if (entry.tempId === boqTempId) {
+        return {
+          ...entry,
+          materials: entry.materials.filter(m => m.tempId !== materialTempId),
+        };
+      }
+      return entry;
+    }));
+  };
 
-    // Date validation
-    if (plannedUsageStart) {
-      const startDate = new Date(plannedUsageStart);
-      if (startDate < now) {
-        errors.plannedUsageStart = 'Planned start date cannot be in the past';
+  const updateMaterial = (boqTempId: string, materialTempId: string, field: keyof MaterialItem, value: string) => {
+    setBoqEntries(boqEntries.map(entry => {
+      if (entry.tempId === boqTempId) {
+        return {
+          ...entry,
+          materials: entry.materials.map(m => 
+            m.tempId === materialTempId ? { ...m, [field]: value } : m
+          ),
+        };
       }
-    }
-    
-    if (plannedUsageEnd) {
-      const endDate = new Date(plannedUsageEnd);
-      if (endDate < now) {
-        errors.plannedUsageEnd = 'Planned end date cannot be in the past';
-      }
-      if (plannedUsageStart && endDate < new Date(plannedUsageStart)) {
-        errors.plannedUsageEnd = 'End date cannot be before start date';
-      }
-    }
+      return entry;
+    }));
+  };
 
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+  const addLabour = (boqTempId: string) => {
+    setBoqEntries(boqEntries.map(entry => {
+      if (entry.tempId === boqTempId) {
+        return {
+          ...entry,
+          labour: [
+            ...entry.labour,
+            {
+              tempId: crypto.randomUUID(),
+              labourType: '',
+              quantity: '',
+              measurementUnit: 'Days',
+              rateEstimate: '',
+            },
+          ],
+        };
+      }
+      return entry;
+    }));
+  };
+
+  const removeLabour = (boqTempId: string, labourTempId: string) => {
+    setBoqEntries(boqEntries.map(entry => {
+      if (entry.tempId === boqTempId) {
+        return {
+          ...entry,
+          labour: entry.labour.filter(l => l.tempId !== labourTempId),
+        };
+      }
+      return entry;
+    }));
+  };
+
+  const updateLabour = (boqTempId: string, labourTempId: string, field: keyof LabourItem, value: string) => {
+    setBoqEntries(boqEntries.map(entry => {
+      if (entry.tempId === boqTempId) {
+        return {
+          ...entry,
+          labour: entry.labour.map(l => 
+            l.tempId === labourTempId ? { ...l, [field]: value } : l
+          ),
+        };
+      }
+      return entry;
+    }));
+  };
+
+  const calculateMaterialCost = (boqEntry: BOQEntry) => {
+    return boqEntry.materials.reduce((sum, material) => {
+      const qty = parseFloat(material.quantity) || 0;
+      const rate = parseFloat(material.rateEstimate) || 0;
+      return sum + qty * rate;
+    }, 0);
+  };
+
+  const calculateLabourCost = (boqEntry: BOQEntry) => {
+    return boqEntry.labour.reduce((sum, labour) => {
+      const qty = parseFloat(labour.quantity) || 0;
+      const rate = parseFloat(labour.rateEstimate) || 0;
+      return sum + qty * rate;
+    }, 0);
+  };
+
+  const calculateBOQTotal = (boqEntry: BOQEntry) => {
+    return calculateMaterialCost(boqEntry) + calculateLabourCost(boqEntry);
+  };
+
+  const calculateGrandTotal = () => {
+    return boqEntries.reduce((sum, entry) => sum + calculateBOQTotal(entry), 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
     setError(null);
-    setSubmitting(true);
 
-    const payload: any = {
-      siteId: parseInt(siteId),
-      quantity: parseFloat(quantity),
-      emergencyFlag,
-    };
+    // Validation
+    for (let i = 0; i < boqEntries.length; i++) {
+      const entry = boqEntries[i];
+      if (!entry.siteId) {
+        setError(`BOQ ${i + 1}: Please select a site`);
+        return;
+      }
+      if (!entry.boqDescription.trim()) {
+        setError(`BOQ ${i + 1}: Please enter a BOQ description`);
+        return;
+      }
+      if (entry.materials.length === 0 && entry.labour.length === 0) {
+        setError(`BOQ ${i + 1}: Please add at least one material or labour item`);
+        return;
+      }
 
-    if (plannedUsageStart) payload.plannedUsageStart = plannedUsageStart;
-    if (plannedUsageEnd) payload.plannedUsageEnd = plannedUsageEnd;
+      // Validate materials
+      for (let j = 0; j < entry.materials.length; j++) {
+        const mat = entry.materials[j];
+        if (!mat.materialName || !mat.quantity || !mat.measurementUnit || !mat.rateEstimate) {
+          setError(`BOQ ${i + 1}, Material ${j + 1}: All fields are required`);
+          return;
+        }
+      }
 
-    if (useManualMaterial) {
-      payload.manualMaterialName = manualMaterialName;
-      payload.manualUnit = manualUnit;
-      if (manualEstimatedPrice) payload.manualEstimatedPrice = parseFloat(manualEstimatedPrice);
-    } else {
-      payload.materialId = parseInt(materialId);
+      // Validate labour
+      for (let j = 0; j < entry.labour.length; j++) {
+        const lab = entry.labour[j];
+        if (!lab.labourType || !lab.quantity || !lab.measurementUnit || !lab.rateEstimate) {
+          setError(`BOQ ${i + 1}, Labour ${j + 1}: All fields are required`);
+          return;
+        }
+      }
     }
 
-    // Add BOQ fields if provided
-    if (boqReferenceCode) payload.boqReferenceCode = boqReferenceCode;
-    if (workDescription) payload.workDescription = workDescription;
-    if (measurementUnit) payload.measurementUnit = measurementUnit;
-    if (rateEstimate) payload.rateEstimate = parseFloat(rateEstimate);
-    if (rateType) payload.rateType = rateType;
+    setSubmitting(true);
 
     try {
-      if (isEditMode) {
-        await api.put(`/requests/${id}`, payload, { headers: { 'Content-Type': 'application/json' } });
-      } else {
-        await api.post('/requests', payload, { headers: { 'Content-Type': 'application/json' } });
-      }
-      navigate('/engineer/requests');
+      // Create request payload - array of requests
+      const requestsPayload = boqEntries.map((entry) => ({
+        projectId: sites.find(s => s.id === parseInt(entry.siteId))?.projectId || 0,
+        siteId: parseInt(entry.siteId),
+        title: entry.boqDescription,
+        plannedStartDate: entry.plannedStart ? `${entry.plannedStart}T00:00:00` : new Date().toISOString(),
+        plannedEndDate: entry.plannedEnd ? `${entry.plannedEnd}T23:59:59` : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        emergencyFlag: entry.emergencyFlag,
+        additionalDetails: entry.workDescription || '',
+        items: [
+          ...entry.materials.map((mat) => ({
+            name: mat.materialName,
+            quantity: parseFloat(mat.quantity),
+            measurementUnit: mat.measurementUnit,
+            rateEstimate: parseFloat(mat.rateEstimate),
+            rateEstimateType: mat.rateEstimateType,
+            resourceType: 'MATERIAL',
+          })),
+          ...entry.labour.map((lab) => ({
+            name: lab.labourType,
+            quantity: parseFloat(lab.quantity),
+            measurementUnit: lab.measurementUnit,
+            rateEstimate: parseFloat(lab.rateEstimate),
+            rateEstimateType: 'ENGINEER_ESTIMATE', // Labour always uses engineer estimate
+            resourceType: 'LABOUR',
+          })),
+        ],
+      }));
+
+      // Create requests
+      await api.post('/requests', requestsPayload);
+
+      navigate('/engineer/batches');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to submit request');
+      console.error('Failed to submit batch:', err);
+      
+      // Extract meaningful error message
+      let errorMessage = 'Failed to submit batch';
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
     }
@@ -270,401 +414,411 @@ const CreateRequest = () => {
         </div>
       )}
 
-      {isEditMode && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
-          <p>
-            ✏️ Editing a rejected request. Submitting will reset status to <strong>PENDING</strong>.
-          </p>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        {/* Section 1: BOQ Context */}
-        <Card>
-          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
-            <CardTitle className="text-sm sm:text-base text-white">BOQ Context</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
-            {/* Site Selection */}
-            <div className="grid gap-1.5 sm:gap-2">
-              <Label htmlFor="site" className="text-xs sm:text-sm">
-                Site <span className="text-red-500">*</span>
-              </Label>
-              <Select 
-                value={siteId} 
-                onValueChange={(val) => {
-                  setSiteId(val);
-                  setFieldErrors(prev => ({ ...prev, siteId: '' }));
-                }} 
-                required 
-                disabled={sites.length === 0}
-              >
-                <SelectTrigger id="site" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.siteId ? 'border-red-500 focus:ring-red-200' : ''}`}>
-                  <SelectValue placeholder={sites.length === 0 ? "No sites available" : "Select a site..."} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sites.length === 0 ? (
-                    <SelectItem value="no-sites" disabled className="text-xs sm:text-sm text-muted-foreground">
-                      No sites available
-                    </SelectItem>
-                  ) : (
-                    sites.map(site => (
-                      <SelectItem key={site.id} value={site.id.toString()} className="text-xs sm:text-sm">
-                        {site.name} - {site.location}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {fieldErrors.siteId && <span className="text-xs text-red-500 font-medium">{fieldErrors.siteId}</span>}
-              {sites.length === 0 && (
-                <p className="text-[10px] sm:text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                  ⚠️ You have no sites available. Please contact your project manager to be assigned to a project with active sites.
-                </p>
-              )}
-              {sites.length === 1 && (
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Auto-selected (only one site available)</p>
-              )}
-            </div>
-
-            {/* BOQ Item Code */}
-            <div className="grid gap-1.5 sm:gap-2">
-              <Label htmlFor="boqCode" className="text-xs sm:text-sm">
-                BOQ Item Code
-                <span className="ml-2 text-[10px] sm:text-xs text-muted-foreground font-normal">
-                  (Pattern: BOQ-{'{section}'}-{'{trade}'}-{'{sequence}'} e.g., BOQ-03-RC-001)
-                </span>
-              </Label>
-              <Input
-                id="boqCode"
-                type="text"
-                value={boqReferenceCode}
-                onChange={(e) => setBoqReferenceCode(e.target.value.toUpperCase())}
-                placeholder="BOQ-03-RC-001"
-                pattern="^BOQ-\d{2}-[A-Z]{2,4}-\d{3}$"
-                className="h-9 sm:h-10 text-sm font-mono"
-              />
-            </div>
-
-            {/* Work Description */}
-            <div className="grid gap-1.5 sm:gap-2">
-              <Label htmlFor="workDescription" className="text-xs sm:text-sm">
-                Work Description
-                {boqReferenceCode && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              <Textarea
-                id="workDescription"
-                value={workDescription}
-                onChange={(e) => {
-                  setWorkDescription(e.target.value);
-                  setFieldErrors(prev => ({ ...prev, workDescription: '' }));
-                }}
-                required={!!boqReferenceCode}
-                minLength={10}
-                rows={4}
-                placeholder="Detailed description of the work item (minimum 10 characters)"
-                className={`resize-none text-sm ${fieldErrors.workDescription ? 'border-red-500 focus:ring-red-200' : ''}`}
-              />
-              {fieldErrors.workDescription && <span className="text-xs text-red-500 font-medium">{fieldErrors.workDescription}</span>}
-              <p className="text-[10px] sm:text-xs text-muted-foreground">{workDescription.length} characters</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 2: Measurement & Quantity */}
-        <Card>
-          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
-            <CardTitle className="text-sm sm:text-base text-white">Measurement & Quantity</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {/* Measurement Unit */}
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="measurementUnit" className="text-xs sm:text-sm">
-                  Measurement Unit
-                  {boqReferenceCode && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <Select 
-                  value={measurementUnit} 
-                  onValueChange={(val) => {
-                    setMeasurementUnit(val);
-                    setFieldErrors(prev => ({ ...prev, measurementUnit: '' }));
-                  }} 
-                  required={!!boqReferenceCode}
+        {boqEntries.map((entry, entryIndex) => (
+          <Card key={entry.tempId} className="border-2 border-slate-300">
+            <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg flex flex-row items-center justify-between">
+              <CardTitle className="text-sm sm:text-base text-white">BOQ Entry {entryIndex + 1}</CardTitle>
+              {boqEntries.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeBOQEntry(entry.tempId)}
+                  className="h-7 text-xs text-red-200 hover:text-red-100 hover:bg-red-900/20"
                 >
-                  <SelectTrigger id="measurementUnit" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.measurementUnit ? 'border-red-500 focus:ring-red-200' : ''}`}>
-                    <SelectValue placeholder="Select unit..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MEASUREMENT_UNITS.map(unit => (
-                      <SelectItem key={unit.value} value={unit.value} className="text-xs sm:text-sm">
-                        {unit.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.measurementUnit && <span className="text-xs text-red-500 font-medium">{fieldErrors.measurementUnit}</span>}
-              </div>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Remove BOQ
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6 space-y-4">
+              {/* BOQ Header Information */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pb-4 border-b">
+                {/* Site Selection */}
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor={`site-${entry.tempId}`} className="text-xs sm:text-sm">
+                    Site <span className="text-red-500">*</span>
+                  </Label>
+                  <Select 
+                    value={entry.siteId} 
+                    onValueChange={(val) => updateBOQEntry(entry.tempId, 'siteId', val)} 
+                    required 
+                    disabled={sites.length === 0}
+                  >
+                    <SelectTrigger id={`site-${entry.tempId}`} className="h-9 sm:h-10 text-xs sm:text-sm">
+                      <SelectValue placeholder={sites.length === 0 ? 'No sites available' : 'Select a site...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sites.length === 0 ? (
+                        <SelectItem value="no-sites" disabled className="text-xs sm:text-sm text-muted-foreground">
+                          No sites available
+                        </SelectItem>
+                      ) : (
+                        sites.map((site) => (
+                          <SelectItem key={site.id} value={site.id.toString()} className="text-xs sm:text-sm">
+                            {site.name} - {site.location}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Quantity */}
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="quantity" className="text-xs sm:text-sm">
-                  Quantity <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => {
-                    setQuantity(e.target.value);
-                    setFieldErrors(prev => ({ ...prev, quantity: '' }));
-                  }}
-                  required
-                  min="0.01"
-                  step="0.01"
-                  placeholder="Enter quantity"
-                  className={`h-9 sm:h-10 text-sm ${fieldErrors.quantity ? 'border-red-500 focus:ring-red-200' : ''}`}
-                />
-                {fieldErrors.quantity && <span className="text-xs text-red-500 font-medium">{fieldErrors.quantity}</span>}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 3: Cost Information */}
-        <Card>
-          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
-            <CardTitle className="text-sm sm:text-base text-white">Cost Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {/* Rate Type */}
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="rateType" className="text-xs sm:text-sm">Rate Type</Label>
-                <Select value={rateType} onValueChange={setRateType}>
-                  <SelectTrigger id="rateType" className="h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RATE_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value} className="text-xs sm:text-sm">
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Rate Estimate */}
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="rateEstimate" className="text-xs sm:text-sm">
-                  Rate Estimate (TZS per unit)
-                </Label>
-                <Input
-                  id="rateEstimate"
-                  type="number"
-                  value={rateEstimate}
-                  onChange={(e) => setRateEstimate(e.target.value)}
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="h-9 sm:h-10 text-sm"
-                />
-              </div>
-            </div>
-
-            {/* Total Estimate (Computed, Read-only) */}
-            {rateEstimate && quantity && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 sm:p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
-                    <span className="text-xs sm:text-sm font-medium text-slate-700">Total Estimate:</span>
+                {/* Emergency Flag */}
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor={`emergency-${entry.tempId}`} className="text-xs sm:text-sm">
+                    Priority
+                  </Label>
+                  <div className="flex items-center gap-2 h-9 sm:h-10">
+                    <input
+                      type="checkbox"
+                      id={`emergency-${entry.tempId}`}
+                      checked={entry.emergencyFlag}
+                      onChange={(e) => updateBOQEntry(entry.tempId, 'emergencyFlag', e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor={`emergency-${entry.tempId}`} className="text-xs sm:text-sm flex items-center gap-1">
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                      Mark as Emergency
+                    </label>
                   </div>
-                  <span className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-900">
-                    TZS {totalEstimate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+
+                {/* BOQ Description */}
+                <div className="grid gap-1.5 sm:gap-2 sm:col-span-2">
+                  <Label htmlFor={`boq-desc-${entry.tempId}`} className="text-xs sm:text-sm">
+                    BOQ Task Description <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id={`boq-desc-${entry.tempId}`}
+                    type="text"
+                    value={entry.boqDescription}
+                    onChange={(e) => updateBOQEntry(entry.tempId, 'boqDescription', e.target.value)}
+                    required
+                    placeholder="e.g., Supply, cut, bend and fix reinforcement steel bars for pad foundations"
+                    className="h-9 sm:h-10 text-sm"
+                  />
+                </div>
+
+                {/* Work Description (optional details) */}
+                <div className="grid gap-1.5 sm:gap-2 sm:col-span-2">
+                  <Label htmlFor={`work-desc-${entry.tempId}`} className="text-xs sm:text-sm">
+                    Additional Details (Optional)
+                  </Label>
+                  <Textarea
+                    id={`work-desc-${entry.tempId}`}
+                    value={entry.workDescription}
+                    onChange={(e) => updateBOQEntry(entry.tempId, 'workDescription', e.target.value)}
+                    rows={2}
+                    placeholder="Additional work details..."
+                    className="resize-none text-sm"
+                  />
+                </div>
+
+                {/* Timeline */}
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor={`start-${entry.tempId}`} className="text-xs sm:text-sm flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Planned Start
+                  </Label>
+                  <Input
+                    id={`start-${entry.tempId}`}
+                    type="date"
+                    value={entry.plannedStart}
+                    onChange={(e) => updateBOQEntry(entry.tempId, 'plannedStart', e.target.value)}
+                    className="h-9 sm:h-10 text-xs sm:text-sm"
+                  />
+                </div>
+
+                <div className="grid gap-1.5 sm:gap-2">
+                  <Label htmlFor={`end-${entry.tempId}`} className="text-xs sm:text-sm flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Planned End
+                  </Label>
+                  <Input
+                    id={`end-${entry.tempId}`}
+                    type="date"
+                    value={entry.plannedEnd}
+                    onChange={(e) => updateBOQEntry(entry.tempId, 'plannedEnd', e.target.value)}
+                    className="h-9 sm:h-10 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Materials Section */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <div className="h-3 w-3 bg-blue-500 rounded"></div>
+                  Materials ({entry.materials.length})
+                </h4>
+
+                <div className="overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-100">
+                      <tr>
+                        <th className="text-left p-2 font-medium">Material Name</th>
+                        <th className="text-left p-2 font-medium w-24">Quantity</th>
+                        <th className="text-left p-2 font-medium w-28">Unit</th>
+                        <th className="text-left p-2 font-medium w-32">Rate Type</th>
+                        <th className="text-left p-2 font-medium w-28">Rate (TZS)</th>
+                        <th className="text-right p-2 font-medium w-28">Amount</th>
+                        <th className="w-12"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entry.materials.map((material) => (
+                        <tr key={material.tempId} className="border-t border-slate-200">
+                          <td className="p-2">
+                            <Input
+                              type="text"
+                              value={material.materialName}
+                              onChange={(e) => updateMaterial(entry.tempId, material.tempId, 'materialName', e.target.value)}
+                              placeholder="e.g., Cement, Steel"
+                              className="h-8 text-xs"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              value={material.quantity}
+                              onChange={(e) => updateMaterial(entry.tempId, material.tempId, 'quantity', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="h-8 text-xs"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={material.measurementUnit}
+                              onValueChange={(val) => updateMaterial(entry.tempId, material.tempId, 'measurementUnit', val)}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Unit" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MEASUREMENT_UNITS.filter(u => u.value !== 'Days').map((unit) => (
+                                  <SelectItem key={unit.value} value={unit.value} className="text-xs">
+                                    {unit.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={material.rateEstimateType}
+                              onValueChange={(val) => updateMaterial(entry.tempId, material.tempId, 'rateEstimateType', val)}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {RATE_TYPES.map((type) => (
+                                  <SelectItem key={type.value} value={type.value} className="text-xs">
+                                    {type.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              value={material.rateEstimate}
+                              onChange={(e) => updateMaterial(entry.tempId, material.tempId, 'rateEstimate', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="h-8 text-xs"
+                            />
+                          </td>
+                          <td className="p-2 text-right font-semibold text-xs">
+                            {((parseFloat(material.quantity) || 0) * (parseFloat(material.rateEstimate) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2">
+                            {entry.materials.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeMaterial(entry.tempId, material.tempId)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addMaterial(entry.tempId)}
+                  className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Material
+                </Button>
+
+                <div className="bg-blue-50 p-2 rounded flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-700">Materials Total:</span>
+                  <span className="text-sm font-bold text-blue-900">
+                    TZS {calculateMaterialCost(entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-                <p className="text-[10px] sm:text-xs text-slate-600 mt-1 sm:mt-2">
-                  = {quantity} {measurementUnit || 'units'} × TZS {parseFloat(rateEstimate).toLocaleString()}
-                </p>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Section 4: Material Breakdown (Optional) */}
-        <Card>
-          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
-            <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-white">
-              Material Breakdown (Optional)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
-            {/* Material Type Toggle */}
-            <div className="grid gap-1.5 sm:gap-2">
-              <Label className="text-xs sm:text-sm">Material Type</Label>
-              <div className="flex flex-wrap gap-3 sm:gap-4">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={!useManualMaterial}
-                    onChange={() => setUseManualMaterial(false)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                  />
-                  <span className="ml-2 text-xs sm:text-sm text-slate-700">Catalog Material</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={useManualMaterial}
-                    onChange={() => setUseManualMaterial(true)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
-                  />
-                  <span className="ml-2 text-xs sm:text-sm text-slate-700">Manual Entry</span>
-                </label>
-              </div>
-            </div>
+              {/* Labour Section */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <div className="h-3 w-3 bg-green-500 rounded"></div>
+                  Labour ({entry.labour.length})
+                </h4>
 
-            {/* Catalog Material Selection */}
-            {!useManualMaterial && (
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="material" className="text-xs sm:text-sm">Material</Label>
-                <Select 
-                  value={materialId} 
-                  onValueChange={(val) => {
-                    setMaterialId(val);
-                    setFieldErrors(prev => ({ ...prev, materialId: '' }));
-                  }} 
-                  disabled={materials.length === 0}
+                <div className="overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-100">
+                      <tr>
+                        <th className="text-left p-2 font-medium">Labour Type</th>
+                        <th className="text-left p-2 font-medium w-24">Quantity</th>
+                        <th className="text-left p-2 font-medium w-28">Unit</th>
+                        <th className="text-left p-2 font-medium w-28">Rate (TZS)</th>
+                        <th className="text-right p-2 font-medium w-28">Amount</th>
+                        <th className="w-12"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entry.labour.map((labour) => (
+                        <tr key={labour.tempId} className="border-t border-slate-200">
+                          <td className="p-2">
+                            <Input
+                              type="text"
+                              value={labour.labourType}
+                              onChange={(e) => updateLabour(entry.tempId, labour.tempId, 'labourType', e.target.value)}
+                              placeholder="e.g., Mason, Carpenter"
+                              className="h-8 text-xs"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              value={labour.quantity}
+                              onChange={(e) => updateLabour(entry.tempId, labour.tempId, 'quantity', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="h-8 text-xs"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={labour.measurementUnit}
+                              onValueChange={(val) => updateLabour(entry.tempId, labour.tempId, 'measurementUnit', val)}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Days" className="text-xs">Days</SelectItem>
+                                <SelectItem value="No" className="text-xs">No - Count</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              value={labour.rateEstimate}
+                              onChange={(e) => updateLabour(entry.tempId, labour.tempId, 'rateEstimate', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className="h-8 text-xs"
+                            />
+                          </td>
+                          <td className="p-2 text-right font-semibold text-xs">
+                            {((parseFloat(labour.quantity) || 0) * (parseFloat(labour.rateEstimate) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2">
+                            {entry.labour.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeLabour(entry.tempId, labour.tempId)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addLabour(entry.tempId)}
+                  className="h-7 text-xs border-green-300 text-green-700 hover:bg-green-50"
                 >
-                  <SelectTrigger id="material" className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.materialId ? 'border-red-500 focus:ring-red-200' : ''}`}>
-                    <SelectValue placeholder={materials.length === 0 ? "No materials available" : "Select a material..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {materials.length === 0 ? (
-                      <SelectItem value="no-materials" disabled className="text-xs sm:text-sm text-muted-foreground">
-                        No materials available
-                      </SelectItem>
-                    ) : (
-                      materials.map(mat => (
-                        <SelectItem key={mat.id} value={mat.id.toString()} className="text-xs sm:text-sm">
-                          {mat.name} ({mat.unit}) - Est. {mat.estimatedPrice}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.materialId && <span className="text-xs text-red-500 font-medium">{fieldErrors.materialId}</span>}
-                {materials.length === 0 && (
-                  <p className="text-[10px] sm:text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-                    ⚠️ No materials in catalog. Please use manual entry or contact your administrator.
-                  </p>
-                )}
-              </div>
-            )}
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Labour
+                </Button>
 
-            {/* Manual Material Entry */}
-            {useManualMaterial && (
-              <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="grid gap-1.5 sm:gap-2">
-                  <Label htmlFor="manualMaterialName" className="text-xs sm:text-sm">Material Name</Label>
-                  <Input
-                    id="manualMaterialName"
-                    type="text"
-                    value={manualMaterialName}
-                    onChange={(e) => {
-                      setManualMaterialName(e.target.value);
-                      setFieldErrors(prev => ({ ...prev, manualMaterialName: '' }));
-                    }}
-                    placeholder="e.g., Custom Steel Beam"
-                    className={`h-9 sm:h-10 text-sm ${fieldErrors.manualMaterialName ? 'border-red-500 focus:ring-red-200' : ''}`}
-                  />
-                  {fieldErrors.manualMaterialName && <span className="text-xs text-red-500 font-medium">{fieldErrors.manualMaterialName}</span>}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="grid gap-1.5 sm:gap-2">
-                    <Label htmlFor="manualUnit" className="text-xs sm:text-sm">Unit</Label>
-                    <Input
-                      id="manualUnit"
-                      type="text"
-                      value={manualUnit}
-                      onChange={(e) => setManualUnit(e.target.value)}
-                      placeholder="e.g., pcs, kg, m"
-                      className="h-9 sm:h-10 text-sm"
-                    />
-                  </div>
-                  <div className="grid gap-1.5 sm:gap-2">
-                    <Label htmlFor="manualEstimatedPrice" className="text-xs sm:text-sm">Est. Price</Label>
-                    <Input
-                      id="manualEstimatedPrice"
-                      type="number"
-                      value={manualEstimatedPrice}
-                      onChange={(e) => setManualEstimatedPrice(e.target.value)}
-                      placeholder="0"
-                      min="0"
-                      step="0.01"
-                      className="h-9 sm:h-10 text-sm"
-                    />
-                  </div>
+                <div className="bg-green-50 p-2 rounded flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-700">Labour Total:</span>
+                  <span className="text-sm font-bold text-green-900">
+                    TZS {calculateLabourCost(entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Section 5: Timeline & Priority */}
+              {/* BOQ Total */}
+              <div className="flex items-center justify-between pt-3 border-t bg-slate-50 -mx-3 sm:-mx-6 px-3 sm:px-6 py-2">
+                <span className="text-sm font-semibold text-slate-800">BOQ {entryIndex + 1} Total:</span>
+                <span className="text-lg font-bold text-indigo-900">
+                  TZS {calculateBOQTotal(entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {/* Add Another BOQ Button */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addBOQEntry}
+          className="w-full h-10 text-sm border-2 border-dashed border-slate-300 hover:border-slate-400"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Another BOQ Entry
+        </Button>
+
+        {/* Grand Total Summary */}
         <Card>
           <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
-            <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-white">
-              Timeline & Priority
-            </CardTitle>
+            <CardTitle className="text-sm sm:text-base text-white">Total Summary</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-3 sm:pt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="plannedStart" className="text-xs sm:text-sm">Planned Start</Label>
-                <Input
-                  id="plannedStart"
-                  type="datetime-local"
-                  value={plannedUsageStart}
-                  onChange={(e) => {
-                    setPlannedUsageStart(e.target.value);
-                    setFieldErrors(prev => ({ ...prev, plannedUsageStart: '' }));
-                  }}
-                  className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.plannedUsageStart ? 'border-red-500 focus:ring-red-200' : ''}`}
-                />
-                {fieldErrors.plannedUsageStart && <span className="text-xs text-red-500 font-medium">{fieldErrors.plannedUsageStart}</span>}
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between pt-2 bg-indigo-50 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 rounded">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-indigo-600" />
+                <span className="text-base font-semibold text-slate-800">Grand Total ({boqEntries.length} BOQ{boqEntries.length > 1 ? 's' : ''})</span>
               </div>
-              <div className="grid gap-1.5 sm:gap-2">
-                <Label htmlFor="plannedEnd" className="text-xs sm:text-sm">Planned End</Label>
-                <Input
-                  id="plannedEnd"
-                  type="datetime-local"
-                  value={plannedUsageEnd}
-                  onChange={(e) => {
-                    setPlannedUsageEnd(e.target.value);
-                    setFieldErrors(prev => ({ ...prev, plannedUsageEnd: '' }));
-                  }}
-                  className={`h-9 sm:h-10 text-xs sm:text-sm ${fieldErrors.plannedUsageEnd ? 'border-red-500 focus:ring-red-200' : ''}`}
-                />
-                {fieldErrors.plannedUsageEnd && <span className="text-xs text-red-500 font-medium">{fieldErrors.plannedUsageEnd}</span>}
-              </div>
-            </div>
-
-            {/* Emergency Flag */}
-            <div className="flex items-center gap-2 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
-              <input
-                type="checkbox"
-                id="emergency"
-                checked={emergencyFlag}
-                onChange={(e) => setEmergencyFlag(e.target.checked)}
-                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-              />
-              <label htmlFor="emergency" className="text-xs sm:text-sm text-red-900 font-medium cursor-pointer">
-                Mark as <strong>Emergency/Urgent</strong>
-              </label>
+              <span className="text-xl sm:text-2xl font-bold text-indigo-900">
+                TZS {calculateGrandTotal().toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -674,17 +828,17 @@ const CreateRequest = () => {
           <Button 
             type="button" 
             variant="outline" 
-            onClick={() => navigate('/engineer/requests')}
+            onClick={() => navigate('/engineer/requests')} 
             className="h-9 sm:h-10 text-xs sm:text-sm"
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm" 
+          <Button
+            type="submit"
+            className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm"
             disabled={submitting}
           >
-            {submitting ? 'Submitting...' : (isEditMode ? 'Resubmit Request' : 'Create Request')}
+            {submitting ? 'Submitting...' : 'Submit All BOQs'}
           </Button>
         </div>
       </form>
@@ -692,4 +846,4 @@ const CreateRequest = () => {
   );
 };
 
-export default CreateRequest;
+export default CreateBatch;

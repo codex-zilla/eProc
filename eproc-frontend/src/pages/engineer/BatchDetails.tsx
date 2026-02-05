@@ -4,14 +4,13 @@ import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  FileText,
   AlertCircle,
   Calendar,
 } from 'lucide-react';
 
 interface MaterialItem {
   id: number;
-  manualMaterialName: string;
+  name: string;
   quantity: number;
   measurementUnit: string;
   rateEstimate: number;
@@ -22,7 +21,7 @@ interface MaterialItem {
 interface BatchDetails {
   id: number;
   title: string;
-  description: string;
+  additionalDetails?: string;
   status: string;
   projectId: number;
   createdById: number;
@@ -30,11 +29,11 @@ interface BatchDetails {
   createdByEmail?: string;
   createdAt: string;
   updatedAt?: string;
-  items: MaterialItem[];
+  materials: MaterialItem[];
   totalValue: number;
-  plannedUsageStart?: string;
-  plannedUsageEnd?: string;
-  emergencyFlag?: boolean;
+  plannedStartDate?: string;
+  plannedEndDate?: string;
+  priority?: string;
   siteName?: string;
 }
 
@@ -49,7 +48,7 @@ const BatchDetails = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const response = await api.get<BatchDetails>(`/boq-batches/${id}`);
+      const response = await api.get<BatchDetails>(`/requests/${id}`);
       setBatch(response.data);
     } catch (err) {
       console.error('Failed to load batch:', err);
@@ -91,7 +90,7 @@ const BatchDetails = () => {
     );
   }
 
-  if (!batch) {
+  if (!batch || !batch.materials) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 sm:gap-4">
         <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center">
@@ -108,10 +107,10 @@ const BatchDetails = () => {
     );
   }
 
-  const materials = batch.items.filter(item => item.resourceType === 'MATERIAL');
-  const labour = batch.items.filter(item => item.resourceType === 'LABOUR');
-  const materialTotal = calculateTotal(batch.items, 'MATERIAL');
-  const labourTotal = calculateTotal(batch.items, 'LABOUR');
+  const materials = batch.materials.filter(item => item.resourceType === 'MATERIAL');
+  const labour = batch.materials.filter(item => item.resourceType === 'LABOUR');
+  const materialTotal = calculateTotal(batch.materials, 'MATERIAL');
+  const labourTotal = calculateTotal(batch.materials, 'LABOUR');
   const grandTotal = materialTotal + labourTotal;
 
   return (
@@ -128,8 +127,8 @@ const BatchDetails = () => {
                 {batch.status.replace('_', ' ')}
               </Badge>
             </div>
-            {batch.description && (
-              <p className="text-xs sm:text-sm text-slate-600 mt-1">{batch.description}</p>
+            {batch.additionalDetails && (
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">{batch.additionalDetails}</p>
             )}
           </div>
           
@@ -182,7 +181,7 @@ const BatchDetails = () => {
                         <tr key={item.id} className="border-b border-slate-100">
                           <td className="p-3 sm:p-4 text-slate-900">{index + 1}</td>
                           <td className="p-3 sm:p-4 text-slate-900 font-medium">
-                            {item.manualMaterialName}
+                            {item.name}
                           </td>
                           <td className="p-3 sm:p-4 text-right text-slate-900">
                             {item.quantity.toFixed(2)}
@@ -237,7 +236,7 @@ const BatchDetails = () => {
                         <tr key={item.id} className="border-b border-slate-100">
                           <td className="p-3 sm:p-4 text-slate-900">{index + 1}</td>
                           <td className="p-3 sm:p-4 text-slate-900 font-medium">
-                            {item.manualMaterialName}
+                            {item.name}
                           </td>
                           <td className="p-3 sm:p-4 text-right text-slate-900">
                             {item.quantity.toFixed(2)}
@@ -307,22 +306,22 @@ const BatchDetails = () => {
                   </div>
                 )}
                 
-                {batch.plannedUsageStart && batch.plannedUsageEnd && (
+                {batch.plannedStartDate && batch.plannedEndDate && (
                   <div className="flex items-center justify-between py-2 sm:py-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
                       <span className="text-xs sm:text-sm font-medium text-slate-700">Timeline:</span>
                     </div>
                     <span className="text-xs sm:text-sm text-slate-900 font-semibold">
-                      {new Date(batch.plannedUsageStart).toLocaleDateString()} - {new Date(batch.plannedUsageEnd).toLocaleDateString()}
+                      {new Date(batch.plannedStartDate).toLocaleDateString()} - {new Date(batch.plannedEndDate).toLocaleDateString()}
                     </span>
                   </div>
                 )}
                 
                 <div className="flex items-center justify-between py-2 sm:py-3">
-                  <span className="text-xs sm:text-sm font-medium text-slate-700">Emergency:</span>
-                  <Badge variant={batch.emergencyFlag ? "destructive" : "secondary"} className="text-[10px] sm:text-xs">
-                    {batch.emergencyFlag ? 'Yes' : 'No'}
+                  <span className="text-xs sm:text-sm font-medium text-slate-700">Priority:</span>
+                  <Badge variant={batch.priority === 'HIGH' ? "destructive" : "secondary"} className="text-[10px] sm:text-xs">
+                    {batch.priority || 'NORMAL'}
                   </Badge>
                 </div>
               </div>

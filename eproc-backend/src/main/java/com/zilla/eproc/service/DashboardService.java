@@ -15,6 +15,7 @@ import java.util.List;
  * Service for dashboard statistics.
  * Updated for Role Model Overhaul: boss → owner, uses ProjectAssignment for
  * engineer access.
+ * Updated for Request/Material architecture: MaterialRequest → Request.
  */
 @Service
 @RequiredArgsConstructor
@@ -22,7 +23,7 @@ public class DashboardService {
 
         private final UserRepository userRepository;
         private final ProjectRepository projectRepository;
-        private final MaterialRequestRepository materialRequestRepository;
+        private final RequestRepository requestRepository;
         private final ProjectAssignmentRepository projectAssignmentRepository;
 
         /**
@@ -56,11 +57,11 @@ public class DashboardService {
                 }
 
                 // Get request statistics
-                List<MaterialRequest> myRequests = materialRequestRepository
-                                .findByRequestedByEmail(email);
+                List<Request> myRequests = requestRepository
+                                .findByCreatedById(engineer.getId());
 
                 int pending = (int) myRequests.stream()
-                                .filter(r -> r.getStatus() == RequestStatus.PENDING).count();
+                                .filter(r -> r.getStatus() == RequestStatus.SUBMITTED).count();
                 int approved = (int) myRequests.stream()
                                 .filter(r -> r.getStatus() == RequestStatus.APPROVED).count();
                 int rejected = (int) myRequests.stream()
@@ -105,12 +106,14 @@ public class DashboardService {
                 List<User> availableEngineers = userRepository.findByRoleAndActiveTrue(Role.ENGINEER);
 
                 // Get pending requests from my projects
-                List<MaterialRequest> pendingFromMyProjects = materialRequestRepository
-                                .findByProjectOwnerIdAndStatus(owner.getId(), RequestStatus.PENDING);
+                List<Request> pendingFromMyProjects = requestRepository.findByProjectIdIn(
+                                myProjects.stream().map(Project::getId).toList()).stream()
+                                .filter(r -> r.getStatus() == RequestStatus.SUBMITTED)
+                                .toList();
 
                 // Get all requests from my projects for stats
-                List<MaterialRequest> allFromMyProjects = materialRequestRepository
-                                .findByProjectOwnerId(owner.getId());
+                List<Request> allFromMyProjects = requestRepository.findByProjectIdIn(
+                                myProjects.stream().map(Project::getId).toList());
 
                 int approved = (int) allFromMyProjects.stream()
                                 .filter(r -> r.getStatus() == RequestStatus.APPROVED).count();

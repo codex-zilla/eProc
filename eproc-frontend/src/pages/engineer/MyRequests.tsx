@@ -116,7 +116,7 @@ const MyRequests = () => {
                 </p>
                 {filter === 'ALL' && (
                   <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white h-9 sm:h-10 text-xs sm:text-sm shadow-sm">
-                    <Link to="/engineer/requests/new" className="flex items-center gap-1.5 sm:gap-2">
+                    <Link to="/engineer/create-batch" className="flex items-center gap-1.5 sm:gap-2">
                       <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Create Your First Request
                     </Link>

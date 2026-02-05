@@ -172,7 +172,7 @@ const AppLayout = () => {
               label: 'Request Details',
               active: true
           });
-      } else if (location.pathname === '/engineer/requests/new') {
+      } else if (location.pathname === '/engineer/create-batch') {
           breadcrumbs[0].active = false;
           breadcrumbs.push({
               label: 'Create New Request',
