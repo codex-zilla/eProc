@@ -209,6 +209,11 @@ public class BoqBatchService {
             request.setMeasurementUnit(dto.getMeasurementUnit());
             request.setRateEstimate(dto.getRateEstimate());
             request.setRateType(dto.getRateType() != null ? dto.getRateType() : "ENGINEER_ESTIMATE");
+
+            // Map resource type
+            if (dto.getResourceType() != null) {
+                request.setResourceType(ResourceType.valueOf(dto.getResourceType()));
+            }
         }
 
         // Material (catalog or manual)

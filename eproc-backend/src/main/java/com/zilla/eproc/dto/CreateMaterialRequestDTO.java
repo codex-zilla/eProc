@@ -78,6 +78,15 @@ public class CreateMaterialRequestDTO {
     private String rateType;
 
     /**
+     * Type of resource: MATERIAL or LABOUR.
+     * Defaults to MATERIAL if not specified.
+     */
+    @NotNull(message = "Resource type is required")
+    @Pattern(regexp = "^(MATERIAL|LABOUR)$", message = "Invalid resource type. Allowed: MATERIAL, LABOUR")
+    @Builder.Default
+    private String resourceType = "MATERIAL";
+
+    /**
      * Validates that either materialId or manualMaterialName is provided, not both.
      */
     @AssertTrue(message = "Either materialId or manualMaterialName must be provided, not both")

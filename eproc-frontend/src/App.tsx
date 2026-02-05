@@ -22,6 +22,7 @@ import CreateRequest from './pages/engineer/CreateRequest';
 import RequestDetails from './pages/engineer/RequestDetails';
 import CreateBatch from './pages/engineer/CreateBatch';
 import MyBatches from './pages/engineer/MyBatches';
+import BatchDetails from './pages/engineer/BatchDetails';
 
 // Manager pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
@@ -63,6 +64,7 @@ function App() {
                 <Route path="/engineer/requests/:id" element={<RequestDetails />} />
                 <Route path="/engineer/requests/:id/edit" element={<CreateRequest />} />
                 <Route path="/engineer/batches" element={<MyBatches />} />
+                <Route path="/engineer/batches/:id" element={<BatchDetails />} />
                 <Route path="/engineer/create-batch" element={<CreateBatch />} />
               </Route>
 

@@ -99,7 +99,7 @@ const AppLayout = () => {
       return [
         { label: 'Dashboard', path: '/engineer/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/engineer/project', icon: Building },
-        { label: 'Requests', path: '/engineer/requests', icon: ClipboardList },
+        { label: 'Requests', path: '/engineer/batches', icon: ClipboardList },
       ];
     }
     if (user?.role === 'PROJECT_OWNER') {
@@ -160,7 +160,19 @@ const AppLayout = () => {
       }
 
       // Engineer Routes Logic
-      if (location.pathname === '/engineer/requests/new') {
+      if (location.pathname === '/engineer/create-batch') {
+          breadcrumbs[0].active = false;
+          breadcrumbs.push({
+              label: 'Create New Request',
+              active: true
+          });
+      } else if (/^\/engineer\/batches\/\d+$/.test(location.pathname)) {
+          breadcrumbs[0].active = false;
+          breadcrumbs.push({
+              label: 'Request Details',
+              active: true
+          });
+      } else if (location.pathname === '/engineer/requests/new') {
           breadcrumbs[0].active = false;
           breadcrumbs.push({
               label: 'Create New Request',

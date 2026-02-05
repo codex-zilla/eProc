@@ -72,7 +72,7 @@ const EngineerDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md">
-            <Link to="/engineer/requests/new">
+            <Link to="/engineer/create-batch">
               + New Request
             </Link>
           </Button>

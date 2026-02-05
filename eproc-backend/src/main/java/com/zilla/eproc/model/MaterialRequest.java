@@ -140,6 +140,15 @@ public class MaterialRequest {
     private String rateType = "ENGINEER_ESTIMATE";
 
     /**
+     * Type of resource: MATERIAL or LABOUR.
+     * Used to categorize BOQ items for cost breakdown reporting.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resource_type", length = 20)
+    @Builder.Default
+    private ResourceType resourceType = ResourceType.MATERIAL;
+
+    /**
      * Revision number for tracking BOQ item evolution.
      * Incremented on each resubmission after rejection.
      */
