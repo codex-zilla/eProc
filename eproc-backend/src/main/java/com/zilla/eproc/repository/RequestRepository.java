@@ -1,6 +1,7 @@
 package com.zilla.eproc.repository;
 
 import com.zilla.eproc.model.Request;
+import com.zilla.eproc.model.RequestStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -40,4 +41,14 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
      * Check if a BOQ reference code already exists.
      */
     boolean existsByBoqReferenceCode(String boqReferenceCode);
+
+    /**
+     * Find all requests by status, ordered by creation date descending.
+     */
+    List<Request> findByStatusOrderByCreatedAtDesc(RequestStatus status);
+
+    /**
+     * Find all pending (SUBMITTED) requests for projects owned by a specific user.
+     */
+    List<Request> findByStatusAndProjectOwnerIdOrderByCreatedAtDesc(RequestStatus status, Long ownerId);
 }

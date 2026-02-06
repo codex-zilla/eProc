@@ -30,6 +30,7 @@ public class RequestService {
         private final SiteRepository siteRepository;
         private final UserRepository userRepository;
         private final RequestAuditLogRepository auditLogRepository;
+        private final MaterialRepository materialRepository;
 
         /**
          * Create multiple requests at once.
@@ -221,6 +222,27 @@ public class RequestService {
         }
 
         /**
+         * Get all pending (SUBMITTED) requests for projects owned by the current user.
+         */
+        @Transactional(readOnly = true)
+        public List<RequestResponseDTO> getPendingRequests(String userEmail) {
+                User owner = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                // Only project owners can view pending requests
+                if (owner.getRole() != Role.PROJECT_OWNER) {
+                        throw new ForbiddenException("Only project owners can view pending requests");
+                }
+
+                List<Request> requests = requestRepository.findByStatusAndProjectOwnerIdOrderByCreatedAtDesc(
+                                RequestStatus.SUBMITTED, owner.getId());
+
+                return requests.stream()
+                                .map(r -> mapToResponseDTO(r, true))
+                                .collect(Collectors.toList());
+        }
+
+        /**
          * Map Request entity to response DTO.
          */
         private RequestResponseDTO mapToResponseDTO(Request request, boolean includeMaterials) {
@@ -315,5 +337,84 @@ public class RequestService {
                                 .actorEmail(auditLog.getPerformedBy().getEmail())
                                 .actorRole(auditLog.getPerformedBy().getRole().name())
                                 .build();
+        }
+
+        /**
+         * Update material status (approve/reject individual material item).
+         */
+        @Transactional
+        public MaterialItemResponseDTO updateMaterialStatus(Long requestId, Long materialId,
+                        MaterialStatusUpdateDTO dto,
+                        String userEmail) {
+                User owner = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                Request request = requestRepository.findById(requestId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+                // Only project owner can approve/reject materials
+                if (!request.getProject().getOwner().getId().equals(owner.getId())) {
+                        throw new ForbiddenException("Only project owner can approve/reject materials");
+                }
+
+                Material material = materialRepository.findById(materialId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Material not found"));
+
+                // Verify material belongs to this request
+                if (!material.getRequest().getId().equals(requestId)) {
+                        throw new ForbiddenException("Material does not belong to this request");
+                }
+
+                // Update material status
+                material.setStatus(dto.getStatus());
+                if (dto.getComment() != null && !dto.getComment().isBlank()) {
+                        material.setComment(dto.getComment());
+                }
+                materialRepository.save(material);
+
+                // Log audit entry
+                RequestAuditLog auditLog = RequestAuditLog.builder()
+                                .request(request)
+                                .action("MATERIAL_" + dto.getStatus().name())
+                                .details("Material '" + material.getName() + "' " + dto.getStatus().name().toLowerCase()
+                                                + (dto.getComment() != null ? ": " + dto.getComment() : ""))
+                                .performedBy(owner)
+                                .build();
+                auditLogRepository.save(auditLog);
+
+                // Update parent request status based on material statuses
+                updateRequestStatusFromMaterials(request);
+
+                return mapMaterialToDTO(material);
+        }
+
+        /**
+         * Update request status based on material statuses.
+         */
+        private void updateRequestStatusFromMaterials(Request request) {
+                List<Material> materials = materialRepository.findByRequestId(request.getId());
+
+                if (materials.isEmpty()) {
+                        return;
+                }
+
+                long approvedCount = materials.stream()
+                                .filter(m -> m.getStatus() == MaterialStatus.APPROVED)
+                                .count();
+                long rejectedCount = materials.stream()
+                                .filter(m -> m.getStatus() == MaterialStatus.REJECTED)
+                                .count();
+                long totalCount = materials.size();
+
+                if (approvedCount == totalCount) {
+                        // All materials approved - set request to APPROVED
+                        request.setStatus(RequestStatus.APPROVED);
+                } else if (rejectedCount == totalCount) {
+                        // All materials rejected - set request to REJECTED
+                        request.setStatus(RequestStatus.REJECTED);
+                }
+                // Otherwise keep as SUBMITTED (partial approval state)
+
+                requestRepository.save(request);
         }
 }

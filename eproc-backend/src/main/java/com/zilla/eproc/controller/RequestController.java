@@ -88,4 +88,32 @@ public class RequestController {
                 userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Get all pending (SUBMITTED) requests for the current project owner.
+     * GET /api/requests/pending
+     */
+    @GetMapping("/pending")
+    public ResponseEntity<List<RequestResponseDTO>> getPendingRequests(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<RequestResponseDTO> response = requestService.getPendingRequests(userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Update material status (approve/reject individual material).
+     * PATCH /api/requests/{requestId}/materials/{materialId}/status
+     */
+    @PatchMapping("/{requestId}/materials/{materialId}/status")
+    public ResponseEntity<com.zilla.eproc.dto.MaterialItemResponseDTO> updateMaterialStatus(
+            @PathVariable Long requestId,
+            @PathVariable Long materialId,
+            @Valid @RequestBody com.zilla.eproc.dto.MaterialStatusUpdateDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        com.zilla.eproc.dto.MaterialItemResponseDTO response = requestService.updateMaterialStatus(
+                requestId, materialId, dto, userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
 }

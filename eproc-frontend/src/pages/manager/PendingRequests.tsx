@@ -1,42 +1,33 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertCircle, CheckCircle, FileText, Clock } from 'lucide-react';
 
 interface PendingRequest {
   id: number;
-  siteName: string;
-  materialName?: string;
-  manualMaterialName?: string;
-  quantity: number;
+  title: string;
+  additionalDetails?: string;
+  siteName?: string;
   status: string;
-  emergencyFlag: boolean;
+  totalValue: number;
   createdAt: string;
-  requestedById: number;
-  requestedByName: string;
-  requestedByEmail: string;
-  // BOQ fields (Phase 1)
-  boqReferenceCode?: string;
-  workDescription?: string;
-  measurementUnit?: string;
-  totalEstimate?: number;
-  rateEstimate?: number;
-  revisionNumber?: number;
+  createdByName?: string;
+  plannedStartDate?: string;
+  priority?: string;
 }
 
 /**
  * Pending Requests page - approval queue for Project Owner.
- * Phase 1: Enhanced with BOQ fields and cost visibility.
+ * Displays submitted requests in table format matching engineer's Requests.tsx
  */
 const PendingRequests = () => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [approvalComment, setApprovalComment] = useState<{ [key: number]: string }>({});
-  const [rejectionErrors, setRejectionErrors] = useState<{ [key: number]: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -56,60 +47,8 @@ const PendingRequests = () => {
     loadRequests();
   }, [loadRequests]);
 
-  const handleApprove = async (requestId: number) => {
-    setError(null);
-    setSuccess(null);
-    try {
-      await api.patch(
-        `/requests/${requestId}/status`,
-        { status: 'APPROVED' },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      setSuccess('Request approved successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-      loadRequests();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to approve request');
-    }
-  };
-
-  const handleReject = async (requestId: number) => {
-    const comment = approvalComment[requestId];
-    if (!comment?.trim()) {
-      setRejectionErrors(prev => ({ ...prev, [requestId]: 'Please provide a rejection reason' }));
-      return;
-    }
-    
-    // Clear specific error
-    setRejectionErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[requestId];
-      return newErrors;
-    });
-    
-    setError(null);
-    setSuccess(null);
-    try {
-      await api.patch(
-        `/requests/${requestId}/status`,
-        { status: 'REJECTED', comment },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      setSuccess('Request rejected');
-      setTimeout(() => setSuccess(null), 3000);
-      setApprovalComment(prev => ({ ...prev, [requestId]: '' }));
-      loadRequests();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reject request');
-    }
-  };
-
-  // Cost impact badge color based on total estimate
-  const getCostImpactColor = (total?: number): string => {
-    if (!total) return 'bg-slate-100 text-slate-800';
-    if (total < 1000000) return 'bg-green-100 text-green-800';
-    if (total < 5000000) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-orange-100 text-orange-800';
+  const handleRowClick = (requestId: number) => {
+    navigate(`/manager/requests/${requestId}`);
   };
 
   if (loading) {
@@ -157,6 +96,16 @@ const PendingRequests = () => {
         </div>
       )}
 
+      {/* Summary Stats */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 text-xs sm:text-sm px-2 sm:px-3 py-1">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
+            {requests.length} Pending
+          </Badge>
+        </div>
+      </div>
+
       {/* Empty State */}
       {requests.length === 0 ? (
         <Card className="border-slate-200 shadow-sm">
@@ -174,154 +123,125 @@ const PendingRequests = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3 sm:space-y-4">
-          {requests.map(request => (
-            <Card key={request.id} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-3 sm:p-4 lg:p-6">
-                {/* Header Section */}
-                <div className="flex flex-col sm:flex-row justify-between items-start mb-3 sm:mb-4 gap-2 sm:gap-3">
-                  <div className="flex-1 w-full">
-                    {/* Status Badges */}
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
-                      {request.emergencyFlag && (
-                        <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-medium">
-                          URGENT
-                        </Badge>
-                      )}
-                      {request.revisionNumber && request.revisionNumber > 1 && (
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-medium">
-                          Rev {request.revisionNumber}
-                        </Badge>
-                      )}
-                      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-medium">
-                        <Clock className="h-3 w-3 mr-1" />
-                        PENDING
-                      </Badge>
-                    </div>
-                    
-                    {/* BOQ Code & Work Description */}
-                    {request.boqReferenceCode ? (
-                      <>
-                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                          <h3 className="font-semibold text-base sm:text-lg lg:text-xl font-mono text-slate-900">
-                            {request.boqReferenceCode}
-                          </h3>
-                          {request.totalEstimate && (
-                            <span className={`px-2 py-1 text-[10px] sm:text-xs font-semibold rounded whitespace-nowrap ${getCostImpactColor(request.totalEstimate)}`}>
-                              TZS {request.totalEstimate.toLocaleString()}
-                            </span>
-                          )}
+        <>
+          {/* Desktop Table View */}
+          <Card className="border-slate-200 shadow-sm hidden md:block">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-[#2a3455] rounded-t-lg">
+                  <TableRow>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3">Request Name</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Site</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Requested By</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Date</TableHead>
+                    <TableHead className="font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Priority</TableHead>
+                    <TableHead className="text-right font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Amount</TableHead>
+                    <TableHead className="text-right font-semibold text-white text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requests.map(request => (
+                    <TableRow 
+                      key={request.id} 
+                      onClick={() => handleRowClick(request.id)}
+                      className="hover:bg-indigo-50/50 transition-colors cursor-pointer"
+                    >
+                      <TableCell className="px-3 sm:px-4 py-2.5 sm:py-3">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <span className="font-medium text-slate-900 text-xs sm:text-sm">
+                            {request.title || request.additionalDetails || 'BOQ Request'}
+                          </span>
                         </div>
-                        <p className="text-xs sm:text-sm text-slate-700 line-clamp-2 mb-1">
-                          {request.workDescription}
-                        </p>
-                      </>
-                    ) : (
-                      <h3 className="font-semibold text-base sm:text-lg lg:text-xl text-slate-900 mb-1">
-                        {request.materialName || request.manualMaterialName}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-slate-600">
+                        {request.siteName || 'N/A'}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-slate-600">
+                        {request.createdByName || 'Unknown'}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-slate-600">
+                        {request.plannedStartDate 
+                          ? new Date(request.plannedStartDate).toLocaleDateString()
+                          : new Date(request.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3">
+                        {request.priority && (
+                          <Badge className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 ${
+                            request.priority === 'HIGH' 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-slate-100 text-slate-800'
+                          }`}>
+                            {request.priority}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3 text-right text-xs sm:text-sm text-slate-900 font-medium">
+                        TZS {request.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(request.id);
+                          }}
+                        >
+                          Review
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
+          {/* Mobile Card View */}
+          <div className="space-y-3 md:hidden">
+            {requests.map(request => (
+              <Card 
+                key={request.id} 
+                className="border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleRowClick(request.id)}
+              >
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm text-slate-900 truncate">
+                        {request.title || request.additionalDetails || 'BOQ Request'}
                       </h3>
-                    )}
-                    <p className="text-[10px] sm:text-xs text-slate-500">
-                      Site: <span className="font-medium text-slate-700">{request.siteName}</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4 p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  {request.measurementUnit && request.quantity && (
-                    <div>
-                      <span className="text-[10px] sm:text-xs text-slate-500 block mb-0.5">Quantity</span>
-                      <p className="font-semibold text-xs sm:text-sm text-slate-900">
-                        {request.quantity} {request.measurementUnit}
+                      <p className="text-xs text-slate-500">
+                        {request.siteName ? `Site: ${request.siteName}` : 'No site specified'}
                       </p>
                     </div>
-                  )}
-                  {!request.measurementUnit && (
-                    <div>
-                      <span className="text-[10px] sm:text-xs text-slate-500 block mb-0.5">Quantity</span>
-                      <p className="font-semibold text-xs sm:text-sm text-slate-900">{request.quantity}</p>
+                    <Badge className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 flex-shrink-0">
+                      <Clock className="h-3 w-3 mr-1" />
+                      PENDING
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-3 text-xs text-slate-600">
+                      <span>
+                        <span className="font-medium text-slate-900">
+                          TZS {request.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </span>
+                      <span className="text-slate-400">•</span>
+                      <span>
+                        {request.plannedStartDate 
+                          ? new Date(request.plannedStartDate).toLocaleDateString()
+                          : new Date(request.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
-                  )}
-                  {request.rateEstimate && (
-                    <div>
-                      <span className="text-[10px] sm:text-xs text-slate-500 block mb-0.5">Rate</span>
-                      <p className="font-semibold text-xs sm:text-sm text-slate-900">
-                        TZS {request.rateEstimate.toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-[10px] sm:text-xs text-slate-500 block mb-0.5">Requested by</span>
-                    <p className="font-semibold text-xs sm:text-sm text-slate-900 truncate" title={request.requestedByName}>
-                      {request.requestedByName}
-                    </p>
                   </div>
-                  <div>
-                    <span className="text-[10px] sm:text-xs text-slate-500 block mb-0.5">Date</span>
-                    <p className="font-semibold text-xs sm:text-sm text-slate-900">
-                      {new Date(request.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="col-span-2 sm:col-span-1 flex items-center justify-center sm:items-end sm:justify-start pt-2 sm:pt-0">
-                    <Link
-                      to={`/manager/requests/${request.id}`}
-                      className="text-indigo-600 hover:text-indigo-800 hover:underline text-xs sm:text-sm font-semibold inline-flex items-center gap-1"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4 border-t border-slate-200">
-                  <Textarea
-                    placeholder="Add comment for approval or reason for rejection"
-                    value={approvalComment[request.id] || ''}
-                    onChange={(e) => {
-                      setApprovalComment(prev => ({ ...prev, [request.id]: e.target.value }));
-                      // Clear error when user types
-                      if (rejectionErrors[request.id]) {
-                        setRejectionErrors(prev => {
-                          const newErrors = { ...prev };
-                          delete newErrors[request.id];
-                          return newErrors;
-                        });
-                      }
-                    }}
-                    className={`w-full resize-none border-slate-200 bg-slate-50 focus:bg-white transition-colors text-xs sm:text-sm h-16 sm:h-20 ${
-                      rejectionErrors[request.id] ? 'border-red-300 focus:ring-red-200' : ''
-                    }`}
-                    rows={2}
-                  />
-                  {rejectionErrors[request.id] && (
-                    <div className="flex items-center gap-1.5 text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span className="text-xs font-medium">{rejectionErrors[request.id]}</span>
-                    </div>
-                  )}
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      onClick={() => handleApprove(request.id)}
-                      className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm"
-                    >
-                      <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                      Approve
-                    </Button>
-                    <Button
-                      onClick={() => handleReject(request.id)}
-                      variant="destructive"
-                      className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm"
-                    >
-                      <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

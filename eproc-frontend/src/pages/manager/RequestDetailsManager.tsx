@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-// import { useAuth } from '../../context/AuthContext';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   FileText,
   Send,
@@ -14,36 +14,44 @@ import {
   Edit,
   RotateCw,
   AlertOctagon,
-  DollarSign,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  Calendar,
+  User,
+  Clock,
+  X
 } from 'lucide-react';
+
+interface MaterialItem {
+  id: number;
+  name: string;
+  quantity: number;
+  measurementUnit: string;
+  rateEstimate: number;
+  resourceType: 'MATERIAL' | 'LABOUR';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  totalEstimate: number;
+  comment?: string;
+}
 
 interface RequestDetails {
   id: number;
+  projectId: number;
+  projectName: string;
+  siteId: number;
   siteName: string;
-  materialId?: number;
-  materialName?: string;
-  manualMaterialName?: string;
-  manualUnit?: string;
-  manualEstimatedPrice?: number;
-  quantity: number;
+  title: string;
+  additionalDetails?: string;
+  plannedStartDate?: string;
+  plannedEndDate?: string;
+  priority?: string;
   status: string;
-  emergencyFlag: boolean;
-  rejectionComment?: string;
-  plannedUsageStart?: string;
-  plannedUsageEnd?: string;
-  createdAt: string;
-  requestedById: number;
-  requestedByName: string;
-  requestedByEmail: string;
-  // BOQ fields (Phase 1)
   boqReferenceCode?: string;
-  workDescription?: string;
-  measurementUnit?: string;
-  rateEstimate?: number;
-  rateType?: string;
-  revisionNumber?: number;
-  totalEstimate?: number;
+  createdById: number;
+  createdByName: string;
+  createdAt: string;
+  totalValue: number;
+  materials: MaterialItem[];
 }
 
 interface AuditEntry {
@@ -58,25 +66,26 @@ interface AuditEntry {
 }
 
 /**
- * Request Details page for Project Owner - view full BOQ item request, approve/reject, audit timeline.
- * Phase 1: Enhanced with BOQ field display and cost-aware approval workflow.
+ * Request Details page for Project Owner - view full BOQ request, review/approve/reject materials.
+ * Modern, responsive design matching app theme.
  */
 const RequestDetailsManager = () => {
   const { id } = useParams<{ id: string }>();
   const [request, setRequest] = useState<RequestDetails | null>(null);
   const [history, setHistory] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rejectComment, setRejectComment] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [rejectionError, setRejectionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [showApprovalConfirm, setShowApprovalConfirm] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<MaterialItem | null>(null);
+  const [rejectComment, setRejectComment] = useState('');
+  const [rejectingMaterialId, setRejectingMaterialId] = useState<number | null>(null);
+  const [processingMaterialId, setProcessingMaterialId] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
       const [reqRes, histRes] = await Promise.all([
         api.get<RequestDetails>(`/requests/${id}`),
-        api.get<AuditEntry[]>(`/requests/${id}/history`),
+        api.get<AuditEntry[]>(`/requests/${id}/history`).catch(() => ({ data: [] })),
       ]);
       setRequest(reqRes.data);
       setHistory(histRes.data);
@@ -92,50 +101,32 @@ const RequestDetailsManager = () => {
     loadData();
   }, [loadData]);
 
-  const handleApprove = async () => {
+  const handleMaterialAction = async (materialId: number, status: 'APPROVED' | 'REJECTED', comment?: string) => {
+    setProcessingMaterialId(materialId);
     setError(null);
     setSuccess(null);
     try {
       await api.patch(
-        `/requests/${id}/status`,
-        { status: 'APPROVED' },
+        `/requests/${id}/materials/${materialId}/status`,
+        { status, comment },
         { headers: { 'Content-Type': 'application/json' } }
       );
-      setSuccess('Request approved successfully!');
+      setSuccess(`Material ${status.toLowerCase()} successfully!`);
       setTimeout(() => setSuccess(null), 3000);
-      setShowApprovalConfirm(false);
-      loadData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to approve');
-    }
-  };
-
-  const handleReject = async () => {
-    if (!rejectComment.trim()) {
-      setRejectionError('Please provide a rejection reason');
-      return;
-    }
-    setRejectionError(null);
-    setError(null);
-    setSuccess(null);
-    try {
-      await api.patch(
-        `/requests/${id}/status`,
-        { status: 'REJECTED', comment: rejectComment },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      setSuccess('Request rejected');
-      setTimeout(() => setSuccess(null), 3000);
+      setRejectingMaterialId(null);
       setRejectComment('');
       loadData();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reject');
+      setError(err.response?.data?.message || `Failed to ${status.toLowerCase()} material`);
+    } finally {
+      setProcessingMaterialId(null);
     }
   };
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'PENDING': return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
+      case 'SUBMITTED': return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
       case 'APPROVED': return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'REJECTED': return 'bg-red-100 text-red-800 hover:bg-red-200';
       default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200';
@@ -146,13 +137,24 @@ const RequestDetailsManager = () => {
     switch (action) {
       case 'CREATED': return <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#2a3455]" />;
       case 'SUBMITTED': return <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />;
-      case 'APPROVED': return <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />;
-      case 'REJECTED': return <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600" />;
+      case 'APPROVED': case 'MATERIAL_APPROVED': return <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />;
+      case 'REJECTED': case 'MATERIAL_REJECTED': return <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600" />;
       case 'UPDATED': return <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />;
       case 'RESUBMITTED': return <RotateCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-600" />;
       default: return <div className="h-2 w-2 rounded-full bg-slate-300" />;
     }
   };
+
+  // Separate materials and labour
+  const materials = request?.materials?.filter(m => m.resourceType === 'MATERIAL') || [];
+  const labour = request?.materials?.filter(m => m.resourceType === 'LABOUR') || [];
+
+  // Calculate totals
+  const materialTotal = materials.reduce((sum, m) => sum + (m.totalEstimate || m.quantity * m.rateEstimate), 0);
+  const labourTotal = labour.reduce((sum, m) => sum + (m.totalEstimate || m.quantity * m.rateEstimate), 0);
+
+  // Count pending items
+  const pendingCount = (request?.materials || []).filter(m => m.status === 'PENDING').length;
 
   if (loading) {
     return (
@@ -173,7 +175,7 @@ const RequestDetailsManager = () => {
         </div>
         <div className="text-center">
           <p className="text-base sm:text-lg font-semibold text-slate-900 mb-1">Request not found</p>
-          <p className="text-xs sm:text-sm text-slate-500">The request you're looking for doesn't exist or has been removed.</p>
+          <p className="text-xs sm:text-sm text-slate-500">The request you're looking for doesn't exist.</p>
         </div>
         <Link to="/manager/pending" className="text-indigo-600 hover:text-indigo-800 hover:underline text-sm sm:text-base font-medium">
           Go back to Pending Requests
@@ -191,12 +193,7 @@ const RequestDetailsManager = () => {
             <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5 sm:mt-0" />
             <span className="text-xs sm:text-sm">{error}</span>
           </div>
-          <button 
-            onClick={() => setError(null)} 
-            className="text-red-700 hover:text-red-900 font-bold text-lg leading-none flex-shrink-0"
-          >
-            ×
-          </button>
+          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900 font-bold text-lg leading-none flex-shrink-0">×</button>
         </div>
       )}
 
@@ -207,253 +204,640 @@ const RequestDetailsManager = () => {
             <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5 sm:mt-0" />
             <span className="text-xs sm:text-sm">{success}</span>
           </div>
-          <button 
-            onClick={() => setSuccess(null)} 
-            className="text-green-700 hover:text-green-900 font-bold text-lg leading-none flex-shrink-0"
-          >
-            ×
-          </button>
+          <button onClick={() => setSuccess(null)} className="text-green-700 hover:text-green-900 font-bold text-lg leading-none flex-shrink-0">×</button>
         </div>
       )}
 
-      {/* Main Request Card */}
-      <Card className="border-slate-200 shadow-sm">
-        {/* Header */}
-        <CardHeader className="p-3 sm:p-4 lg:p-6 border-b border-slate-200">
-          <div className="flex flex-col lg:flex-row justify-between items-start gap-3 sm:gap-4">
-            <div className="flex-1 w-full">
-              {/* Status Badges */}
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold`}>
-                  {request.status}
-                </Badge>
-                {request.emergencyFlag && (
-                  <Badge variant="destructive" className="text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold">
-                    <AlertOctagon className="h-3 w-3 mr-1" />
-                    URGENT
-                  </Badge>
-                )}
-                {request.revisionNumber && request.revisionNumber > 1 && (
-                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold">
-                    Revision {request.revisionNumber}
-                  </Badge>
-                )}
+      {/* Main Layout - Two columns on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-3">
+        {/* Left Column - Request Details */}
+        <div className="lg:col-span-2 space-y-2 sm:space-y-3">
+          {/* Mobile: Project Info Card - Dark Blue Header */}
+          <Card className="border-slate-200 shadow-md md:hidden overflow-hidden">
+            {/* Dark Blue Header Section */}
+            <div className="bg-[#2a3455] text-white p-2">
+              <p className="text-xs uppercase tracking-wide mb-1 font-semibold">PROJECT: <span className="font-bold">{request.projectName}</span></p>
+              <p className="text-xs uppercase tracking-wide font-semibold">SITE: <span className="font-normal">{request.siteName}</span></p>
+            </div>
+            
+            {/* Request Details Section */}
+            <div className="bg-white text-left space-y-2">
+              {/* Title/Description */}
+              <div className="px-3 pt-1 mb-0">
+                <p className="font-bold text-base text-[#2a3455]">
+                  {request.title || request.boqReferenceCode || 'BOQ Request'}
+                </p>
               </div>
               
-              {/* Title */}
-              {request.boqReferenceCode ? (
-                <>
-                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 font-mono mb-1.5 sm:mb-2">
-                    {request.boqReferenceCode}
+              {/* Additional Information/Work Details */}
+              {request.additionalDetails && (
+                <div className="p-3 pt-1 ">
+                  <p className="text-xs text-[#2a3455]">{request.additionalDetails}</p>
+                </div>
+              )}
+              
+              {/* Request Metadata - Mobile Only */}
+              <div className="grid grid-cols-2 gap-3 pt-2 p-3 pt-1 mb-0 bg-[#fefefe]">
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Starting</p>
+                    <p className="text-xs font-semibold text-[#2a3455]">
+                      {request.plannedStartDate 
+                        ? new Date(request.plannedStartDate).toLocaleDateString() 
+                        : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Ending</p>
+                    <p className="text-xs font-semibold text-[#2a3455]">
+                      {request.plannedEndDate 
+                        ? new Date(request.plannedEndDate).toLocaleDateString() 
+                        : 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <User className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Requested By</p>
+                    <p className="text-xs font-semibold text-[#2a3455]">{request.createdByName}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Clock className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Created</p>
+                    <p className="text-xs font-semibold text-[#2a3455]">
+                      {new Date(request.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Total Estimate */}
+              <div className="border-t border-slate-200 p-3 pt-1 mb-0 bg-[#fcfcfc]">
+                <p className="text-lg font-bold text-[#2a3455]">
+                  <span  className="text-xs text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
+                   TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-slate-600 mt-1 font-semibold">
+                  Status: <span className="font-bold text-yellow-400">{pendingCount} {pendingCount === 1 ? 'Pending Review' : 'Pending Reviews'}</span>
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Desktop: Request Header Card */}
+          <Card className="border-slate-200 shadow-sm hidden md:block">
+            <CardHeader className="p-4 sm:p-6 border-b border-slate-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+                <div className="flex-1 w-full">
+                  {/* Status Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                    <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold`}>
+                      {request.status}
+                    </Badge>
+                    {request.priority === 'HIGH' && (
+                      <Badge variant="destructive" className="text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold">
+                        <AlertOctagon className="h-3 w-3 mr-1" />
+                        HIGH PRIORITY
+                      </Badge>
+                    )}
+                    {pendingCount > 0 && (
+                      <Badge className="bg-amber-100 text-amber-800 text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1">
+                        {pendingCount} pending review
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Title */}
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">
+                    {request.title || request.boqReferenceCode || 'BOQ Request'}
                   </h1>
-                  <p className="text-xs sm:text-sm lg:text-base text-slate-700">{request.workDescription}</p>
-                </>
-              ) : (
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
-                  {request.materialName || request.manualMaterialName || 'Material Request'}
-                </h1>
-              )}
-            </div>
-
-            {/* Cost Badge */}
-            {request.totalEstimate && (
-              <div className="w-full lg:w-auto bg-indigo-50 border border-indigo-200 rounded-lg p-3 sm:p-4 text-center lg:min-w-[200px]">
-                <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-slate-600 mb-1">
-                  <DollarSign className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span className="font-medium">Total Estimate</span>
+                  {request.additionalDetails && (
+                    <p className="text-sm text-slate-600 line-clamp-2">{request.additionalDetails}</p>
+                  )}
                 </div>
-                <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-indigo-900">
-                  TZS {request.totalEstimate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+                {/* Total Estimate */}
+                <div className="w-full sm:w-auto bg-gradient-to-br from-indigo-50 to-white border border-indigo-200 rounded-lg p-3 sm:p-4 text-center sm:min-w-[180px]">
+                  <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide mb-1">Total Estimate</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#2a3455]">
+                    TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
                 </div>
-                {request.measurementUnit && request.rateEstimate && (
-                  <div className="text-[10px] sm:text-xs text-slate-600 mt-1">
-                    {request.quantity} {request.measurementUnit} × TZS {request.rateEstimate.toLocaleString()}
-                  </div>
-                )}
               </div>
-            )}
-          </div>
-        </CardHeader>
+            </CardHeader>
 
-        {/* BOQ Details Section (if BOQ request) */}
-        {request.boqReferenceCode && (
-          <div className="p-3 sm:p-4 lg:p-6 bg-blue-50/50 border-b border-slate-200">
-            <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">BOQ Item Details</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {request.measurementUnit && (
-                <div>
-                  <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Measurement Unit</h3>
-                  <p className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">{request.measurementUnit}</p>
-                </div>
-              )}
-              <div>
-                <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Quantity</h3>
-                <p className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
-                  {request.quantity} {request.measurementUnit || ''}
-                </p>
-              </div>
-              {request.rateEstimate && (
-                <>
-                  <div>
-                    <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Rate Estimate</h3>
-                    <p className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
-                      TZS {request.rateEstimate.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Rate Type</h3>
-                    <p className="text-xs sm:text-sm text-slate-700 font-medium">
-                      {request.rateType?.replace('_', ' ') || 'ENGINEER ESTIMATE'}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* General Details */}
-        <CardContent className="p-3 sm:p-4 lg:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-            <div>
-              <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Site</h3>
-              <p className="text-sm sm:text-base font-semibold text-slate-900">{request.siteName}</p>
-            </div>
-            
-            {!request.boqReferenceCode && (
-              <div>
-                <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Quantity</h3>
-                <p className="text-sm sm:text-base font-semibold text-slate-900">{request.quantity}</p>
-              </div>
-            )}
-            
-            <div>
-              <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Requested By</h3>
-              <p className="text-sm sm:text-base font-semibold text-slate-900">{request.requestedByName}</p>
-              <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">{request.requestedByEmail}</p>
-            </div>
-            
-            {request.plannedUsageStart && (
-              <div>
-                <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Planned Start</h3>
-                <p className="text-xs sm:text-sm text-slate-900">{new Date(request.plannedUsageStart).toLocaleString()}</p>
-              </div>
-            )}
-            
-            {request.plannedUsageEnd && (
-              <div>
-                <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Planned End</h3>
-                <p className="text-xs sm:text-sm text-slate-900">{new Date(request.plannedUsageEnd).toLocaleString()}</p>
-              </div>
-            )}
-            
-            <div>
-              <h3 className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Created</h3>
-              <p className="text-xs sm:text-sm text-slate-900">{new Date(request.createdAt).toLocaleString()}</p>
-            </div>
-          </div>
-        </CardContent>
-
-        {/* Rejection Comment Display */}
-        {request.status === 'REJECTED' && request.rejectionComment && (
-          <div className="p-3 sm:p-4 lg:p-6 bg-red-50 border-t border-red-200">
-            <h3 className="text-xs sm:text-sm font-semibold text-red-900 mb-1.5 sm:mb-2">Rejection Reason</h3>
-            <p className="text-xs sm:text-sm text-red-700 italic">"{request.rejectionComment}"</p>
-          </div>
-        )}
-
-        {/* Approval Actions */}
-        {request.status === 'PENDING' && (
-          <div className="p-3 sm:p-4 lg:p-6 bg-slate-50 border-t border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2 sm:mb-3 text-sm sm:text-base">Take Action</h3>
-            <div className="flex flex-col gap-2 sm:gap-3">
-              <Button
-                onClick={() => setShowApprovalConfirm(true)}
-                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm"
-              >
-                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" /> 
-                Approve Request
-              </Button>
-              <div className="flex flex-col gap-2">
-                <Textarea
-                  placeholder="Rejection reason (required for rejection)..."
-                  value={rejectComment}
-                  onChange={(e) => {
-                    setRejectComment(e.target.value);
-                    if (rejectionError) setRejectionError(null);
-                  }}
-                  className={`w-full resize-none border-slate-200 bg-white text-xs sm:text-sm h-16 sm:h-20 ${
-                    rejectionError ? 'border-red-300 focus:ring-red-200' : ''
-                  }`}
-                  rows={2}
-                />
-                {rejectionError && (
-                  <div className="flex items-center gap-1.5 text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">{rejectionError}</span>
-                  </div>
-                )}
-                <Button
-                  onClick={handleReject}
-                  variant="destructive"
-                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm"
-                >
-                  <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                  Reject Request
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Approval Confirmation Dialog */}
-      {showApprovalConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50">
-          <Card className="max-w-md w-full shadow-2xl border-slate-200">
+            {/* Request Metadata */}
             <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Site</p>
+                    <p className="text-sm font-semibold text-slate-900">{request.siteName}</p>
+                  </div>
                 </div>
-                <h2 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900">Confirm Approval</h2>
-              </div>
-              
-              <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3">
-                <p className="text-xs sm:text-sm text-slate-700">
-                  By approving this request, you authorize the execution of {request.boqReferenceCode ? 'the quantified scope of work' : 'this material procurement'}.
-                </p>
-                
-                {request.totalEstimate && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
-                    <p className="text-xs sm:text-sm font-semibold text-yellow-900 mb-1">Cost Implication</p>
-                    <p className="text-xl sm:text-2xl font-bold text-yellow-900">
-                      TZS {request.totalEstimate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-yellow-700 mt-1">
-                      This approval commits the project budget to this expenditure.
+                <div className="flex items-start gap-2">
+                  <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Timeline</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {request.plannedStartDate 
+                        ? new Date(request.plannedStartDate).toLocaleDateString() 
+                        : 'Not specified'}
                     </p>
                   </div>
-                )}
-                
-                <p className="text-[10px] sm:text-xs text-slate-500">
-                  This action will be recorded in the audit log and cannot be undone.
-                </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <User className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Requested By</p>
+                    <p className="text-sm font-semibold text-slate-900">{request.createdByName}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Created</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {new Date(request.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
               </div>
-              
-              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+            </CardContent>
+          </Card>
+
+
+          {/* Material Breakdown Card */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="p-3 sm:p-6 md:border-b border-slate-200">
+              <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
+                Material Breakdown - Review Items
+              </CardTitle>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Review and approve or reject individual items
+              </p>
+            </CardHeader>
+            <CardContent className="p-0">
+              {/* Materials Section */}
+              {materials.length > 0 && (
+                <div>
+                  <div className="bg-slate-50 px-3 py-2 border-b border-b-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-800">1. Cost of Materials</h3>
+                  </div>
+                  
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-[#2a3455]">
+                        <TableRow>
+                          <TableHead className="text-white text-xs px-4 py-2">Material</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Qty</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Unit</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-right">Rate</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-right">Amount</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Status</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {materials.map((item) => (
+                          <TableRow key={item.id} className="hover:bg-slate-50">
+                            <TableCell className="px-4 py-2.5 font-medium text-slate-900 text-sm">
+                              {item.name}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
+                              {item.quantity}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
+                              {item.measurementUnit}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600">
+                              TZS {item.rateEstimate.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-right text-sm font-medium text-slate-900">
+                              TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center">
+                              <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
+                                {item.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center">
+                              {item.status === 'PENDING' && (
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                    disabled={processingMaterialId === item.id}
+                                    className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
+                                  >
+                                    <CheckCircle className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setRejectingMaterialId(item.id)}
+                                    disabled={processingMaterialId === item.id}
+                                    className="h-7 px-2 text-[10px]"
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards - Improved Design */}
+                  <div className="md:hidden space-y-3">
+                    {materials.map((item) => (
+                      <div key={item.id} className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200">
+                          {/* Material Name and Quantity */}
+                          <div className="space-y-1">
+                            <p className="text-xs text-slate-600 mb-0">Material</p>
+                            <p className="font-bold text-sm text-slate-900">{item.name}</p>
+                          </div>
+                          
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div>
+                              <p className="text-slate-600">Qty</p>
+                              <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-600">Rate</p>
+                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-600">Amount</p>
+                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Status */}
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-slate-600">Status:</p>
+                            <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
+                              {item.status}
+                            </Badge>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          {item.status === 'PENDING' && (
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                disabled={processingMaterialId === item.id}
+                                className="flex-1 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setRejectingMaterialId(item.id)}
+                                disabled={processingMaterialId === item.id}
+                                className="flex-1 h-8 rounded-full text-xs"
+                              >
+                                <XCircle className="h-3.5 w-3.5 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                          
+                        
+                        {/* Rejection Comment Input - Shows below buttons */}
+                        {rejectingMaterialId === item.id && (
+                          <div className="space-y-2 pt-2">
+                            <Textarea
+                              placeholder="Reason for rejection"
+                              value={rejectComment}
+                              onChange={(e) => setRejectComment(e.target.value)}
+                              className="w-full resize-none h-16 text-xs"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setRejectingMaterialId(null);
+                                  setRejectComment('');
+                                }}
+                                className="flex-1 h-7 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleMaterialAction(item.id, 'REJECTED', rejectComment)}
+                                disabled={!rejectComment.trim()}
+                                className="flex-1 h-7 text-xs"
+                              >
+                                Submit
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Materials Subtotal */}
+                  <div className="bg-slate-50 px-4 py-2 flex justify-between border-t border-slate-200 hidden md:flex">
+                    <span className="text-sm font-medium text-slate-600">Materials Subtotal</span>
+                    <span className="text-sm font-bold text-slate-900">TZS {materialTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Labour Section */}
+              {labour.length > 0 && (
+                <div>
+                  <div className="bg-slate-50 px-3 py-2 mt-5 border-b border-slate-200">
+                    <h3 className="text-sm font-semibold text-slate-800">2. Cost of Labour</h3>
+                  </div>
+                  
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-[#2a3455]">
+                        <TableRow>
+                          <TableHead className="text-white text-xs px-4 py-2">Labour</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Qty</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Unit</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-right">Rate</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-right">Amount</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Status</TableHead>
+                          <TableHead className="text-white text-xs px-4 py-2 text-center">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {labour.map((item) => (
+                          <TableRow key={item.id} className="hover:bg-slate-50">
+                            <TableCell className="px-4 py-2.5 font-medium text-slate-900 text-sm">
+                              {item.name}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
+                              {item.quantity}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
+                              {item.measurementUnit}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600">
+                              TZS {item.rateEstimate.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-right text-sm font-medium text-slate-900">
+                              TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center">
+                              <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
+                                {item.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5 text-center">
+                              {item.status === 'PENDING' && (
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                    disabled={processingMaterialId === item.id}
+                                    className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
+                                  >
+                                    <CheckCircle className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setRejectingMaterialId(item.id)}
+                                    disabled={processingMaterialId === item.id}
+                                    className="h-7 px-2 text-[10px]"
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile Cards - Improved Design */}
+                  <div className="md:hidden space-y-3">
+                    {labour.map((item) => (
+                      <div key={item.id} className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200">
+                          {/* Labour Name */}
+                          <div className="space-y-1">
+                            <p className="text-xs text-slate-600 mb-0">Labour</p>
+                            <p className="font-bold text-sm text-slate-900">{item.name}</p>
+                          </div>
+                          
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div>
+                              <p className="text-slate-600">Qty</p>
+                              <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-600">Rate</p>
+                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-600">Amount</p>
+                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Status */}
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-slate-600">Status:</p>
+                            <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
+                              {item.status}
+                            </Badge>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          {item.status === 'PENDING' && (
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                disabled={processingMaterialId === item.id}
+                                className="flex-1 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setRejectingMaterialId(item.id)}
+                                disabled={processingMaterialId === item.id}
+                                className="flex-1 h-8 rounded-full text-xs"
+                              >
+                                <XCircle className="h-3.5 w-3.5 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                          
+                        
+                        {/* Rejection Comment Input - Shows below buttons */}
+                        {rejectingMaterialId === item.id && (
+                          <div className="space-y-2 pt-2">
+                            <Textarea
+                              placeholder="Reason for rejection"
+                              value={rejectComment}
+                              onChange={(e) => setRejectComment(e.target.value)}
+                              className="w-full resize-none h-16 text-xs"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setRejectingMaterialId(null);
+                                  setRejectComment('');
+                                }}
+                                className="flex-1 h-7 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleMaterialAction(item.id, 'REJECTED', rejectComment)}
+                                disabled={!rejectComment.trim()}
+                                className="flex-1 h-7 text-xs"
+                              >
+                                Submit
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Labour Subtotal */}
+                  <div className="bg-slate-50 px-4 py-2 flex justify-between border-t border-slate-200 hidden md:flex">
+                    <span className="text-sm font-medium text-slate-600">Labour Subtotal</span>
+                    <span className="text-sm font-bold text-slate-900">TZS {labourTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Grand Total */}
+              <div className="bg-[#2a3455] px-4 py-3 flex justify-between hidden md:flex">
+                <span className="text-sm font-semibold text-white">Grand Total</span>
+                <span className="text-sm font-bold text-white">TZS {(materialTotal + labourTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Request Timeline */}
+        <div className="space-y-2 sm:space-y-3">
+          {/* Audit Timeline */}
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="bg-[#2a3455] text-white p-2 sm:p-3 rounded-t-lg border-b border-slate-200">
+              <CardTitle className="text-sm sm:text-base font-semibold">Request Timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2 sm:p-3">
+              {history.length === 0 ? (
+                <div className="text-center py-6">
+                  <FileText className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs sm:text-sm text-slate-500">No history available</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {history.slice(0, 5).map((entry, index) => (
+                    <div key={entry.id} className="flex gap-2">
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div className="w-6 h-6 bg-[#2a3455]/10 rounded-full flex items-center justify-center">
+                          {getActionIcon(entry.action)}
+                        </div>
+                        {index < Math.min(history.length - 1, 4) && (
+                          <div className="w-0.5 flex-1 bg-slate-200 mt-1 min-h-[16px]"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 pb-3 min-w-0">
+                        <p className="font-semibold text-slate-900 text-xs">{entry.action.replace('_', ' ')}</p>
+                        <p className="text-[10px] text-slate-500">
+                          by {entry.actorName}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </p>
+                        {entry.comment && (
+                          <p className="mt-1 text-[10px] text-slate-600 italic bg-slate-50 p-1.5 rounded">
+                            "{entry.comment}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+        </div>
+      </div>
+
+      {/* Rejection Comment Modal - Desktop Only */}
+      {rejectingMaterialId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm hidden md:flex items-center justify-center p-4 z-50">
+          <Card className="max-w-md w-full shadow-2xl border-slate-200">
+            <CardHeader className="p-4 border-b border-slate-200 flex flex-row items-center justify-between">
+              <CardTitle className="text-base font-semibold text-slate-900">Reject Material</CardTitle>
+              <button onClick={() => setRejectingMaterialId(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <p className="text-sm text-slate-600">
+                Please provide a reason for rejecting this material item.
+              </p>
+              <Textarea
+                placeholder="Rejection reason..."
+                value={rejectComment}
+                onChange={(e) => setRejectComment(e.target.value)}
+                className="w-full resize-none h-24"
+              />
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => setShowApprovalConfirm(false)}
-                  className="flex-1 border-slate-200 text-slate-700 hover:bg-slate-100 h-9 sm:h-10 text-xs sm:text-sm font-medium"
+                  onClick={() => {
+                    setRejectingMaterialId(null);
+                    setRejectComment('');
+                  }}
+                  className="flex-1 border-slate-200"
                 >
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleApprove}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9 sm:h-10 text-xs sm:text-sm font-medium shadow-sm"
+                  variant="destructive"
+                  onClick={() => handleMaterialAction(rejectingMaterialId, 'REJECTED', rejectComment)}
+                  disabled={!rejectComment.trim() || processingMaterialId === rejectingMaterialId}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
                 >
-                  Confirm Approval
+                  Reject
                 </Button>
               </div>
             </CardContent>
@@ -461,56 +845,83 @@ const RequestDetailsManager = () => {
         </div>
       )}
 
-      {/* Audit Timeline */}
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="p-3 sm:p-4 lg:p-6">
-          <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Request Timeline</CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-          {history.length === 0 ? (
-            <div className="text-center py-6 sm:py-8">
-              <FileText className="h-8 w-8 sm:h-10 sm:w-10 mx-auto mb-2 text-slate-300" />
-              <p className="text-xs sm:text-sm text-slate-500">No history available</p>
-            </div>
-          ) : (
-            <div className="space-y-3 sm:space-y-4">
-              {history.map((entry, index) => (
-                <div key={entry.id} className="flex gap-2 sm:gap-3 lg:gap-4">
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#2a3455]/10 rounded-full flex items-center justify-center">
-                      {getActionIcon(entry.action)}
-                    </div>
-                    {index < history.length - 1 && (
-                      <div className="w-0.5 flex-1 bg-slate-200 mt-1.5 sm:mt-2 min-h-[20px]"></div>
-                    )}
-                  </div>
-                  <div className="flex-1 pb-3 sm:pb-4 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                      <span className="font-semibold text-slate-900 text-xs sm:text-sm lg:text-base">{entry.action}</span>
-                      {entry.statusSnapshot && (
-                        <Badge className={`${getStatusBadgeClass(entry.statusSnapshot)} text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5`}>
-                          {entry.statusSnapshot}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-slate-500">
-                      by <span className="font-medium">{entry.actorName}</span> ({entry.actorRole})
-                    </p>
-                    <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">
-                      {new Date(entry.timestamp).toLocaleString()}
-                    </p>
-                    {entry.comment && (
-                      <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600 italic bg-slate-50 p-2 rounded border-l-2 border-slate-300">
-                        "{entry.comment}"
-                      </p>
-                    )}
-                  </div>
+      {/* Material Detail Modal (Mobile) */}
+      {selectedMaterial && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 md:hidden">
+          <Card className="w-full max-w-sm shadow-2xl border-slate-200">
+            <CardHeader className="p-4 bg-[#2a3455] text-white flex flex-row items-center justify-between rounded-t-lg">
+              <CardTitle className="text-sm font-semibold">Item Details</CardTitle>
+              <button onClick={() => setSelectedMaterial(null)} className="text-white/80 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Name</p>
+                <p className="text-sm font-semibold text-slate-900">{selectedMaterial.name}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Quantity</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedMaterial.quantity}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Unit</p>
+                  <p className="text-sm font-semibold text-slate-900">{selectedMaterial.measurementUnit}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Rate</p>
+                  <p className="text-sm font-semibold text-slate-900">TZS {selectedMaterial.rateEstimate.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Amount</p>
+                  <p className="text-sm font-semibold text-slate-900">TZS {(selectedMaterial.totalEstimate || selectedMaterial.quantity * selectedMaterial.rateEstimate).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wide">Status</p>
+                <Badge className={`${getStatusBadgeClass(selectedMaterial.status)} text-[10px] px-2 py-0.5`}>
+                  {selectedMaterial.status}
+                </Badge>
+              </div>
+              
+              {selectedMaterial.status === 'PENDING' && (
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <Button
+                    onClick={() => {
+                      handleMaterialAction(selectedMaterial.id, 'APPROVED');
+                      setSelectedMaterial(null);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1.5" />
+                    Approve
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setRejectingMaterialId(selectedMaterial.id);
+                      setSelectedMaterial(null);
+                    }}
+                    className="flex-1 h-9"
+                  >
+                    <XCircle className="h-4 w-4 mr-1.5" />
+                    Reject
+                  </Button>
+                </div>
+              )}
+              
+              <Button
+                variant="outline"
+                onClick={() => setSelectedMaterial(null)}
+                className="w-full border-slate-200 mt-2"
+              >
+                Close
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
