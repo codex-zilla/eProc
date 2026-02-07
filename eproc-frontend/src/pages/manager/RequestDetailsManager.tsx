@@ -15,7 +15,6 @@ import {
   RotateCw,
   AlertOctagon,
   AlertCircle,
-  MapPin,
   Calendar,
   User,
   Clock,
@@ -212,37 +211,49 @@ const RequestDetailsManager = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-3">
         {/* Left Column - Request Details */}
         <div className="lg:col-span-2 space-y-2 sm:space-y-3">
-          {/* Mobile: Project Info Card - Dark Blue Header */}
-          <Card className="border-slate-200 shadow-md md:hidden overflow-hidden">
-            {/* Dark Blue Header Section */}
-            <div className="bg-[#2a3455] text-white p-2">
-              <p className="text-xs uppercase tracking-wide mb-1 font-semibold">PROJECT: <span className="font-bold">{request.projectName}</span></p>
-              <p className="text-xs uppercase tracking-wide font-semibold">SITE: <span className="font-normal">{request.siteName}</span></p>
+          {/* Project Info Card */}
+          <Card className="border-slate-200 shadow-md overflow-hidden">
+            <div className="bg-[#2a3455] text-white p-2 ps-3">
+              <h3 className="text-xs sm:text-base uppercase tracking-wide mb-0 font-semibold">PROJECT: <span className="font-bold">{request.projectName}</span></h3>
+              <h3 className="text-xs sm:text-base uppercase tracking-wide font-semibold">SITE: <span className="font-normal">{request.siteName}</span></h3>
             </div>
             
             {/* Request Details Section */}
             <div className="bg-white text-left space-y-2">
               {/* Title/Description */}
               <div className="px-3 pt-1 mb-0">
-                <p className="font-bold text-base text-[#2a3455]">
+                <h4 className="font-bold text-base sm:text-xl text-[#2a3455]">
                   {request.title || request.boqReferenceCode || 'BOQ Request'}
-                </p>
+                </h4>
               </div>
               
               {/* Additional Information/Work Details */}
               {request.additionalDetails && (
-                <div className="p-3 pt-1 ">
-                  <p className="text-xs text-[#2a3455]">{request.additionalDetails}</p>
+                <div className="px-3 mb-3">
+                  <p className="text-xs sm:text-sm text-[#2a3455]">{request.additionalDetails}</p>
                 </div>
               )}
+
+              {/* Status Badges */}
+              <div className="px-3 py-1 flex flex-wrap items-center gap-2">
+                <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] sm:text-xs px-3 py-1 font-semibold`}>
+                  {request.status}
+                </Badge>
+                {request.priority === 'HIGH' && (
+                  <Badge variant="destructive" className="text-[10px] sm:text-xs px-3 py-1 font-semibold">
+                    <AlertOctagon className="h-3 w-3 mr-1" />
+                    HIGH PRIORITY
+                  </Badge>
+                )}
+              </div>
               
-              {/* Request Metadata - Mobile Only */}
-              <div className="grid grid-cols-2 gap-3 pt-2 p-3 pt-1 mb-0 bg-[#fefefe]">
+              {/* Request Metadata*/}
+              <div className="grid grid-cols-2 gap-3 pt-1 p-3 pt-1 mb-0 bg-[#fefefe]">
                 <div className="flex items-start gap-2">
                   <Calendar className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Starting</p>
-                    <p className="text-xs font-semibold text-[#2a3455]">
+                    <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Starting</p>
+                    <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                       {request.plannedStartDate 
                         ? new Date(request.plannedStartDate).toLocaleDateString() 
                         : 'Not specified'}
@@ -252,8 +263,8 @@ const RequestDetailsManager = () => {
                 <div className="flex items-start gap-2">
                   <Calendar className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Ending</p>
-                    <p className="text-xs font-semibold text-[#2a3455]">
+                    <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Ending</p>
+                    <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                       {request.plannedEndDate 
                         ? new Date(request.plannedEndDate).toLocaleDateString() 
                         : 'Not specified'}
@@ -263,15 +274,15 @@ const RequestDetailsManager = () => {
                 <div className="flex items-start gap-2">
                   <User className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Requested By</p>
-                    <p className="text-xs font-semibold text-[#2a3455]">{request.createdByName}</p>
+                    <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Requested By</p>
+                    <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">{request.createdByName}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Clock className="h-3.5 w-3.5 text-[#2a3455] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-600 uppercase tracking-wide">Created</p>
-                    <p className="text-xs font-semibold text-[#2a3455]">
+                    <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Created</p>
+                    <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                       {new Date(request.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -280,131 +291,48 @@ const RequestDetailsManager = () => {
               
               {/* Total Estimate */}
               <div className="border-t border-slate-200 p-3 pt-1 mb-0 bg-[#fcfcfc]">
-                <p className="text-lg font-bold text-[#2a3455]">
-                  <span  className="text-xs text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
+                <p className="text-lg sm:text-xl font-bold text-[#2a3455]">
+                  <span  className="text-xs sm:text-sm text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
                    TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs text-slate-600 mt-1 font-semibold">
+                <p className="text-xs sm:text-sm text-slate-600 mt-1 font-semibold">
                   Status: <span className="font-bold text-yellow-400">{pendingCount} {pendingCount === 1 ? 'Pending Review' : 'Pending Reviews'}</span>
                 </p>
               </div>
             </div>
           </Card>
 
-          {/* Desktop: Request Header Card */}
-          <Card className="border-slate-200 shadow-sm hidden md:block">
-            <CardHeader className="p-4 sm:p-6 border-b border-slate-200">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
-                <div className="flex-1 w-full">
-                  {/* Status Badges */}
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                    <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold`}>
-                      {request.status}
-                    </Badge>
-                    {request.priority === 'HIGH' && (
-                      <Badge variant="destructive" className="text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 font-semibold">
-                        <AlertOctagon className="h-3 w-3 mr-1" />
-                        HIGH PRIORITY
-                      </Badge>
-                    )}
-                    {pendingCount > 0 && (
-                      <Badge className="bg-amber-100 text-amber-800 text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1">
-                        {pendingCount} pending review
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {/* Title */}
-                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 mb-1">
-                    {request.title || request.boqReferenceCode || 'BOQ Request'}
-                  </h1>
-                  {request.additionalDetails && (
-                    <p className="text-sm text-slate-600 line-clamp-2">{request.additionalDetails}</p>
-                  )}
-                </div>
-
-                {/* Total Estimate */}
-                <div className="w-full sm:w-auto bg-gradient-to-br from-indigo-50 to-white border border-indigo-200 rounded-lg p-3 sm:p-4 text-center sm:min-w-[180px]">
-                  <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide mb-1">Total Estimate</p>
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#2a3455]">
-                    TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-
-            {/* Request Metadata */}
-            <CardContent className="p-4 sm:p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Site</p>
-                    <p className="text-sm font-semibold text-slate-900">{request.siteName}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Calendar className="h-4 w-4 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Timeline</p>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {request.plannedStartDate 
-                        ? new Date(request.plannedStartDate).toLocaleDateString() 
-                        : 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <User className="h-4 w-4 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Requested By</p>
-                    <p className="text-sm font-semibold text-slate-900">{request.createdByName}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">Created</p>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {new Date(request.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-
           {/* Material Breakdown Card */}
           <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="p-3 sm:p-6 md:border-b border-slate-200">
-              <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
+            <CardHeader className="p-3 sm:p-3 md:border-b border-slate-200 bg-[#2a3455] rounded-t-lg">
+              <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-white mb-0">
                 Material Breakdown - Review Items
               </CardTitle>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-white">
                 Review and approve or reject individual items
               </p>
             </CardHeader>
+            
             <CardContent className="p-0">
               {/* Materials Section */}
               {materials.length > 0 && (
                 <div>
                   <div className="bg-slate-50 px-3 py-2 border-b border-b-slate-200">
-                    <h3 className="text-sm font-semibold text-slate-800">1. Cost of Materials</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">Cost of Materials</h3>
                   </div>
                   
                   {/* Desktop Table */}
                   <div className="hidden md:block overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-[#2a3455]">
-                        <TableRow>
-                          <TableHead className="text-white text-xs px-4 py-2">Material</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Qty</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Unit</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-right">Rate</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-right">Amount</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Status</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Actions</TableHead>
+                      <TableHeader className="bg-[#434655]">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-white text-sm px-4 py-2">Material</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Qty</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Unit</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-right hidden lg:table-cell">Rate(TZS)</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-right">Amount(TZS)</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Status</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -419,11 +347,11 @@ const RequestDetailsManager = () => {
                             <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
                               {item.measurementUnit}
                             </TableCell>
-                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600">
-                              TZS {item.rateEstimate.toLocaleString()}
+                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600 hidden lg:table-cell">
+                              {item.rateEstimate.toLocaleString()}
                             </TableCell>
                             <TableCell className="px-4 py-2.5 text-right text-sm font-medium text-slate-900">
-                              TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                              {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
                             </TableCell>
                             <TableCell className="px-4 py-2.5 text-center">
                               <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
@@ -568,21 +496,21 @@ const RequestDetailsManager = () => {
               {labour.length > 0 && (
                 <div>
                   <div className="bg-slate-50 px-3 py-2 mt-5 border-b border-slate-200">
-                    <h3 className="text-sm font-semibold text-slate-800">2. Cost of Labour</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">Cost of Labour</h3>
                   </div>
                   
                   {/* Desktop Table */}
                   <div className="hidden md:block overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-[#2a3455]">
-                        <TableRow>
-                          <TableHead className="text-white text-xs px-4 py-2">Labour</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Qty</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Unit</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-right">Rate</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-right">Amount</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Status</TableHead>
-                          <TableHead className="text-white text-xs px-4 py-2 text-center">Actions</TableHead>
+                      <TableHeader className="bg-[#434655]">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-white text-sm px-4 py-2">Labour</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Qty</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Unit</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-right hidden lg:table-cell">Rate(TZS)</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-right">Amount(TZS)</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Status</TableHead>
+                          <TableHead className="text-white text-sm px-4 py-2 text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -597,11 +525,11 @@ const RequestDetailsManager = () => {
                             <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
                               {item.measurementUnit}
                             </TableCell>
-                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600">
-                              TZS {item.rateEstimate.toLocaleString()}
+                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600 hidden lg:table-cell">
+                              {item.rateEstimate.toLocaleString()}
                             </TableCell>
                             <TableCell className="px-4 py-2.5 text-right text-sm font-medium text-slate-900">
-                              TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                              {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
                             </TableCell>
                             <TableCell className="px-4 py-2.5 text-center">
                               <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
@@ -735,18 +663,12 @@ const RequestDetailsManager = () => {
                   </div>
 
                   {/* Labour Subtotal */}
-                  <div className="bg-slate-50 px-4 py-2 flex justify-between border-t border-slate-200 hidden md:flex">
+                  <div className="bg-slate-50 px-4 py-3 flex justify-between border-t border-slate-200 hidden md:flex">
                     <span className="text-sm font-medium text-slate-600">Labour Subtotal</span>
                     <span className="text-sm font-bold text-slate-900">TZS {labourTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               )}
-
-              {/* Grand Total */}
-              <div className="bg-[#2a3455] px-4 py-3 flex justify-between hidden md:flex">
-                <span className="text-sm font-semibold text-white">Grand Total</span>
-                <span className="text-sm font-bold text-white">TZS {(materialTotal + labourTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -756,13 +678,13 @@ const RequestDetailsManager = () => {
           {/* Audit Timeline */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-[#2a3455] text-white p-2 sm:p-3 rounded-t-lg border-b border-slate-200">
-              <CardTitle className="text-sm sm:text-base font-semibold">Request Timeline</CardTitle>
+              <CardTitle className="text-sm sm:text-base font-semibold tracking-wide">Request Timeline</CardTitle>
             </CardHeader>
             <CardContent className="p-2 sm:p-3">
               {history.length === 0 ? (
                 <div className="text-center py-6">
                   <FileText className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                  <p className="text-xs sm:text-sm text-slate-500">No history available</p>
+                  <p className="text-xs sm:text-base text-slate-500">No history available</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -777,15 +699,15 @@ const RequestDetailsManager = () => {
                         )}
                       </div>
                       <div className="flex-1 pb-3 min-w-0">
-                        <p className="font-semibold text-slate-900 text-xs">{entry.action.replace('_', ' ')}</p>
-                        <p className="text-[10px] text-slate-500">
+                        <p className="font-semibold text-slate-900 text-xs sm:text-sm">{entry.action.replace('_', ' ')}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500">
                           by {entry.actorName}
                         </p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[10px] sm:text-xs text-slate-400">
                           {new Date(entry.timestamp).toLocaleString()}
                         </p>
                         {entry.comment && (
-                          <p className="mt-1 text-[10px] text-slate-600 italic bg-slate-50 p-1.5 rounded">
+                          <p className="mt-1 text-[10px] sm:text-xs text-slate-600 italic bg-slate-50 p-1.5 rounded">
                             "{entry.comment}"
                           </p>
                         )}
@@ -803,41 +725,46 @@ const RequestDetailsManager = () => {
       {/* Rejection Comment Modal - Desktop Only */}
       {rejectingMaterialId && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm hidden md:flex items-center justify-center p-4 z-50">
-          <Card className="max-w-md w-full shadow-2xl border-slate-200">
-            <CardHeader className="p-4 border-b border-slate-200 flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-semibold text-slate-900">Reject Material</CardTitle>
-              <button onClick={() => setRejectingMaterialId(null)} className="text-slate-400 hover:text-slate-600">
-                <X className="h-5 w-5" />
-              </button>
+          <Card className="max-w-md w-full shadow-xl border-slate-200">
+            <CardHeader className="p-5 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold text-slate-900">Reason for Rejection</CardTitle>
+                <button 
+                  onClick={() => {
+                    setRejectingMaterialId(null);
+                    setRejectComment('');
+                  }} 
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <p className="text-sm text-slate-600">
-                Please provide a reason for rejecting this material item.
-              </p>
+            <CardContent className="p-5 space-y-4">
               <Textarea
-                placeholder="Rejection reason..."
+                placeholder="Please provide a reason for rejecting this item..."
                 value={rejectComment}
                 onChange={(e) => setRejectComment(e.target.value)}
-                className="w-full resize-none h-24"
+                className="w-full resize-none h-24 text-sm"
+                autoFocus
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setRejectingMaterialId(null);
                     setRejectComment('');
                   }}
-                  className="flex-1 border-slate-200"
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button
-                  variant="destructive"
                   onClick={() => handleMaterialAction(rejectingMaterialId, 'REJECTED', rejectComment)}
                   disabled={!rejectComment.trim() || processingMaterialId === rejectingMaterialId}
                   className="flex-1 bg-red-600 hover:bg-red-700"
                 >
-                  Reject
+                  Submit
                 </Button>
               </div>
             </CardContent>
