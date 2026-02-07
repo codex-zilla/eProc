@@ -177,7 +177,7 @@ const RequestDetailsManager = () => {
           <p className="text-xs sm:text-sm text-slate-500">The request you're looking for doesn't exist.</p>
         </div>
         <Link to="/manager/pending" className="text-indigo-600 hover:text-indigo-800 hover:underline text-sm sm:text-base font-medium">
-          Go back to Pending Requests
+          Go back to Requests
         </Link>
       </div>
     );

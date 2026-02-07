@@ -243,6 +243,26 @@ public class RequestService {
         }
 
         /**
+         * Get all requests for projects owned by the current user.
+         */
+        @Transactional(readOnly = true)
+        public List<RequestResponseDTO> getAllManagerRequests(String userEmail) {
+                User owner = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                // Only project owners can view all requests
+                if (owner.getRole() != Role.PROJECT_OWNER) {
+                        throw new ForbiddenException("Only project owners can view requests");
+                }
+
+                List<Request> requests = requestRepository.findByProjectOwnerIdOrderByCreatedAtDesc(owner.getId());
+
+                return requests.stream()
+                                .map(r -> mapToResponseDTO(r, true))
+                                .collect(Collectors.toList());
+        }
+
+        /**
          * Map Request entity to response DTO.
          */
         private RequestResponseDTO mapToResponseDTO(Request request, boolean includeMaterials) {

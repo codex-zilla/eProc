@@ -107,7 +107,7 @@ const AppLayout = () => {
         { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/manager/projects', icon: Briefcase },
         { label: 'Project Users', path: '/manager/users', icon: Users },
-        { label: 'Pending Requests', path: '/manager/pending', icon: ClipboardList, badge: pendingCount },
+        { label: 'Requests', path: '/manager/pending', icon: ClipboardList, badge: pendingCount },
       ];
     }
     return [];
@@ -121,7 +121,7 @@ const AppLayout = () => {
   // Special handling for manager request details (doesn't match /manager/pending path)
   if (/^\/manager\/requests\/\d+$/.test(location.pathname)) {
     breadcrumbs.push({
-      label: 'Pending Requests',
+      label: 'Requests',
       path: '/manager/pending',
       active: false
     });

@@ -51,4 +51,9 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
      * Find all pending (SUBMITTED) requests for projects owned by a specific user.
      */
     List<Request> findByStatusAndProjectOwnerIdOrderByCreatedAtDesc(RequestStatus status, Long ownerId);
+
+    /**
+     * Find all requests for projects owned by a specific user.
+     */
+    List<Request> findByProjectOwnerIdOrderByCreatedAtDesc(Long ownerId);
 }

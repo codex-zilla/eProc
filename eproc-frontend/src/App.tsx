@@ -28,7 +28,7 @@ import ManagerDashboard from './pages/manager/ManagerDashboard';
 import MyProjects from './pages/manager/MyProjects';
 import ProjectWizard from './components/ProjectWizard';
 import ProjectDetails from './pages/manager/ProjectDetails';
-import PendingRequests from './pages/manager/PendingRequests';
+import ManagerRequests from './pages/manager/Requests';
 import RequestDetailsManager from './pages/manager/RequestDetailsManager';
 import ManageProjectUsers from './pages/manager/ManageProjectUsers';
 import ChangePasswordModal from './components/ChangePasswordModal';
@@ -74,7 +74,7 @@ function App() {
                 <Route path="/manager/projects/:id/edit" element={<EditProject />} />
                 <Route path="/manager/projects/:id/sites" element={<ManageSites />} />
                 <Route path="/manager/users" element={<ManageProjectUsers />} />
-                <Route path="/manager/pending" element={<PendingRequests />} />
+                <Route path="/manager/pending" element={<ManagerRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
               </Route>
 

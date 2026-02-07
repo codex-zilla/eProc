@@ -38,6 +38,20 @@ public class RequestController {
     }
 
     /**
+     * Get all requests for the current user (if project owner) or specific role
+     * logic.
+     * GET /api/requests
+     */
+    @GetMapping
+    public ResponseEntity<List<RequestResponseDTO>> getAllRequests(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // This endpoint returns all requests for a Project Owner across all their
+        // projects
+        List<RequestResponseDTO> response = requestService.getAllManagerRequests(userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get request by ID.
      * GET /api/requests/{id}
      */

@@ -21,9 +21,14 @@ api.interceptors.request.use(
 // Response interceptor to handle auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      // Clear auth data on 401 or 403
+  (error: any) => {
+    // Debug logging to help identify why users might be getting logged out explicitly
+    if (error.response) {
+      console.debug(`API Error: ${error.response.status} on ${error.config?.url}`, error.response.data);
+    }
+
+    if (error.response?.status === 401) {
+      // Clear auth data on 401 ONLY
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       // Redirect to login if not already there
