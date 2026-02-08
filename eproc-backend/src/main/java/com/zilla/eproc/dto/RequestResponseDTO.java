@@ -37,6 +37,11 @@ public class RequestResponseDTO {
     private LocalDateTime updatedAt;
     private Integer materialCount;
     private Double totalValue;
+    private Boolean isDuplicateFlagged;
+    private String duplicateExplanation;
+    private Long duplicateOfRequestId;
+    private String duplicateOfRequestTitle;
+    private List<DuplicateMaterialInfoDTO> duplicateDetails;
 
     // Optional: Include materials for detailed view
     private List<MaterialItemResponseDTO> materials;

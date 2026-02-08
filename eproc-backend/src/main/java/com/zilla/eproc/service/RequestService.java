@@ -319,6 +319,9 @@ public class RequestService {
                                 .updatedAt(request.getUpdatedAt())
                                 .materialCount(request.getMaterialCount())
                                 .totalValue(request.getTotalValue())
+                                .isDuplicateFlagged(request.getIsDuplicateFlagged())
+                                .duplicateExplanation(request.getDuplicateExplanation())
+                                .duplicateOfRequestId(request.getDuplicateOfRequestId())
                                 .build();
 
                 if (includeMaterials) {
@@ -326,6 +329,75 @@ public class RequestService {
                                         .map(this::mapMaterialToDTO)
                                         .collect(Collectors.toList());
                         dto.setMaterials(materialDTOs);
+
+                        // Populate duplicate details if flagged
+                        if (Boolean.TRUE.equals(request.getIsDuplicateFlagged())
+                                        && request.getDuplicateOfRequestId() != null) {
+                                requestRepository.findById(request.getDuplicateOfRequestId())
+                                                .ifPresent(originalRequest -> {
+                                                        dto.setDuplicateOfRequestTitle(originalRequest.getTitle());
+                                                        dto.setDuplicateDetails(new ArrayList<>());
+
+                                                        Set<String> duplicateNames = new HashSet<>();
+
+                                                        // Map original materials for lookup
+                                                        java.util.Map<String, Material> originalMap = originalRequest
+                                                                        .getMaterials().stream()
+                                                                        .collect(Collectors.toMap(
+                                                                                        m -> m.getName().toLowerCase(),
+                                                                                        m -> m,
+                                                                                        (m1, m2) -> m1)); // Handle
+                                                                                                          // potential
+                                                                                                          // duplicates
+                                                                                                          // in original
+
+                                                        for (Material currentMat : request.getMaterials()) {
+                                                                if (currentMat.getName() != null && originalMap
+                                                                                .containsKey(currentMat.getName()
+                                                                                                .toLowerCase())) {
+                                                                        Material originalMat = originalMap
+                                                                                        .get(currentMat.getName()
+                                                                                                        .toLowerCase());
+                                                                        duplicateNames.add(currentMat.getName()
+                                                                                        .toLowerCase());
+
+                                                                        dto.getDuplicateDetails()
+                                                                                        .add(DuplicateMaterialInfoDTO
+                                                                                                        .builder()
+                                                                                                        .materialName(currentMat
+                                                                                                                        .getName())
+                                                                                                        .originalQuantity(
+                                                                                                                        originalMat
+                                                                                                                                        .getQuantity())
+                                                                                                        .originalStartDate(
+                                                                                                                        originalRequest
+                                                                                                                                        .getPlannedStartDate())
+                                                                                                        .originalEndDate(
+                                                                                                                        originalRequest
+                                                                                                                                        .getPlannedEndDate())
+                                                                                                        .currentQuantity(
+                                                                                                                        currentMat
+                                                                                                                                        .getQuantity())
+                                                                                                        .currentStartDate(
+                                                                                                                        request
+                                                                                                                                        .getPlannedStartDate())
+                                                                                                        .currentEndDate(request
+                                                                                                                        .getPlannedEndDate())
+                                                                                                        .build());
+                                                                }
+                                                        }
+
+                                                        // Mark individual materials as duplicate
+                                                        for (MaterialItemResponseDTO matDto : materialDTOs) {
+                                                                if (matDto.getName() != null && duplicateNames.contains(
+                                                                                matDto.getName().toLowerCase())) {
+                                                                        matDto.setIsDuplicate(true);
+                                                                } else {
+                                                                        matDto.setIsDuplicate(false);
+                                                                }
+                                                        }
+                                                });
+                        }
                 }
 
                 return dto;

@@ -32,4 +32,5 @@ public class MaterialItemResponseDTO {
     private Integer revisionNumber;
     private BigDecimal totalEstimate;
     private LocalDateTime createdAt;
+    private Boolean isDuplicate;
 }

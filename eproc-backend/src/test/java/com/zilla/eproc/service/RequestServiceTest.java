@@ -28,272 +28,332 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class RequestServiceTest {
 
-    @Mock
-    private RequestRepository requestRepository;
+        @Mock
+        private RequestRepository requestRepository;
 
-    @Mock
-    private ProjectRepository projectRepository;
+        @Mock
+        private ProjectRepository projectRepository;
 
-    @Mock
-    private SiteRepository siteRepository;
+        @Mock
+        private SiteRepository siteRepository;
 
-    @Mock
-    private UserRepository userRepository;
+        @Mock
+        private UserRepository userRepository;
 
-    @Mock
-    private RequestAuditLogRepository auditLogRepository;
+        @Mock
+        private RequestAuditLogRepository auditLogRepository;
 
-    @InjectMocks
-    private RequestService requestService;
+        @Mock
+        private DuplicateDetectionService duplicateDetectionService;
 
-    private User testEngineer;
-    private Project testProject;
-    private Site testSite;
-    private CreateRequestDTO testRequestDTO;
+        @InjectMocks
+        private RequestService requestService;
 
-    @BeforeEach
-    void setUp() {
-        testEngineer = new User();
-        testEngineer.setId(1L);
-        testEngineer.setEmail("engineer@test.com");
-        testEngineer.setName("Test Engineer");
-        testEngineer.setRole(Role.ENGINEER);
+        private User testEngineer;
+        private Project testProject;
+        private Site testSite;
+        private CreateRequestDTO testRequestDTO;
 
-        testProject = new Project();
-        testProject.setId(1L);
-        testProject.setName("Test Project");
-        testProject.setTeamAssignments(new ArrayList<>());
+        @BeforeEach
+        void setUp() {
+                testEngineer = new User();
+                testEngineer.setId(1L);
+                testEngineer.setEmail("engineer@test.com");
+                testEngineer.setName("Test Engineer");
+                testEngineer.setRole(Role.ENGINEER);
 
-        User owner = new User();
-        owner.setId(2L);
-        testProject.setOwner(owner);
+                testProject = new Project();
+                testProject.setId(1L);
+                testProject.setName("Test Project");
+                testProject.setTeamAssignments(new ArrayList<>());
 
-        ProjectAssignment assignment = new ProjectAssignment();
-        assignment.setUser(testEngineer);
-        assignment.setRole(ProjectRole.SITE_ENGINEER);
-        testProject.getTeamAssignments().add(assignment);
+                User owner = new User();
+                owner.setId(2L);
+                testProject.setOwner(owner);
 
-        testSite = new Site();
-        testSite.setId(1L);
-        testSite.setName("Test Site");
+                ProjectAssignment assignment = new ProjectAssignment();
+                assignment.setUser(testEngineer);
+                assignment.setRole(ProjectRole.SITE_ENGINEER);
+                testProject.getTeamAssignments().add(assignment);
 
-        // Create test DTO
-        CreateMaterialItemDTO material = CreateMaterialItemDTO.builder()
-                .name("Cement")
-                .quantity(BigDecimal.valueOf(100))
-                .measurementUnit("bag")
-                .rateEstimate(BigDecimal.valueOf(25000))
-                .rateEstimateType("ENGINEER_ESTIMATE")
-                .resourceType("MATERIAL")
-                .build();
+                testSite = new Site();
+                testSite.setId(1L);
+                testSite.setName("Test Site");
 
-        testRequestDTO = CreateRequestDTO.builder()
-                .projectId(1L)
-                .siteId(1L)
-                .title("Foundation Works")
-                .plannedStartDate(LocalDateTime.now())
-                .plannedEndDate(LocalDateTime.now().plusDays(7))
-                .emergencyFlag(false)
-                .additionalDetails("Foundation concrete works")
-                .items(List.of(material))
-                .build();
-    }
+                // Create test DTO
+                CreateMaterialItemDTO material = CreateMaterialItemDTO.builder()
+                                .name("Cement")
+                                .quantity(BigDecimal.valueOf(100))
+                                .measurementUnit("bag")
+                                .rateEstimate(BigDecimal.valueOf(25000))
+                                .rateEstimateType("ENGINEER_ESTIMATE")
+                                .resourceType("MATERIAL")
+                                .build();
 
-    @Test
-    @DisplayName("Should create request successfully")
-    void shouldCreateRequestSuccessfully() {
-        // Arrange
-        when(userRepository.findByEmail(testEngineer.getEmail()))
-                .thenReturn(Optional.of(testEngineer));
-        when(projectRepository.findById(1L))
-                .thenReturn(Optional.of(testProject));
-        when(siteRepository.findById(1L))
-                .thenReturn(Optional.of(testSite));
-        when(requestRepository.existsByBoqReferenceCode(anyString()))
-                .thenReturn(false);
-        when(requestRepository.saveAll(anyList()))
-                .thenAnswer(invocation -> {
-                    List<Request> requests = invocation.getArgument(0);
-                    requests.forEach(r -> r.setId(1L));
-                    return requests;
-                });
+                testRequestDTO = CreateRequestDTO.builder()
+                                .projectId(1L)
+                                .siteId(1L)
+                                .title("Foundation Works")
+                                .plannedStartDate(LocalDateTime.now())
+                                .plannedEndDate(LocalDateTime.now().plusDays(7))
+                                .emergencyFlag(false)
+                                .additionalDetails("Foundation concrete works")
+                                .items(List.of(material))
+                                .build();
+        }
 
-        // Act
-        List<RequestResponseDTO> result = requestService.createRequests(
-                List.of(testRequestDTO),
-                testEngineer.getEmail());
+        @Test
+        @DisplayName("Should create request successfully")
+        void shouldCreateRequestSuccessfully() {
+                // Arrange
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L))
+                                .thenReturn(Optional.of(testProject));
+                when(siteRepository.findById(1L))
+                                .thenReturn(Optional.of(testSite));
+                when(requestRepository.existsByBoqReferenceCode(anyString()))
+                                .thenReturn(false);
+                when(requestRepository.saveAll(anyList()))
+                                .thenAnswer(invocation -> {
+                                        List<Request> requests = invocation.getArgument(0);
+                                        requests.forEach(r -> r.setId(1L));
+                                        return requests;
+                                });
 
-        // Assert
-        assertThat(result).hasSize(1);
-        RequestResponseDTO response = result.get(0);
-        assertThat(response.getTitle()).isEqualTo("Foundation Works");
-        assertThat(response.getPriority()).isEqualTo(Priority.NORMAL);
-        assertThat(response.getStatus()).isEqualTo(RequestStatus.SUBMITTED);
-        assertThat(response.getBoqReferenceCode()).matches("BOQ-\\d{4}-\\d{3}");
+                // Act
+                List<RequestResponseDTO> result = requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail());
 
-        verify(requestRepository).saveAll(anyList());
-    }
+                // Assert
+                assertThat(result).hasSize(1);
+                RequestResponseDTO response = result.get(0);
+                assertThat(response.getTitle()).isEqualTo("Foundation Works");
+                assertThat(response.getPriority()).isEqualTo(Priority.NORMAL);
+                assertThat(response.getStatus()).isEqualTo(RequestStatus.PENDING);
+                assertThat(response.getBoqReferenceCode()).matches("BOQ-\\d{4}-\\d{3}");
 
-    @Test
-    @DisplayName("Should set HIGH priority when emergency flag is true")
-    void shouldSetHighPriorityForEmergency() {
-        // Arrange
-        testRequestDTO.setEmergencyFlag(true);
+                verify(requestRepository).saveAll(anyList());
+        }
 
-        when(userRepository.findByEmail(testEngineer.getEmail()))
-                .thenReturn(Optional.of(testEngineer));
-        when(projectRepository.findById(1L))
-                .thenReturn(Optional.of(testProject));
-        when(siteRepository.findById(1L))
-                .thenReturn(Optional.of(testSite));
-        when(requestRepository.existsByBoqReferenceCode(anyString()))
-                .thenReturn(false);
-        when(requestRepository.saveAll(anyList()))
-                .thenAnswer(invocation -> {
-                    List<Request> requests = invocation.getArgument(0);
-                    requests.forEach(r -> r.setId(1L));
-                    return requests;
-                });
+        @Test
+        @DisplayName("Should detect duplicates and throw exception when no explanation provided")
+        void shouldThrowExceptionForDuplicatesWithoutExplanation() {
+                // Arrange
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
+                when(siteRepository.findById(1L)).thenReturn(Optional.of(testSite));
 
-        // Act
-        List<RequestResponseDTO> result = requestService.createRequests(
-                List.of(testRequestDTO),
-                testEngineer.getEmail());
+                com.zilla.eproc.dto.DuplicateWarningDTO warning = com.zilla.eproc.dto.DuplicateWarningDTO.builder()
+                                .requestId(99L)
+                                .requestTitle("Old Req")
+                                .build();
 
-        // Assert
-        assertThat(result.get(0).getPriority()).isEqualTo(Priority.HIGH);
-    }
+                when(duplicateDetectionService.findPotentialDuplicates(any(), any(), any(), any()))
+                                .thenReturn(List.of(warning));
 
-    @Test
-    @DisplayName("Should throw ForbiddenException when user not assigned to project")
-    void shouldThrowExceptionWhenUserNotAssigned() {
-        // Arrange
-        testProject.setTeamAssignments(new ArrayList<>()); // Remove assignments
+                // Act & Assert
+                assertThatThrownBy(() -> requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail()))
+                                .isInstanceOf(com.zilla.eproc.exception.DuplicateRequestException.class);
+        }
 
-        when(userRepository.findByEmail(testEngineer.getEmail()))
-                .thenReturn(Optional.of(testEngineer));
-        when(projectRepository.findById(1L))
-                .thenReturn(Optional.of(testProject));
+        @Test
+        @DisplayName("Should allow duplicate with explanation")
+        void shouldAllowDuplicateWithExplanation() {
+                // Arrange
+                testRequestDTO.setDuplicateExplanation("Emergency replacement");
 
-        // Act & Assert
-        assertThatThrownBy(() -> requestService.createRequests(
-                List.of(testRequestDTO),
-                testEngineer.getEmail()))
-                .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("not assigned to this project");
-    }
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
+                when(siteRepository.findById(1L)).thenReturn(Optional.of(testSite));
+                when(requestRepository.existsByBoqReferenceCode(anyString())).thenReturn(false);
 
-    @Test
-    @DisplayName("Should generate unique BOQ codes for multiple requests")
-    void shouldGenerateUniqueBOQCodes() {
-        // Arrange
-        CreateRequestDTO request2 = CreateRequestDTO.builder()
-                .projectId(1L)
-                .siteId(1L)
-                .title("Second Request")
-                .plannedStartDate(LocalDateTime.now())
-                .plannedEndDate(LocalDateTime.now().plusDays(7))
-                .items(testRequestDTO.getItems())
-                .build();
+                com.zilla.eproc.dto.DuplicateWarningDTO warning = com.zilla.eproc.dto.DuplicateWarningDTO.builder()
+                                .requestId(99L)
+                                .build();
 
-        when(userRepository.findByEmail(testEngineer.getEmail()))
-                .thenReturn(Optional.of(testEngineer));
-        when(projectRepository.findById(1L))
-                .thenReturn(Optional.of(testProject));
-        when(siteRepository.findById(1L))
-                .thenReturn(Optional.of(testSite));
-        when(requestRepository.existsByBoqReferenceCode(anyString()))
-                .thenReturn(false);
-        when(requestRepository.saveAll(anyList()))
-                .thenAnswer(invocation -> {
-                    List<Request> requests = invocation.getArgument(0);
-                    for (int i = 0; i < requests.size(); i++) {
-                        requests.get(i).setId((long) (i + 1));
-                    }
-                    return requests;
-                });
+                when(duplicateDetectionService.findPotentialDuplicates(any(), any(), any(), any()))
+                                .thenReturn(List.of(warning));
 
-        // Act
-        List<RequestResponseDTO> result = requestService.createRequests(
-                List.of(testRequestDTO, request2),
-                testEngineer.getEmail());
+                when(requestRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
 
-        // Assert
-        assertThat(result).hasSize(2);
-        String code1 = result.get(0).getBoqReferenceCode();
-        String code2 = result.get(1).getBoqReferenceCode();
-        assertThat(code1).matches("BOQ-\\d{4}-\\d{3}");
-        assertThat(code2).matches("BOQ-\\d{4}-\\d{3}");
-        assertThat(code1).isNotEqualTo(code2);
-    }
+                // Act
+                List<RequestResponseDTO> result = requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail());
 
-    @Test
-    @DisplayName("Should get request by ID successfully")
-    void shouldGetRequestById() {
-        // Arrange
-        Request request = Request.builder()
-                .id(1L)
-                .project(testProject)
-                .site(testSite)
-                .createdBy(testEngineer)
-                .title("Test Request")
-                .status(RequestStatus.SUBMITTED)
-                .priority(Priority.NORMAL)
-                .boqReferenceCode("BOQ-2024-001")
-                .materials(new ArrayList<>())
-                .auditLogs(new ArrayList<>())
-                .build();
+                // Assert
+                assertThat(result).hasSize(1);
+                RequestResponseDTO response = result.get(0);
+                assertThat(response.getIsDuplicateFlagged()).isTrue();
+                assertThat(response.getDuplicateExplanation()).isEqualTo("Emergency replacement");
+        }
 
-        when(requestRepository.findById(1L))
-                .thenReturn(Optional.of(request));
-        when(userRepository.findByEmail(testEngineer.getEmail()))
-                .thenReturn(Optional.of(testEngineer));
+        @Test
+        @DisplayName("Should set HIGH priority when emergency flag is true")
+        void shouldSetHighPriorityForEmergency() {
+                // Arrange
+                testRequestDTO.setEmergencyFlag(true);
 
-        // Act
-        RequestResponseDTO result = requestService.getRequestById(1L, testEngineer.getEmail());
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L))
+                                .thenReturn(Optional.of(testProject));
+                when(siteRepository.findById(1L))
+                                .thenReturn(Optional.of(testSite));
+                when(requestRepository.existsByBoqReferenceCode(anyString()))
+                                .thenReturn(false);
+                when(requestRepository.saveAll(anyList()))
+                                .thenAnswer(invocation -> {
+                                        List<Request> requests = invocation.getArgument(0);
+                                        requests.forEach(r -> r.setId(1L));
+                                        return requests;
+                                });
 
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getTitle()).isEqualTo("Test Request");
-        assertThat(result.getBoqReferenceCode()).isEqualTo("BOQ-2024-001");
-    }
+                // Act
+                List<RequestResponseDTO> result = requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail());
 
-    @Test
-    @DisplayName("Should throw exception when request not found")
-    void shouldThrowExceptionWhenRequestNotFound() {
-        // Arrange
-        when(requestRepository.findById(999L))
-                .thenReturn(Optional.empty());
+                // Assert
+                assertThat(result.get(0).getPriority()).isEqualTo(Priority.HIGH);
+        }
 
-        // Act & Assert
-        assertThatThrownBy(() -> requestService.getRequestById(999L, testEngineer.getEmail()))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Request not found");
-    }
+        @Test
+        @DisplayName("Should throw ForbiddenException when user not assigned to project")
+        void shouldThrowExceptionWhenUserNotAssigned() {
+                // Arrange
+                testProject.setTeamAssignments(new ArrayList<>()); // Remove assignments
 
-    @Test
-    @DisplayName("Should get my requests successfully")
-    void shouldGetMyRequests() {
-        // Arrange
-        Request request = Request.builder()
-                .id(1L)
-                .project(testProject)
-                .site(testSite)
-                .createdBy(testEngineer)
-                .title("My Request")
-                .materials(new ArrayList<>())
-                .build();
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L))
+                                .thenReturn(Optional.of(testProject));
 
-        when(userRepository.findByEmail(testEngineer.getEmail()))
-                .thenReturn(Optional.of(testEngineer));
-        when(requestRepository.findByCreatedByIdOrderByCreatedAtDesc(testEngineer.getId()))
-                .thenReturn(List.of(request));
+                // Act & Assert
+                assertThatThrownBy(() -> requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail()))
+                                .isInstanceOf(ForbiddenException.class)
+                                .hasMessageContaining("not assigned to this project");
+        }
 
-        // Act
-        List<RequestResponseDTO> result = requestService.getMyRequests(testEngineer.getEmail());
+        @Test
+        @DisplayName("Should generate unique BOQ codes for multiple requests")
+        void shouldGenerateUniqueBOQCodes() {
+                // Arrange
+                CreateRequestDTO request2 = CreateRequestDTO.builder()
+                                .projectId(1L)
+                                .siteId(1L)
+                                .title("Second Request")
+                                .plannedStartDate(LocalDateTime.now())
+                                .plannedEndDate(LocalDateTime.now().plusDays(7))
+                                .items(testRequestDTO.getItems())
+                                .build();
 
-        // Assert
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getTitle()).isEqualTo("My Request");
-    }
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L))
+                                .thenReturn(Optional.of(testProject));
+                when(siteRepository.findById(1L))
+                                .thenReturn(Optional.of(testSite));
+                when(requestRepository.existsByBoqReferenceCode(anyString()))
+                                .thenReturn(false);
+                when(requestRepository.saveAll(anyList()))
+                                .thenAnswer(invocation -> {
+                                        List<Request> requests = invocation.getArgument(0);
+                                        for (int i = 0; i < requests.size(); i++) {
+                                                requests.get(i).setId((long) (i + 1));
+                                        }
+                                        return requests;
+                                });
+
+                // Act
+                List<RequestResponseDTO> result = requestService.createRequests(
+                                List.of(testRequestDTO, request2),
+                                testEngineer.getEmail());
+
+                // Assert
+                assertThat(result).hasSize(2);
+                String code1 = result.get(0).getBoqReferenceCode();
+                String code2 = result.get(1).getBoqReferenceCode();
+                assertThat(code1).matches("BOQ-\\d{4}-\\d{3}");
+                assertThat(code2).matches("BOQ-\\d{4}-\\d{3}");
+                assertThat(code1).isNotEqualTo(code2);
+        }
+
+        @Test
+        @DisplayName("Should get request by ID successfully")
+        void shouldGetRequestById() {
+                // Arrange
+                Request request = Request.builder()
+                                .id(1L)
+                                .project(testProject)
+                                .site(testSite)
+                                .createdBy(testEngineer)
+                                .title("Test Request")
+                                .status(RequestStatus.SUBMITTED)
+                                .priority(Priority.NORMAL)
+                                .boqReferenceCode("BOQ-2024-001")
+                                .materials(new ArrayList<>())
+                                .auditLogs(new ArrayList<>())
+                                .build();
+
+                when(requestRepository.findById(1L))
+                                .thenReturn(Optional.of(request));
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+
+                // Act
+                RequestResponseDTO result = requestService.getRequestById(1L, testEngineer.getEmail());
+
+                // Assert
+                assertThat(result).isNotNull();
+                assertThat(result.getTitle()).isEqualTo("Test Request");
+                assertThat(result.getBoqReferenceCode()).isEqualTo("BOQ-2024-001");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when request not found")
+        void shouldThrowExceptionWhenRequestNotFound() {
+                // Arrange
+                when(requestRepository.findById(999L))
+                                .thenReturn(Optional.empty());
+
+                // Act & Assert
+                assertThatThrownBy(() -> requestService.getRequestById(999L, testEngineer.getEmail()))
+                                .isInstanceOf(ResourceNotFoundException.class)
+                                .hasMessageContaining("Request not found");
+        }
+
+        @Test
+        @DisplayName("Should get my requests successfully")
+        void shouldGetMyRequests() {
+                // Arrange
+                Request request = Request.builder()
+                                .id(1L)
+                                .project(testProject)
+                                .site(testSite)
+                                .createdBy(testEngineer)
+                                .title("My Request")
+                                .materials(new ArrayList<>())
+                                .build();
+
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(requestRepository.findByCreatedByIdOrderByCreatedAtDesc(testEngineer.getId()))
+                                .thenReturn(List.of(request));
+
+                // Act
+                List<RequestResponseDTO> result = requestService.getMyRequests(testEngineer.getEmail());
+
+                // Assert
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getTitle()).isEqualTo("My Request");
+        }
 }

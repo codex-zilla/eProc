@@ -354,10 +354,18 @@ const Requests = () => {
                                   {request.title || request.additionalDetails || 'BOQ Request'}
                                 </span>
                                 {request.isDuplicateFlagged && (
-                                  <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 h-4 border-orange-200 bg-orange-50 text-orange-700 flex w-fit items-center gap-1">
-                                    <AlertTriangle className="h-2 w-2" />
-                                    Duplicate
-                                  </Badge>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex ml-1 align-middle cursor-help">
+                                          <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Duplicate Request</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </TableCell>
                               <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
@@ -426,10 +434,18 @@ const Requests = () => {
                                 {request.siteName || 'No Site'}
                               </p>
                               {request.isDuplicateFlagged && (
-                                <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 h-4 border-orange-200 bg-orange-50 text-orange-700 flex w-fit items-center gap-1">
-                                  <AlertTriangle className="h-2 w-2" />
-                                  Duplicate
-                                </Badge>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex ml-1 align-middle cursor-help">
+                                        <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Duplicate Request</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             </div>
                             <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] px-2 py-0.5 whitespace-nowrap flex-shrink-0 border`}>
