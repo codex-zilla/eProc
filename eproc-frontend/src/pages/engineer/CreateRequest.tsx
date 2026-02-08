@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import { DuplicateWarningModal } from '@/components/DuplicateWarningModal';
 
 interface Site {
   id: number;
@@ -43,6 +44,19 @@ interface BOQEntry {
   emergencyFlag: boolean;
   materials: MaterialItem[];
   labour: LabourItem[];
+  duplicateExplanation?: string; // Add explanation field
+}
+
+interface DuplicateWarning {
+  requestId: number;
+  requestTitle: string;
+  boqReferenceCode: string;
+  plannedStartDate: string;
+  plannedEndDate: string;
+  overlappingMaterials: string[];
+  timelineOverlapPercentage: number;
+  status: string;
+  siteName: string;
 }
 
 const RATE_TYPES = [
@@ -77,6 +91,12 @@ const CreateBatch = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Duplicate detection state
+  const [duplicateWarnings, setDuplicateWarnings] = useState<DuplicateWarning[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateExplanation, setDuplicateExplanation] = useState('');
+  const [pendingSubmission, setPendingSubmission] = useState<any[] | null>(null);
 
   const [boqEntries, setBoqEntries] = useState<BOQEntry[]>([
     {
@@ -117,7 +137,7 @@ const CreateBatch = () => {
         setSites(res.data);
         if (res.data.length === 1) {
           // Auto-select if only one site
-          setBoqEntries(prev => prev.map((entry, idx) => 
+          setBoqEntries(prev => prev.map((entry, idx) =>
             idx === 0 ? { ...entry, siteId: res.data[0].id.toString() } : entry
           ));
         }
@@ -172,7 +192,7 @@ const CreateBatch = () => {
   };
 
   const updateBOQEntry = (tempId: string, field: keyof BOQEntry, value: any) => {
-    setBoqEntries(boqEntries.map(entry => 
+    setBoqEntries(boqEntries.map(entry =>
       entry.tempId === tempId ? { ...entry, [field]: value } : entry
     ));
   };
@@ -216,7 +236,7 @@ const CreateBatch = () => {
       if (entry.tempId === boqTempId) {
         return {
           ...entry,
-          materials: entry.materials.map(m => 
+          materials: entry.materials.map(m =>
             m.tempId === materialTempId ? { ...m, [field]: value } : m
           ),
         };
@@ -263,7 +283,7 @@ const CreateBatch = () => {
       if (entry.tempId === boqTempId) {
         return {
           ...entry,
-          labour: entry.labour.map(l => 
+          labour: entry.labour.map(l =>
             l.tempId === labourTempId ? { ...l, [field]: value } : l
           ),
         };
@@ -337,46 +357,60 @@ const CreateBatch = () => {
 
     setSubmitting(true);
 
-    try {
-      // Create request payload - array of requests
-      const requestsPayload = boqEntries.map((entry) => ({
-        projectId: sites.find(s => s.id === parseInt(entry.siteId))?.projectId || 0,
-        siteId: parseInt(entry.siteId),
-        title: entry.boqDescription,
-        plannedStartDate: entry.plannedStart ? `${entry.plannedStart}T00:00:00` : new Date().toISOString(),
-        plannedEndDate: entry.plannedEnd ? `${entry.plannedEnd}T23:59:59` : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        emergencyFlag: entry.emergencyFlag,
-        additionalDetails: entry.workDescription || '',
-        items: [
-          ...entry.materials.map((mat) => ({
-            name: mat.materialName,
-            quantity: parseFloat(mat.quantity),
-            measurementUnit: mat.measurementUnit,
-            rateEstimate: parseFloat(mat.rateEstimate),
-            rateEstimateType: mat.rateEstimateType,
-            resourceType: 'MATERIAL',
-          })),
-          ...entry.labour.map((lab) => ({
-            name: lab.labourType,
-            quantity: parseFloat(lab.quantity),
-            measurementUnit: lab.measurementUnit,
-            rateEstimate: parseFloat(lab.rateEstimate),
-            rateEstimateType: 'ENGINEER_ESTIMATE', // Labour always uses engineer estimate
-            resourceType: 'LABOUR',
-          })),
-        ],
-      }));
+    // Create request payload - array of requests (declared outside try block for access in catch)
+    const requestsPayload = boqEntries.map((entry) => ({
+      projectId: sites.find(s => s.id === parseInt(entry.siteId))?.projectId || 0,
+      siteId: parseInt(entry.siteId),
+      title: entry.boqDescription,
+      plannedStartDate: entry.plannedStart ? `${entry.plannedStart}T00:00:00` : new Date().toISOString(),
+      plannedEndDate: entry.plannedEnd ? `${entry.plannedEnd}T23:59:59` : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      emergencyFlag: entry.emergencyFlag,
+      additionalDetails: entry.workDescription || '',
+      duplicateExplanation: entry.duplicateExplanation, // Include explanation if provided
+      items: [
+        ...entry.materials.map((mat) => ({
+          name: mat.materialName,
+          quantity: parseFloat(mat.quantity),
+          measurementUnit: mat.measurementUnit,
+          rateEstimate: parseFloat(mat.rateEstimate),
+          rateEstimateType: mat.rateEstimateType,
+          resourceType: 'MATERIAL',
+        })),
+        ...entry.labour.map((lab) => ({
+          name: lab.labourType,
+          quantity: parseFloat(lab.quantity),
+          measurementUnit: lab.measurementUnit,
+          rateEstimate: parseFloat(lab.rateEstimate),
+          rateEstimateType: 'ENGINEER_ESTIMATE', // Labour always uses engineer estimate
+          resourceType: 'LABOUR',
+        })),
+      ],
+    }));
 
+    try {
       // Create requests
       await api.post('/requests', requestsPayload);
 
       navigate('/engineer/batches');
     } catch (err: any) {
       console.error('Failed to submit batch:', err);
-      
-      // Extract meaningful error message
+
+      // Handle duplicate request detection (HTTP 409)
+      if (err.response?.status === 409 && err.response?.data?.duplicates) {
+        const duplicates = err.response.data.duplicates;
+        console.log('Duplicate requests detected:', duplicates);
+
+        // Store the pending submission and show duplicate modal
+        setPendingSubmission(requestsPayload);
+        setDuplicateWarnings(duplicates);
+        setShowDuplicateModal(true);
+        setSubmitting(false);
+        return;
+      }
+
+      // Extract meaningful error message for other errors
       let errorMessage = 'Failed to submit batch';
-      
+
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.data?.error) {
@@ -384,15 +418,67 @@ const CreateBatch = () => {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
-      
+
       // Scroll to top to show error
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Handle duplicate confirmation with explanation
+  const handleDuplicateConfirm = async (explanation: string) => {
+    if (!pendingSubmission) return;
+
+    setShowDuplicateModal(false);
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      // Add explanation to pending requests
+      const requestsWithExplanation = pendingSubmission.map((req: any) => ({
+        ...req,
+        duplicateExplanation: explanation,
+      }));
+
+      // Resubmit with explanation
+      await api.post('/requests', requestsWithExplanation);
+
+      navigate('/engineer/batches');
+    } catch (err: any) {
+      console.error('Failed to submit batch after duplicate confirmation:', err);
+
+      let errorMessage = 'Failed to submit batch';
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setSubmitting(false);
+      setPendingSubmission(null);
+      setDuplicateWarnings([]);
+      setDuplicateExplanation('');
+    }
+  };
+
+  // Handle duplicate cancellation
+  const handleDuplicateCancel = () => {
+    setShowDuplicateModal(false);
+    setPendingSubmission(null);
+    setDuplicateWarnings([]);
+    setDuplicateExplanation('');
+    setSubmitting(false);
+  };
+
 
   if (loading) {
     return (
@@ -440,10 +526,10 @@ const CreateBatch = () => {
                   <Label htmlFor={`site-${entry.tempId}`} className="text-xs sm:text-sm">
                     Site <span className="text-red-500">*</span>
                   </Label>
-                  <Select 
-                    value={entry.siteId} 
-                    onValueChange={(val) => updateBOQEntry(entry.tempId, 'siteId', val)} 
-                    required 
+                  <Select
+                    value={entry.siteId}
+                    onValueChange={(val) => updateBOQEntry(entry.tempId, 'siteId', val)}
+                    required
                     disabled={sites.length === 0}
                   >
                     <SelectTrigger id={`site-${entry.tempId}`} className="h-9 sm:h-10 text-xs sm:text-sm">
@@ -825,10 +911,10 @@ const CreateBatch = () => {
 
         {/* Form Actions */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => navigate('/engineer/requests')} 
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/engineer/requests')}
             className="h-9 sm:h-10 text-xs sm:text-sm"
           >
             Cancel
@@ -842,6 +928,16 @@ const CreateBatch = () => {
           </Button>
         </div>
       </form>
+
+      {showDuplicateModal && (
+        <DuplicateWarningModal
+          warnings={duplicateWarnings}
+          onConfirm={handleDuplicateConfirm}
+          onCancel={handleDuplicateCancel}
+          explanation={duplicateExplanation}
+          onExplanationChange={setDuplicateExplanation}
+        />
+      )}
     </div>
   );
 };

@@ -26,7 +26,7 @@ public class CreateMaterialItemDTO {
     private BigDecimal quantity;
 
     @NotBlank(message = "Measurement unit is required")
-    @Pattern(regexp = "^(m³|m²|m|kg|No|LS|ton|bag|bundle|trip|drum|pcs)$", message = "Invalid measurement unit")
+    @Pattern(regexp = "^(m³|m²|m|kg|No|LS|ton|bag|bundle|trip|drum|pcs|Days)$", message = "Invalid measurement unit")
     private String measurementUnit;
 
     @NotNull(message = "Rate estimate is required")

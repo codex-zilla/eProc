@@ -96,4 +96,18 @@ public class GlobalExceptionHandler {
         body.put("message", "Database constraint violation. Please check for duplicate entries.");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
+
+    @ExceptionHandler(DuplicateRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateRequest(DuplicateRequestException ex) {
+        log.warn("Duplicate request detected: {}", ex.getMessage());
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("error", "Duplicate Request Detected");
+        body.put("message", ex.getMessage());
+        body.put("duplicates", ex.getDuplicates());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
 }

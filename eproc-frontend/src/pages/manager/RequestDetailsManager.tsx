@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -18,7 +18,8 @@ import {
   Calendar,
   User,
   Clock,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 
 interface MaterialItem {
@@ -50,6 +51,8 @@ interface RequestDetails {
   createdByName: string;
   createdAt: string;
   totalValue: number;
+  isDuplicateFlagged?: boolean;
+  duplicateExplanation?: string;
   materials: MaterialItem[];
 }
 
@@ -125,7 +128,7 @@ const RequestDetailsManager = () => {
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'PENDING': return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
-      case 'SUBMITTED': return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'PARTIALLY_APPROVED': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'APPROVED': return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'REJECTED': return 'bg-red-100 text-red-800 hover:bg-red-200';
       default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200';
@@ -213,29 +216,58 @@ const RequestDetailsManager = () => {
         <div className="lg:col-span-2 space-y-2 sm:space-y-3">
           {/* Project Info Card */}
           <Card className="border-slate-200 shadow-md overflow-hidden">
-            <div className="bg-[#2a3455] text-white p-2 ps-3">
+            <CardHeader className="p-2 sm:p-3 bg-[#2a3455] rounded-t-lg">
+              <CardTitle className="text-sm sm:text-base text-white tracking-wide">
+                Project: {request.projectName}
+              </CardTitle>
+            </CardHeader>
+            {/* <div className="bg-[#2a3455] text-white p-2 ps-3">
               <h3 className="text-xs sm:text-base uppercase tracking-wide mb-0 font-semibold">PROJECT: <span className="font-bold">{request.projectName}</span></h3>
               <h3 className="text-xs sm:text-base uppercase tracking-wide font-semibold">SITE: <span className="font-normal">{request.siteName}</span></h3>
-            </div>
-            
+            </div> */}
+
             {/* Request Details Section */}
-            <div className="bg-white text-left space-y-2">
+            <CardContent className='p-0 space-y-2'>
               {/* Title/Description */}
               <div className="px-3 pt-1 mb-0">
-                <h4 className="font-bold text-base sm:text-xl text-[#2a3455]">
+                <h4 className="font-semibold text-base sm:text-xl text-[#2a3455] tracking-wide">
                   {request.title || request.boqReferenceCode || 'BOQ Request'}
                 </h4>
               </div>
-              
+
               {/* Additional Information/Work Details */}
               {request.additionalDetails && (
-                <div className="px-3 mb-3">
+                <div className="px-3 mb-1">
                   <p className="text-xs sm:text-sm text-[#2a3455]">{request.additionalDetails}</p>
+                  <p className="text-xs sm:text-sm text-[#2a3455]">
+                    Site: <span className="font-normal uppercase tracking-tighter">{request.siteName}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Duplicate Warning */}
+              {request.isDuplicateFlagged && (
+                <div className="mx-3 mt-1 mb-2 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-orange-800">Duplicate Request Warning</p>
+                      <p className="text-xs text-orange-700 mt-1">
+                        This request was flagged as a potential duplicate of another request.
+                      </p>
+                      {request.duplicateExplanation && (
+                        <div className="mt-2 bg-white/50 p-2 rounded border border-orange-100">
+                          <p className="text-xs font-semibold text-orange-800 mb-0.5">Engineer's Explanation:</p>
+                          <p className="text-xs text-orange-700 italic">"{request.duplicateExplanation}"</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Status Badges */}
-              <div className="px-3 py-1 flex flex-wrap items-center gap-2">
+              <div className="px-3 py-1 flex flex-wrap items-center gap-2 tracking-tight">
                 <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] sm:text-xs px-3 py-1 font-semibold`}>
                   {request.status}
                 </Badge>
@@ -246,7 +278,7 @@ const RequestDetailsManager = () => {
                   </Badge>
                 )}
               </div>
-              
+
               {/* Request Metadata*/}
               <div className="grid grid-cols-2 gap-3 pt-1 p-3 pt-1 mb-0 bg-[#fefefe]">
                 <div className="flex items-start gap-2">
@@ -254,8 +286,8 @@ const RequestDetailsManager = () => {
                   <div>
                     <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Starting</p>
                     <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
-                      {request.plannedStartDate 
-                        ? new Date(request.plannedStartDate).toLocaleDateString() 
+                      {request.plannedStartDate
+                        ? new Date(request.plannedStartDate).toLocaleDateString()
                         : 'Not specified'}
                     </p>
                   </div>
@@ -265,8 +297,8 @@ const RequestDetailsManager = () => {
                   <div>
                     <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Ending</p>
                     <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
-                      {request.plannedEndDate 
-                        ? new Date(request.plannedEndDate).toLocaleDateString() 
+                      {request.plannedEndDate
+                        ? new Date(request.plannedEndDate).toLocaleDateString()
                         : 'Not specified'}
                     </p>
                   </div>
@@ -288,100 +320,134 @@ const RequestDetailsManager = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Total Estimate */}
               <div className="border-t border-slate-200 p-3 pt-1 mb-0 bg-[#fcfcfc]">
                 <p className="text-lg sm:text-xl font-bold text-[#2a3455]">
-                  <span  className="text-xs sm:text-sm text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
-                   TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <span className="text-xs sm:text-sm text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
+                  <span className='font-mono tracking-tighter'>TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </p>
                 <p className="text-xs sm:text-sm text-slate-600 mt-1 font-semibold">
                   Status: <span className="font-bold text-yellow-400">{pendingCount} {pendingCount === 1 ? 'Pending Review' : 'Pending Reviews'}</span>
                 </p>
               </div>
-            </div>
+            </CardContent>
+
           </Card>
 
           {/* Material Breakdown Card */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="p-3 sm:p-3 md:border-b border-slate-200 bg-[#2a3455] rounded-t-lg">
-              <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-white mb-0">
-                Material Breakdown - Review Items
-              </CardTitle>
-              <p className="text-xs sm:text-sm text-white">
-                Review and approve or reject individual items
-              </p>
+          <Card className="border-slate-200 shadow-sm overflow-hidden">
+            <CardHeader className="p-2 sm:p-3 bg-[#2a3455] rounded-t-lg">
+              <CardTitle className="text-sm sm:text-base text-white">Material Breakdown</CardTitle>
             </CardHeader>
-            
+
             <CardContent className="p-0">
               {/* Materials Section */}
               {materials.length > 0 && (
-                <div>
-                  <div className="bg-slate-50 px-3 py-2 border-b border-b-slate-200">
-                    <h3 className="text-sm font-semibold text-slate-800">Cost of Materials</h3>
-                  </div>
-                  
+                <div className="border-b border-slate-200">
+                  <h3 className="text-sm font-semibold text-[#2a3455] px-2 py-3 border-b border-slate-100 bg-slate-50">
+                    Cost of Materials
+                  </h3>
+
                   {/* Desktop Table */}
                   <div className="hidden md:block overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-[#434655]">
+                    <Table className="w-full">
+                      <TableHeader className="bg-slate-100 border-b border-slate-200">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-white text-sm px-4 py-2">Material</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Qty</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Unit</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-right hidden lg:table-cell">Rate(TZS)</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-right">Amount(TZS)</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Status</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Actions</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2">Material</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Qty</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Unit</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-right hidden lg:table-cell">Rate(TZS)</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-right">Amount(TZS)</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Status</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {materials.map((item) => (
-                          <TableRow key={item.id} className="hover:bg-slate-50">
-                            <TableCell className="px-4 py-2.5 font-medium text-slate-900 text-sm">
-                              {item.name}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
-                              {item.quantity}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
-                              {item.measurementUnit}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600 hidden lg:table-cell">
-                              {item.rateEstimate.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-right text-sm font-medium text-slate-900">
-                              {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center">
-                              <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
-                                {item.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center">
-                              {item.status === 'PENDING' && (
-                                <div className="flex items-center justify-center gap-1">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleMaterialAction(item.id, 'APPROVED')}
-                                    disabled={processingMaterialId === item.id}
-                                    className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
-                                  >
-                                    <CheckCircle className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setRejectingMaterialId(item.id)}
-                                    disabled={processingMaterialId === item.id}
-                                    className="h-7 px-2 text-[10px]"
-                                  >
-                                    <XCircle className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
+                          <Fragment key={item.id}>
+                            <TableRow className="hover:bg-slate-50 transition-colors cursor-pointer">
+                              <TableCell className="px-2 py-2.5 font-medium text-slate-700 text-sm tracking-tighter">
+                                {item.name}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center text-sm font-mono text-slate-600 tracking-tighter">
+                                {item.quantity}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center text-sm text-slate-600 tracking-tighter">
+                                {item.measurementUnit}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter">
+                                {item.rateEstimate.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-right text-sm font-medium font-mono text-slate-700 tracking-tighter">
+                                {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center tracking-tighter">
+                                <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
+                                  {item.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center tracking-tighter">
+                                {item.status === 'PENDING' && (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                      disabled={processingMaterialId === item.id}
+                                      className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
+                                    >
+                                      <CheckCircle className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => setRejectingMaterialId(item.id)}
+                                      disabled={processingMaterialId === item.id}
+                                      className="h-7 px-2 text-[10px]"
+                                    >
+                                      <XCircle className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            {rejectingMaterialId === item.id && (
+                              <TableRow className="bg-slate-50">
+                                <TableCell colSpan={7} className="p-0 border-b border-slate-200">
+                                  <div className="flex flex-col gap-3">
+                                    <Textarea
+                                      placeholder="Please provide a reason for rejecting this item..."
+                                      value={rejectComment}
+                                      onChange={(e) => setRejectComment(e.target.value)}
+                                      className="w-full resize-none h-24 text-sm rounded-none p-2"
+                                      autoFocus
+                                    />
+                                    <div className="flex justify-end gap-3 px-3 pb-2 pt-0">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className='bg-slate-300'
+                                        onClick={() => {
+                                          setRejectingMaterialId(null);
+                                          setRejectComment('');
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleMaterialAction(item.id, 'REJECTED', rejectComment)}
+                                        disabled={!rejectComment.trim() || processingMaterialId === item.id}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        Reject Item
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
                         ))}
                       </TableBody>
                     </Table>
@@ -391,62 +457,62 @@ const RequestDetailsManager = () => {
                   <div className="md:hidden space-y-3">
                     {materials.map((item) => (
                       <div key={item.id} className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200">
-                          {/* Material Name and Quantity */}
-                          <div className="space-y-1">
-                            <p className="text-xs text-slate-600 mb-0">Material</p>
-                            <p className="font-bold text-sm text-slate-900">{item.name}</p>
+                        {/* Material Name and Quantity */}
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-600 mb-0">Material</p>
+                          <p className="font-bold text-sm text-slate-900">{item.name}</p>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <p className="text-slate-600">Qty</p>
+                            <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
                           </div>
-                          
-                          {/* Details Grid */}
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <p className="text-slate-600">Qty</p>
-                              <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-600">Rate</p>
-                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-600">Amount</p>
-                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
-                            </div>
+                          <div>
+                            <p className="text-slate-600">Rate</p>
+                            <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
                           </div>
-                          
-                          {/* Status */}
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-slate-600">Status:</p>
-                            <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
-                              {item.status}
-                            </Badge>
+                          <div>
+                            <p className="text-slate-600">Amount</p>
+                            <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
                           </div>
-                          
-                          {/* Action Buttons */}
-                          {item.status === 'PENDING' && (
-                            <div className="flex gap-2 pt-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleMaterialAction(item.id, 'APPROVED')}
-                                disabled={processingMaterialId === item.id}
-                                className="flex-1 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs"
-                              >
-                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => setRejectingMaterialId(item.id)}
-                                disabled={processingMaterialId === item.id}
-                                className="flex-1 h-8 rounded-full text-xs"
-                              >
-                                <XCircle className="h-3.5 w-3.5 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                          
-                        
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-slate-600">Status:</p>
+                          <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
+                            {item.status}
+                          </Badge>
+                        </div>
+
+                        {/* Action Buttons */}
+                        {item.status === 'PENDING' && (
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                              disabled={processingMaterialId === item.id}
+                              className="flex-1 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => setRejectingMaterialId(item.id)}
+                              disabled={processingMaterialId === item.id}
+                              className="flex-1 h-8 rounded-full text-xs"
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+
+
                         {/* Rejection Comment Input - Shows below buttons */}
                         {rejectingMaterialId === item.id && (
                           <div className="space-y-2 pt-2">
@@ -464,7 +530,7 @@ const RequestDetailsManager = () => {
                                   setRejectingMaterialId(null);
                                   setRejectComment('');
                                 }}
-                                className="flex-1 h-7 text-xs"
+                                className="flex-1 h-7 text-xs bg-slate-300"
                               >
                                 Cancel
                               </Button>
@@ -485,81 +551,119 @@ const RequestDetailsManager = () => {
                   </div>
 
                   {/* Materials Subtotal */}
-                  <div className="bg-slate-50 px-4 py-2 flex justify-between border-t border-slate-200 hidden md:flex">
-                    <span className="text-sm font-medium text-slate-600">Materials Subtotal</span>
-                    <span className="text-sm font-bold text-slate-900">TZS {materialTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <div className="bg-slate-50 px-2 py-2 flex justify-end border-t border-slate-200 hidden md:flex">
+                    <span className="text-sm font-medium text-slate-600 me-3">Materials Subtotal:</span>
+                    <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">TZS {materialTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               )}
 
               {/* Labour Section */}
               {labour.length > 0 && (
-                <div>
-                  <div className="bg-slate-50 px-3 py-2 mt-5 border-b border-slate-200">
-                    <h3 className="text-sm font-semibold text-slate-800">Cost of Labour</h3>
-                  </div>
-                  
+                <div className="border-b border-slate-200 mt-5">
+                  <h3 className="text-sm font-semibold text-[#2a3455] px-2 py-3 border-b border-slate-100 bg-slate-50">
+                    Cost of Labour
+                  </h3>
+
                   {/* Desktop Table */}
                   <div className="hidden md:block overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-[#434655]">
+                    <Table className="w-full">
+                      <TableHeader className="bg-slate-100 border-b border-slate-200">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-white text-sm px-4 py-2">Labour</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Qty</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Unit</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-right hidden lg:table-cell">Rate(TZS)</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-right">Amount(TZS)</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Status</TableHead>
-                          <TableHead className="text-white text-sm px-4 py-2 text-center">Actions</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2">Labour</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Qty</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Unit</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-right hidden lg:table-cell">Rate(TZS)</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-right">Amount(TZS)</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Status</TableHead>
+                          <TableHead className="text-slate-800 text-xs sm:text-sm tracking-tigher font-semibold px-2 py-2 text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {labour.map((item) => (
-                          <TableRow key={item.id} className="hover:bg-slate-50">
-                            <TableCell className="px-4 py-2.5 font-medium text-slate-900 text-sm">
-                              {item.name}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
-                              {item.quantity}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center text-sm text-slate-600">
-                              {item.measurementUnit}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-right text-sm text-slate-600 hidden lg:table-cell">
-                              {item.rateEstimate.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-right text-sm font-medium text-slate-900">
-                              {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center">
-                              <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
-                                {item.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="px-4 py-2.5 text-center">
-                              {item.status === 'PENDING' && (
-                                <div className="flex items-center justify-center gap-1">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleMaterialAction(item.id, 'APPROVED')}
-                                    disabled={processingMaterialId === item.id}
-                                    className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
-                                  >
-                                    <CheckCircle className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setRejectingMaterialId(item.id)}
-                                    disabled={processingMaterialId === item.id}
-                                    className="h-7 px-2 text-[10px]"
-                                  >
-                                    <XCircle className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
+                          <Fragment key={item.id}>
+                            <TableRow className="hover:bg-slate-50 transition-colors cursor-pointer">
+                              <TableCell className="px-2 py-2.5 font-medium text-slate-700 text-sm tracking-tighter">
+                                {item.name}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center text-sm font-mono text-slate-600 tracking-tighter">
+                                {item.quantity}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center text-sm text-slate-600 tracking-tighter">
+                                {item.measurementUnit}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter">
+                                {item.rateEstimate.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-right text-sm font-medium font-mono text-slate-700 tracking-tighter">
+                                {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center tracking-tighter">
+                                <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
+                                  {item.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-center tracking-tighter">
+                                {item.status === 'PENDING' && (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                      disabled={processingMaterialId === item.id}
+                                      className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
+                                    >
+                                      <CheckCircle className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => setRejectingMaterialId(item.id)}
+                                      disabled={processingMaterialId === item.id}
+                                      className="h-7 px-2 text-[10px]"
+                                    >
+                                      <XCircle className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            {rejectingMaterialId === item.id && (
+                              <TableRow className="bg-slate-50">
+                                <TableCell colSpan={7} className="p-0 border-b border-slate-200">
+                                  <div className="flex flex-col gap-3">
+                                    <Textarea
+                                      placeholder="Please provide a reason for rejecting this item..."
+                                      value={rejectComment}
+                                      onChange={(e) => setRejectComment(e.target.value)}
+                                      className="w-full resize-none h-24 text-sm rounded-none p-2"
+                                      autoFocus
+                                    />
+                                    <div className="flex justify-end gap-3 px-3 pb-2 pt-0">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className='bg-slate-300'
+                                        onClick={() => {
+                                          setRejectingMaterialId(null);
+                                          setRejectComment('');
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleMaterialAction(item.id, 'REJECTED', rejectComment)}
+                                        disabled={!rejectComment.trim() || processingMaterialId === item.id}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        Reject Item
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
                         ))}
                       </TableBody>
                     </Table>
@@ -569,62 +673,62 @@ const RequestDetailsManager = () => {
                   <div className="md:hidden space-y-3">
                     {labour.map((item) => (
                       <div key={item.id} className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200">
-                          {/* Labour Name */}
-                          <div className="space-y-1">
-                            <p className="text-xs text-slate-600 mb-0">Labour</p>
-                            <p className="font-bold text-sm text-slate-900">{item.name}</p>
+                        {/* Labour Name */}
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-600 mb-0">Labour</p>
+                          <p className="font-bold text-sm text-slate-900">{item.name}</p>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <p className="text-slate-600">Qty</p>
+                            <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
                           </div>
-                          
-                          {/* Details Grid */}
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <p className="text-slate-600">Qty</p>
-                              <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-600">Rate</p>
-                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-600">Amount</p>
-                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
-                            </div>
+                          <div>
+                            <p className="text-slate-600">Rate</p>
+                            <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
                           </div>
-                          
-                          {/* Status */}
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-slate-600">Status:</p>
-                            <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
-                              {item.status}
-                            </Badge>
+                          <div>
+                            <p className="text-slate-600">Amount</p>
+                            <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
                           </div>
-                          
-                          {/* Action Buttons */}
-                          {item.status === 'PENDING' && (
-                            <div className="flex gap-2 pt-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleMaterialAction(item.id, 'APPROVED')}
-                                disabled={processingMaterialId === item.id}
-                                className="flex-1 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs"
-                              >
-                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => setRejectingMaterialId(item.id)}
-                                disabled={processingMaterialId === item.id}
-                                className="flex-1 h-8 rounded-full text-xs"
-                              >
-                                <XCircle className="h-3.5 w-3.5 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                          
-                        
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-slate-600">Status:</p>
+                          <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
+                            {item.status}
+                          </Badge>
+                        </div>
+
+                        {/* Action Buttons */}
+                        {item.status === 'PENDING' && (
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                              disabled={processingMaterialId === item.id}
+                              className="flex-1 h-8 bg-green-600 hover:bg-green-700 text-white rounded-full text-xs"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => setRejectingMaterialId(item.id)}
+                              disabled={processingMaterialId === item.id}
+                              className="flex-1 h-8 rounded-full text-xs"
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+
+
                         {/* Rejection Comment Input - Shows below buttons */}
                         {rejectingMaterialId === item.id && (
                           <div className="space-y-2 pt-2">
@@ -642,7 +746,7 @@ const RequestDetailsManager = () => {
                                   setRejectingMaterialId(null);
                                   setRejectComment('');
                                 }}
-                                className="flex-1 h-7 text-xs"
+                                className="flex-1 h-7 text-xs bg-slate-300"
                               >
                                 Cancel
                               </Button>
@@ -663,9 +767,9 @@ const RequestDetailsManager = () => {
                   </div>
 
                   {/* Labour Subtotal */}
-                  <div className="bg-slate-50 px-4 py-3 flex justify-between border-t border-slate-200 hidden md:flex">
-                    <span className="text-sm font-medium text-slate-600">Labour Subtotal</span>
-                    <span className="text-sm font-bold text-slate-900">TZS {labourTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <div className="bg-slate-50 px-2 py-2 flex justify-end border-t border-slate-200 hidden md:flex">
+                    <span className="text-sm font-medium text-slate-600 me-3">Labour Subtotal:</span>
+                    <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">TZS {labourTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               )}
@@ -722,55 +826,7 @@ const RequestDetailsManager = () => {
         </div>
       </div>
 
-      {/* Rejection Comment Modal - Desktop Only */}
-      {rejectingMaterialId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm hidden md:flex items-center justify-center p-4 z-50">
-          <Card className="max-w-md w-full shadow-xl border-slate-200">
-            <CardHeader className="p-5 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold text-slate-900">Reason for Rejection</CardTitle>
-                <button 
-                  onClick={() => {
-                    setRejectingMaterialId(null);
-                    setRejectComment('');
-                  }} 
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4">
-              <Textarea
-                placeholder="Please provide a reason for rejecting this item..."
-                value={rejectComment}
-                onChange={(e) => setRejectComment(e.target.value)}
-                className="w-full resize-none h-24 text-sm"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setRejectingMaterialId(null);
-                    setRejectComment('');
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleMaterialAction(rejectingMaterialId, 'REJECTED', rejectComment)}
-                  disabled={!rejectComment.trim() || processingMaterialId === rejectingMaterialId}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                >
-                  Submit
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+
 
       {/* Material Detail Modal (Mobile) */}
       {selectedMaterial && (
@@ -811,7 +867,7 @@ const RequestDetailsManager = () => {
                   {selectedMaterial.status}
                 </Badge>
               </div>
-              
+
               {selectedMaterial.status === 'PENDING' && (
                 <div className="flex gap-2 pt-2 border-t border-slate-100">
                   <Button
@@ -837,7 +893,7 @@ const RequestDetailsManager = () => {
                   </Button>
                 </div>
               )}
-              
+
               <Button
                 variant="outline"
                 onClick={() => setSelectedMaterial(null)}

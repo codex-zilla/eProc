@@ -62,13 +62,23 @@ public class Request {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private RequestStatus status = RequestStatus.SUBMITTED;
+    private RequestStatus status = RequestStatus.PENDING;
 
     @Column(name = "additional_details", columnDefinition = "TEXT")
     private String additionalDetails;
 
     @Column(name = "boq_reference_code", unique = true, length = 50)
     private String boqReferenceCode;
+
+    @Column(name = "is_duplicate_flagged")
+    @Builder.Default
+    private Boolean isDuplicateFlagged = false;
+
+    @Column(name = "duplicate_explanation", columnDefinition = "TEXT")
+    private String duplicateExplanation;
+
+    @Column(name = "duplicate_of_request_id")
+    private Long duplicateOfRequestId;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

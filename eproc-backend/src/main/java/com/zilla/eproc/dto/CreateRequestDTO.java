@@ -48,6 +48,12 @@ public class CreateRequestDTO {
     private List<CreateMaterialItemDTO> items;
 
     /**
+     * Explanation for duplicate request (required if duplicate detected).
+     */
+    @Size(max = 1000, message = "Duplicate explanation cannot exceed 1000 characters")
+    private String duplicateExplanation;
+
+    /**
      * Validates that plannedStartDate is before plannedEndDate.
      */
     @AssertTrue(message = "Planned start date must be before end date")

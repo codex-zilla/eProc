@@ -130,4 +130,20 @@ public class RequestController {
                 requestId, materialId, dto, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Update material details (quantity, rate, etc.).
+     * PATCH /api/requests/{requestId}/materials/{materialId}
+     */
+    @PatchMapping("/{requestId}/materials/{materialId}")
+    public ResponseEntity<com.zilla.eproc.dto.MaterialItemResponseDTO> updateMaterialDetails(
+            @PathVariable Long requestId,
+            @PathVariable Long materialId,
+            @Valid @RequestBody com.zilla.eproc.dto.UpdateMaterialItemDTO dto,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        com.zilla.eproc.dto.MaterialItemResponseDTO response = requestService.updateMaterialDetails(
+                requestId, materialId, dto, userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
 }

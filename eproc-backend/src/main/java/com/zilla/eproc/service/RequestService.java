@@ -31,6 +31,7 @@ public class RequestService {
         private final UserRepository userRepository;
         private final RequestAuditLogRepository auditLogRepository;
         private final MaterialRepository materialRepository;
+        private final DuplicateDetectionService duplicateDetectionService;
 
         /**
          * Create multiple requests at once.
@@ -95,7 +96,7 @@ public class RequestService {
                                 .plannedStartDate(dto.getPlannedStartDate())
                                 .plannedEndDate(dto.getPlannedEndDate())
                                 .priority(priority)
-                                .status(RequestStatus.SUBMITTED)
+                                .status(RequestStatus.PENDING)
                                 .additionalDetails(dto.getAdditionalDetails())
                                 .build();
 
@@ -103,6 +104,39 @@ public class RequestService {
                 String boqCode = generateBoqReferenceCode(usedBoqCodes);
                 request.setBoqReferenceCode(boqCode);
                 usedBoqCodes.add(boqCode);
+
+                // DUPLICATE DETECTION: Check for overlapping requests
+                List<String> materialNames = dto.getItems().stream()
+                                .map(CreateMaterialItemDTO::getName)
+                                .distinct()
+                                .collect(Collectors.toList());
+
+                List<DuplicateWarningDTO> potentialDuplicates = duplicateDetectionService
+                                .findPotentialDuplicates(
+                                                dto.getSiteId(),
+                                                materialNames,
+                                                dto.getPlannedStartDate(),
+                                                dto.getPlannedEndDate());
+
+                if (!potentialDuplicates.isEmpty()) {
+                        // If duplicates found and no explanation provided, throw exception
+                        if (dto.getDuplicateExplanation() == null ||
+                                        dto.getDuplicateExplanation().trim().isEmpty()) {
+
+                                log.warn("Duplicate request detected for site {} without explanation",
+                                                dto.getSiteId());
+                                throw new com.zilla.eproc.exception.DuplicateRequestException(
+                                                "Duplicate request detected. Please provide an explanation.",
+                                                potentialDuplicates);
+                        }
+
+                        // If explanation provided, flag as duplicate
+                        log.info("Duplicate request detected but explanation provided: {}",
+                                        dto.getDuplicateExplanation());
+                        request.setIsDuplicateFlagged(true);
+                        request.setDuplicateExplanation(dto.getDuplicateExplanation());
+                        request.setDuplicateOfRequestId(potentialDuplicates.get(0).getRequestId());
+                }
 
                 // Create materials
                 List<Material> materials = dto.getItems().stream()
@@ -222,7 +256,7 @@ public class RequestService {
         }
 
         /**
-         * Get all pending (SUBMITTED) requests for projects owned by the current user.
+         * Get all pending requests for projects owned by the current user.
          */
         @Transactional(readOnly = true)
         public List<RequestResponseDTO> getPendingRequests(String userEmail) {
@@ -235,7 +269,7 @@ public class RequestService {
                 }
 
                 List<Request> requests = requestRepository.findByStatusAndProjectOwnerIdOrderByCreatedAtDesc(
-                                RequestStatus.SUBMITTED, owner.getId());
+                                RequestStatus.PENDING, owner.getId());
 
                 return requests.stream()
                                 .map(r -> mapToResponseDTO(r, true))
@@ -424,17 +458,103 @@ public class RequestService {
                 long rejectedCount = materials.stream()
                                 .filter(m -> m.getStatus() == MaterialStatus.REJECTED)
                                 .count();
+                long pendingCount = materials.stream()
+                                .filter(m -> m.getStatus() == MaterialStatus.PENDING)
+                                .count();
                 long totalCount = materials.size();
 
-                if (approvedCount == totalCount) {
-                        // All materials approved - set request to APPROVED
+                if (pendingCount > 0) {
+                        // Any pending material -> Request is PENDING
+                        // Note: User specified "submitted" requests become "pending" if they have
+                        // pending items.
+                        // We will use PENDING as the status for requests under review.
+                        request.setStatus(RequestStatus.PENDING);
+                } else if (approvedCount == totalCount) {
+                        // All materials approved -> APPROVED
                         request.setStatus(RequestStatus.APPROVED);
                 } else if (rejectedCount == totalCount) {
-                        // All materials rejected - set request to REJECTED
+                        // All materials rejected -> REJECTED
                         request.setStatus(RequestStatus.REJECTED);
+                } else {
+                        // usage: (pending == 0) && (rejected > 0) && (approved > 0)
+                        // Mixed approved/rejected -> PARTIALLY_APPROVED
+                        request.setStatus(RequestStatus.PARTIALLY_APPROVED);
                 }
-                // Otherwise keep as SUBMITTED (partial approval state)
 
                 requestRepository.save(request);
+        }
+
+        /**
+         * Update material details (quantity, rate, etc.).
+         */
+        @Transactional
+        public MaterialItemResponseDTO updateMaterialDetails(Long requestId, Long materialId,
+                        UpdateMaterialItemDTO dto,
+                        String userEmail) {
+                User user = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                Request request = requestRepository.findById(requestId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+                Material material = materialRepository.findById(materialId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Material not found"));
+
+                // Verify material belongs to this request
+                if (!material.getRequest().getId().equals(requestId)) {
+                        throw new ForbiddenException("Material does not belong to this request");
+                }
+
+                // Authorization: Only Creator (Engineer) or Project Owner can update
+                boolean isCreator = request.getCreatedBy().getId().equals(user.getId());
+                boolean isProjectOwner = request.getProject().getOwner().getId().equals(user.getId());
+
+                if (!isCreator && !isProjectOwner) {
+                        throw new ForbiddenException("You don't have permission to update this material");
+                }
+
+                // Update fields
+                if (dto.getQuantity() != null)
+                        material.setQuantity(dto.getQuantity());
+                if (dto.getMeasurementUnit() != null)
+                        material.setMeasurementUnit(dto.getMeasurementUnit());
+                if (dto.getRateEstimate() != null)
+                        material.setRateEstimate(dto.getRateEstimate());
+                if (dto.getRateEstimateType() != null)
+                        material.setRateEstimateType(RateEstimateType.valueOf(dto.getRateEstimateType()));
+
+                // If material was REJECTED, reset to PENDING and increment revision
+                // If material is already PENDING/APPROVED, we just update it (maybe it's a
+                // correction before approval)
+                if (material.getStatus() == MaterialStatus.REJECTED) {
+                        material.setStatus(MaterialStatus.PENDING);
+                        material.setRevisionNumber(material.getRevisionNumber() + 1);
+
+                        // If parent Request was REJECTED, check if we can move it back to SUBMITTED
+                        if (request.getStatus() == RequestStatus.REJECTED) {
+                                // Check if any other materials are still REJECTED
+                                boolean anyRejected = request.getMaterials().stream()
+                                                .anyMatch(m -> !m.getId().equals(materialId)
+                                                                && m.getStatus() == MaterialStatus.REJECTED);
+
+                                if (!anyRejected) {
+                                        request.setStatus(RequestStatus.PENDING);
+                                }
+                        }
+                }
+
+                materialRepository.save(material);
+                requestRepository.save(request);
+
+                // Audit log
+                RequestAuditLog auditLog = RequestAuditLog.builder()
+                                .request(request)
+                                .action("MATERIAL_UPDATED")
+                                .details("Material '" + material.getName() + "' updated")
+                                .performedBy(user)
+                                .build();
+                auditLogRepository.save(auditLog);
+
+                return mapMaterialToDTO(material);
         }
 }

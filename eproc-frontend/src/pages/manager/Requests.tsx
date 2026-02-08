@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   Clock,
   Search,
@@ -40,6 +41,8 @@ interface RequestSummary {
   createdByName?: string;
   plannedStartDate?: string;
   priority?: string;
+  isDuplicateFlagged?: boolean;
+  duplicateExplanation?: string;
 }
 
 type SortField = 'date' | 'priority' | 'amount';
@@ -166,10 +169,9 @@ const Requests = () => {
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'PENDING': return 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200';
-      case 'SUBMITTED': return 'bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200';
       case 'APPROVED': return 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200';
       case 'REJECTED': return 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200';
-      case 'PARTIALLY_APPROVED': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-indigo-200';
+      case 'PARTIALLY_APPROVED': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200';
       default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200';
     }
   };
@@ -338,7 +340,7 @@ const Requests = () => {
                         <TableHeader className="bg-[#2a3455]">
                           <TableRow className="hover:bg-[#2a3455] border-b-0">
                             <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Request Name</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Site</TableHead>
+                            <TableHead className="text-white text-xs font-semibold uppercase tracking-F px-3 py-2 h-auto">Site</TableHead>
                             <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Requested By</TableHead>
                             <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto hidden lg:table-cell">Date</TableHead>
                             <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Priority</TableHead>
@@ -357,6 +359,12 @@ const Requests = () => {
                                 <span className="font-semibold text-slate-900 text-sm block truncate max-w-[150px] tracking-tighter" title={request.title}>
                                   {request.title || request.additionalDetails || 'BOQ Request'}
                                 </span>
+                                {request.isDuplicateFlagged && (
+                                  <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 h-4 border-orange-200 bg-orange-50 text-orange-700 flex w-fit items-center gap-1">
+                                    <AlertTriangle className="h-2 w-2" />
+                                    Duplicate
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell className="p-2 text-sm text-slate-600 tracking-tighter">
                                 {request.siteName || 'N/A'}
@@ -371,9 +379,8 @@ const Requests = () => {
                               </TableCell>
                               <TableCell className="p-2">
                                 {request.priority && (
-                                  <div className={`flex items-center gap-1 text-xs font-medium tracking-tighter ${
-                                    request.priority === 'HIGH' ? 'text-red-700' : 'text-slate-600'
-                                  }`}>
+                                  <div className={`flex items-center gap-1 text-xs font-medium tracking-tighter ${request.priority === 'HIGH' ? 'text-red-700' : 'text-slate-600'
+                                    }`}>
                                     {request.priority === 'HIGH' && <AlertOctagon className="h-3 w-3" />}
                                     {request.priority}
                                   </div>
@@ -384,11 +391,11 @@ const Requests = () => {
                               </TableCell>
                               <TableCell className="p-2 text-center">
                                 <div className={`flex items-center justify-center gap-1 text-xs font-medium tracking-tighter ${request.status === 'PENDING' ? 'text-amber-700' :
-                                    request.status === 'SUBMITTED' ? 'text-blue-700' :
-                                      request.status === 'APPROVED' ? 'text-green-700' :
-                                        request.status === 'REJECTED' ? 'text-red-700' :
-                                          request.status === 'PARTIALLY_APPROVED' ? 'text-indigo-700' :
-                                            'text-slate-700'
+                                  request.status === 'SUBMITTED' ? 'text-blue-700' :
+                                    request.status === 'APPROVED' ? 'text-green-700' :
+                                      request.status === 'REJECTED' ? 'text-red-700' :
+                                        request.status === 'PARTIALLY_APPROVED' ? 'text-indigo-700' :
+                                          'text-slate-700'
                                   }`}>
                                   {getStatusIcon(request.status)}
                                   {request.status.replace('_', ' ')}
@@ -424,6 +431,12 @@ const Requests = () => {
                                 <Briefcase className="h-3 w-3" />
                                 {request.siteName || 'No Site'}
                               </p>
+                              {request.isDuplicateFlagged && (
+                                <Badge variant="outline" className="mt-1 text-[10px] px-1.5 py-0 h-4 border-orange-200 bg-orange-50 text-orange-700 flex w-fit items-center gap-1">
+                                  <AlertTriangle className="h-2 w-2" />
+                                  Duplicate
+                                </Badge>
+                              )}
                             </div>
                             <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] px-2 py-0.5 whitespace-nowrap flex-shrink-0 border`}>
                               {getStatusIcon(request.status)}

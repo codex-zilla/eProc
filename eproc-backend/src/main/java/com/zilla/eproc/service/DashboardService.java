@@ -61,7 +61,7 @@ public class DashboardService {
                                 .findByCreatedById(engineer.getId());
 
                 int pending = (int) myRequests.stream()
-                                .filter(r -> r.getStatus() == RequestStatus.SUBMITTED).count();
+                                .filter(r -> r.getStatus() == RequestStatus.PENDING).count();
                 int approved = (int) myRequests.stream()
                                 .filter(r -> r.getStatus() == RequestStatus.APPROVED).count();
                 int rejected = (int) myRequests.stream()
@@ -108,7 +108,7 @@ public class DashboardService {
                 // Get pending requests from my projects
                 List<Request> pendingFromMyProjects = requestRepository.findByProjectIdIn(
                                 myProjects.stream().map(Project::getId).toList()).stream()
-                                .filter(r -> r.getStatus() == RequestStatus.SUBMITTED)
+                                .filter(r -> r.getStatus() == RequestStatus.PENDING)
                                 .toList();
 
                 // Get all requests from my projects for stats
