@@ -232,15 +232,15 @@ const Requests = () => {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    size="icon"
-                    className="h-10 w-10 border-slate-200 bg-white hover:bg-slate-50"
+                    className="h-10 px-3 border-slate-200 bg-white hover:bg-slate-50 gap-1 flex items-center"
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                   >
-                    {sortOrder === 'asc' ? <ChevronDown className="h-4 w-4 rotate-180 transition-transform text-slate-500" /> : <ChevronDown className="h-4 w-4 transition-transform text-slate-500" />}
+                    <span className="text-sm font-medium text-slate-600">{sortOrder === 'asc' ? 'asc' : 'desc'}</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform text-slate-500 pt-1 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{sortOrder === 'asc' ? "Ascending" : "Descending"}</p>
+                  <p>{sortOrder === 'asc' ? 'Sort asc' : 'Sort desc'}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -296,7 +296,7 @@ const Requests = () => {
               <Filter className="h-6 w-6 sm:h-8 sm:w-8 text-slate-300" />
             </div>
             <h3 className="text-lg font-semibold text-slate-900 mb-1">No requests found</h3>
-            <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            {/* <p className="text-sm text-slate-500 max-w-sm mx-auto">
               Try adjusting your filters or search query to find what you're looking for.
             </p>
             {statusFilter !== 'ALL' && (
@@ -307,7 +307,7 @@ const Requests = () => {
               >
                 Clear Filters
               </Button>
-            )}
+            )} */}
           </CardContent>
         </Card>
       ) : (
@@ -339,13 +339,13 @@ const Requests = () => {
                       <Table>
                         <TableHeader className="bg-[#2a3455]">
                           <TableRow className="hover:bg-[#2a3455] border-b-0">
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Request Name</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-F px-3 py-2 h-auto">Site</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Requested By</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto hidden lg:table-cell">Date</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto">Priority</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto text-right">Amount (TZS)</TableHead>
-                            <TableHead className="text-white text-xs font-semibold uppercase tracking-tight px-3 py-2 h-auto text-center">Status</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto">Request Name</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto">Site</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto">Requested By</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto hidden lg:table-cell">Date</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto">Priority</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto">Amount (TZS)</TableHead>
+                            <TableHead className="text-white text-xs lg:text-sm font-semibold uppercase p-3 pr-0 h-auto">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -355,8 +355,8 @@ const Requests = () => {
                               onClick={() => handleRowClick(request.id)}
                               className="hover:bg-indigo-50/50 cursor-pointer transition-colors group border-slate-100"
                             >
-                              <TableCell className="p-2">
-                                <span className="font-semibold text-slate-900 text-sm block truncate max-w-[150px] tracking-tighter" title={request.title}>
+                              <TableCell className="p-2 pr-0 max-w-[210px]">
+                                <span className="font-semibold text-slate-700 text-xs lg:text-sm block " title={request.title}>
                                   {request.title || request.additionalDetails || 'BOQ Request'}
                                 </span>
                                 {request.isDuplicateFlagged && (
@@ -366,31 +366,31 @@ const Requests = () => {
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="p-2 text-sm text-slate-600 tracking-tighter">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
                                 {request.siteName || 'N/A'}
                               </TableCell>
-                              <TableCell className="p-2 text-sm text-slate-600 tracking-tighter">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
                                 {request.createdByName || 'Unknown'}
                               </TableCell>
-                              <TableCell className="p-2 text-sm text-slate-600 hidden lg:table-cell tracking-tighter">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 hidden lg:table-cell lg:max-w-[100px]">
                                 {request.plannedStartDate
                                   ? new Date(request.plannedStartDate).toLocaleDateString()
                                   : new Date(request.createdAt).toLocaleDateString()}
                               </TableCell>
-                              <TableCell className="p-2">
+                              <TableCell className="p-2 pr-0 lg:max-w-[100px]">
                                 {request.priority && (
-                                  <div className={`flex items-center gap-1 text-xs font-medium tracking-tighter ${request.priority === 'HIGH' ? 'text-red-700' : 'text-slate-600'
+                                  <div className={`flex items-center gap-1 text-[10px] lg:text-xs font-medium  ${request.priority === 'HIGH' ? 'text-red-700' : 'text-slate-600'
                                     }`}>
                                     {request.priority === 'HIGH' && <AlertOctagon className="h-3 w-3" />}
                                     {request.priority}
                                   </div>
                                 )}
                               </TableCell>
-                              <TableCell className="p-2 text-right text-sm font-bold text-slate-900 font-mono tracking-tighter">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm font-bold text-slate-900 font-mono lg:max-w-[130px]">
                                 {request.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                               </TableCell>
-                              <TableCell className="p-2 text-center">
-                                <div className={`flex items-center justify-center gap-1 text-xs font-medium tracking-tighter ${request.status === 'PENDING' ? 'text-amber-700' :
+                              <TableCell className="p-2 pr-0">
+                                <div className={`flex gap-1 text-[10px] lg:text-xs font-medium items-center ${request.status === 'PENDING' ? 'text-amber-700' :
                                   request.status === 'SUBMITTED' ? 'text-blue-700' :
                                     request.status === 'APPROVED' ? 'text-green-700' :
                                       request.status === 'REJECTED' ? 'text-red-700' :
