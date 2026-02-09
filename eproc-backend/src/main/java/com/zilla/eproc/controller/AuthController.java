@@ -79,7 +79,8 @@ public class AuthController {
                     .map(refreshTokenService::verifyExpiration)
                     .map(RefreshToken::getUser)
                     .map(user -> {
-                        // Rotation: create new refresh token
+                        // Rotation: delete old token and create new one
+                        refreshTokenService.delete(refreshTokenService.findByToken(refreshToken).get());
                         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
                         ResponseCookie jwtCookie = jwtUtil.generateJwtCookie(user.getEmail(), user.getRole().name());
                         ResponseCookie jwtRefreshCookie = jwtUtil.generateRefreshJwtCookie(newRefreshToken.getToken());

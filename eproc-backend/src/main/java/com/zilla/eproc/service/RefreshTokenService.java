@@ -4,7 +4,7 @@ import com.zilla.eproc.model.RefreshToken;
 import com.zilla.eproc.model.User;
 import com.zilla.eproc.repository.RefreshTokenRepository;
 import com.zilla.eproc.repository.UserRepository;
-import jakarta.persistence.EntityManager;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,21 +23,22 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
-    private final EntityManager entityManager;
 
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
 
     @Transactional
+    public void delete(RefreshToken token) {
+        refreshTokenRepository.delete(token);
+    }
+
+    @Transactional
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Rotation: Delete any existing tokens for this user
-        refreshTokenRepository.deleteByUser(user);
-
-        // Flush to ensure the delete is visible before the insert
-        entityManager.flush();
+        // No longer deleting existing tokens to support multiple sessions and prevent
+        // race conditions
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
