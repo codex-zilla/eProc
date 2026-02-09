@@ -22,6 +22,7 @@ import RequestDetails from './pages/engineer/RequestDetails';
 import CreateRequest from './pages/engineer/CreateRequest';
 import Requests from './pages/engineer/Requests';
 import BatchDetails from './pages/engineer/BatchDetails';
+import Deliveries from './pages/engineer/Deliveries';
 
 // Manager pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
@@ -34,6 +35,10 @@ import ManageProjectUsers from './pages/manager/ManageProjectUsers';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import EditProject from './pages/manager/EditProject';
 import ManageSites from './pages/manager/ManageSites';
+import ProcurementDashboard from './pages/manager/ProcurementDashboard';
+import CreatePurchaseOrder from './pages/manager/CreatePurchaseOrder';
+import DeliveryRegistration from './pages/engineer/DeliveryRegistration';
+import ManagerDeliveries from './pages/manager/ManagerDeliveries';
 
 function App() {
   return (
@@ -63,6 +68,8 @@ function App() {
                 <Route path="/engineer/batches" element={<Requests />} />
                 <Route path="/engineer/batches/:id" element={<BatchDetails />} />
                 <Route path="/engineer/create-batch" element={<CreateRequest />} />
+                <Route path="/engineer/deliveries" element={<Deliveries />} />
+                <Route path="/engineer/deliveries/:poId" element={<DeliveryRegistration />} />
               </Route>
 
               {/* Manager Routes (Project Owner) */}
@@ -76,6 +83,16 @@ function App() {
                 <Route path="/manager/users" element={<ManageProjectUsers />} />
                 <Route path="/manager/pending" element={<ManagerRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
+                <Route path="/manager/procurement" element={<ProcurementDashboard />} />
+                <Route path="/manager/procurement/create" element={<CreatePurchaseOrder />} />
+                <Route path="/manager/deliveries" element={<ManagerDeliveries />} />
+              </Route>
+
+              {/* Accountant Routes (PROJECT_ACCOUNTANT) */}
+              <Route element={<ProtectedRoute allowedRoles={['PROJECT_ACCOUNTANT']} />}>
+                <Route path="/accountant/procurement" element={<ProcurementDashboard />} />
+                <Route path="/accountant/procurement/create" element={<CreatePurchaseOrder />} />
+                <Route path="/accountant/deliveries" element={<ManagerDeliveries />} />
               </Route>
 
               {/* Legacy routes redirect */}

@@ -14,7 +14,9 @@ import {
   Users,
   Briefcase,
   Menu,
-  X
+  X,
+  ShoppingCart,
+  Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -100,6 +102,7 @@ const AppLayout = () => {
         { label: 'Dashboard', path: '/engineer/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/engineer/project', icon: Building },
         { label: 'Requests', path: '/engineer/batches', icon: ClipboardList },
+        { label: 'Deliveries', path: '/engineer/deliveries', icon: Package },
       ];
     }
     if (user?.role === 'PROJECT_OWNER') {
@@ -108,6 +111,14 @@ const AppLayout = () => {
         { label: 'Projects', path: '/manager/projects', icon: Briefcase },
         { label: 'Project Users', path: '/manager/users', icon: Users },
         { label: 'Requests', path: '/manager/pending', icon: ClipboardList, badge: pendingCount },
+        { label: 'Procurement', path: '/manager/procurement', icon: ShoppingCart },
+        { label: 'Deliveries', path: '/manager/deliveries', icon: Package },
+      ];
+    }
+    if (user?.role === 'PROJECT_ACCOUNTANT') {
+      return [
+        { label: 'Procurement', path: '/accountant/procurement', icon: ShoppingCart },
+        { label: 'Deliveries', path: '/accountant/deliveries', icon: Package },
       ];
     }
     return [];

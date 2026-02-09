@@ -251,7 +251,7 @@ public class RequestService {
                 List<Request> requests = requestRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
 
                 return requests.stream()
-                                .map(r -> mapToResponseDTO(r, false))
+                                .map(r -> mapToResponseDTO(r, true))
                                 .collect(Collectors.toList());
         }
 
