@@ -20,7 +20,7 @@ const ManagerDeliveries: React.FC = () => {
     const projectId = searchParams.get('projectId');
 
     // Determine base path based on user role
-    const basePath = user?.role === 'PROJECT_ACCOUNTANT' ? '/accountant' : '/manager';
+    const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
     const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderResponse[]>([]);
     const [loading, setLoading] = useState(true);

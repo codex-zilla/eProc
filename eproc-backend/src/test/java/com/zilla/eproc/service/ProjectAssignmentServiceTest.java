@@ -46,7 +46,7 @@ class ProjectAssignmentServiceTest {
                                 .id(1L)
                                 .email("boss@test.com")
                                 .name("Boss")
-                                .role(Role.PROJECT_OWNER)
+                                .role(Role.OWNER)
                                 .build();
 
                 engineer = User.builder()
@@ -71,7 +71,7 @@ class ProjectAssignmentServiceTest {
                 when(userRepository.findByEmail("boss@test.com")).thenReturn(Optional.of(boss));
                 when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
                 when(userRepository.findById(2L)).thenReturn(Optional.of(engineer));
-                when(assignmentRepository.findByProjectIdAndUserIdAndRole(1L, 2L, ProjectRole.SITE_ENGINEER))
+                when(assignmentRepository.findByProjectIdAndUserIdAndRole(1L, 2L, ProjectRole.PROJECT_SITE_ENGINEER))
                                 .thenReturn(Optional.empty());
                 when(assignmentRepository.save(any(ProjectAssignment.class))).thenAnswer(inv -> {
                         ProjectAssignment pa = inv.getArgument(0);
@@ -81,7 +81,7 @@ class ProjectAssignmentServiceTest {
 
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(2L)
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .responsibilityLevel("FULL")
                                 .startDate(LocalDate.now())
                                 .build();
@@ -91,7 +91,7 @@ class ProjectAssignmentServiceTest {
 
                 // Then
                 assertThat(result).isNotNull();
-                assertThat(result.getRole()).isEqualTo("SITE_ENGINEER");
+                assertThat(result.getRole()).isEqualTo("PROJECT_SITE_ENGINEER");
                 assertThat(result.getResponsibilityLevel()).isEqualTo("FULL");
                 verify(assignmentRepository).save(any(ProjectAssignment.class));
         }
@@ -102,7 +102,7 @@ class ProjectAssignmentServiceTest {
                 User otherUser = User.builder()
                                 .id(3L)
                                 .email("other@test.com")
-                                .role(Role.PROJECT_OWNER)
+                                .role(Role.OWNER)
                                 .build();
 
                 when(userRepository.findByEmail("other@test.com")).thenReturn(Optional.of(otherUser));
@@ -110,7 +110,7 @@ class ProjectAssignmentServiceTest {
 
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(2L)
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .startDate(LocalDate.now())
                                 .build();
 
@@ -137,7 +137,7 @@ class ProjectAssignmentServiceTest {
 
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(4L)
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .startDate(LocalDate.now())
                                 .build();
 
@@ -154,19 +154,19 @@ class ProjectAssignmentServiceTest {
                                 .id(1L)
                                 .project(project)
                                 .user(engineer)
-                                .role(ProjectRole.SITE_ENGINEER)
+                                .role(ProjectRole.PROJECT_SITE_ENGINEER)
                                 .isActive(true)
                                 .build();
 
                 when(userRepository.findByEmail("boss@test.com")).thenReturn(Optional.of(boss));
                 when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
                 when(userRepository.findById(2L)).thenReturn(Optional.of(engineer));
-                when(assignmentRepository.findByProjectIdAndUserIdAndRole(1L, 2L, ProjectRole.SITE_ENGINEER))
+                when(assignmentRepository.findByProjectIdAndUserIdAndRole(1L, 2L, ProjectRole.PROJECT_SITE_ENGINEER))
                                 .thenReturn(Optional.of(activeAssignment));
 
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(2L)
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .startDate(LocalDate.now())
                                 .build();
 
@@ -183,7 +183,7 @@ class ProjectAssignmentServiceTest {
                                 .id(1L)
                                 .project(project)
                                 .user(engineer)
-                                .role(ProjectRole.SITE_ENGINEER)
+                                .role(ProjectRole.PROJECT_SITE_ENGINEER)
                                 .responsibilityLevel(ResponsibilityLevel.FULL)
                                 .startDate(LocalDate.now())
                                 .isActive(true)
@@ -198,7 +198,7 @@ class ProjectAssignmentServiceTest {
 
                 // Then
                 assertThat(result).hasSize(1);
-                assertThat(result.get(0).getRole()).isEqualTo("SITE_ENGINEER");
+                assertThat(result.get(0).getRole()).isEqualTo("PROJECT_SITE_ENGINEER");
         }
 
         @Test
@@ -208,7 +208,7 @@ class ProjectAssignmentServiceTest {
                                 .id(1L)
                                 .project(project)
                                 .user(engineer)
-                                .role(ProjectRole.SITE_ENGINEER)
+                                .role(ProjectRole.PROJECT_SITE_ENGINEER)
                                 .isActive(true)
                                 .build();
 

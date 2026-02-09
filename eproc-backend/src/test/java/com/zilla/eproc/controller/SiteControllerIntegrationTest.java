@@ -2,6 +2,7 @@ package com.zilla.eproc.controller;
 
 import com.zilla.eproc.model.*;
 import com.zilla.eproc.repository.*;
+import com.zilla.eproc.repository.RefreshTokenRepository;
 import com.zilla.eproc.dto.SiteDTO;
 import com.zilla.eproc.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,8 @@ public class SiteControllerIntegrationTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
     private String engineerToken;
     private String pmToken;
@@ -43,6 +46,7 @@ public class SiteControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        refreshTokenRepository.deleteAll();
         siteRepository.deleteAll();
         projectAssignmentRepository.deleteAll();
         projectRepository.deleteAll();
@@ -52,12 +56,12 @@ public class SiteControllerIntegrationTest {
         User engineer = saveUser("eng@test.com", Role.ENGINEER);
         engineerToken = jwtUtil.generateToken(engineer.getEmail(), Role.ENGINEER.name());
 
-        User pm = saveUser("pm@test.com", Role.PROJECT_OWNER);
-        pmToken = jwtUtil.generateToken(pm.getEmail(), Role.PROJECT_OWNER.name());
+        User pm = saveUser("pm@test.com", Role.OWNER);
+        pmToken = jwtUtil.generateToken(pm.getEmail(), Role.OWNER.name());
 
         // 2. Create Assigned Project (PM is Owner, Engineer is Assigned)
         Project assignedProject = saveProject("Assigned Project", pm);
-        createAssignment(assignedProject, engineer, ProjectRole.SITE_ENGINEER);
+        createAssignment(assignedProject, engineer, ProjectRole.PROJECT_SITE_ENGINEER);
         assignedSite = saveSite("Assigned Site", assignedProject);
 
         // 3. Create Unassigned Project (PM is Owner, No Engineer/Other Engineer)

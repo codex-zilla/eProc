@@ -20,7 +20,7 @@ const ProcurementDashboard: React.FC = () => {
     const projectId = searchParams.get('projectId');
 
     // Determine base path based on user role
-    const basePath = user?.role === 'PROJECT_ACCOUNTANT' ? '/accountant' : '/manager';
+    const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
     const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ const ProcurementDashboard: React.FC = () => {
             }
         } catch (err) {
             console.error('Failed to fetch projects:', err);
-            setError('Failed to load projects. Please try again.');
+            setError((err as any).response?.data?.message || 'Failed to load projects. Please try again.');
             setLoading(false);
         }
     };
@@ -73,7 +73,7 @@ const ProcurementDashboard: React.FC = () => {
             setError(null);
         } catch (err: any) {
             console.error('Failed to load POs:', err);
-            setError('Failed to load purchase orders.');
+            setError(err.response?.data?.message || 'Failed to load purchase orders.');
         } finally {
             setLoading(false);
         }

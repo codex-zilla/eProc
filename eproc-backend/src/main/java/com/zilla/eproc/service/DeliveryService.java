@@ -2,7 +2,6 @@ package com.zilla.eproc.service;
 
 import com.zilla.eproc.dto.CreateDeliveryDTO;
 import com.zilla.eproc.dto.DeliveryResponseDTO;
-import com.zilla.eproc.exception.ForbiddenException;
 import com.zilla.eproc.exception.ResourceNotFoundException;
 import com.zilla.eproc.model.*;
 import com.zilla.eproc.repository.*;
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class DeliveryService {
+public class DeliveryService extends BaseProjectService {
 
         private final DeliveryRepository deliveryRepository;
         private final DeliveryItemRepository deliveryItemRepository;
@@ -37,24 +36,24 @@ public class DeliveryService {
 
         /**
          * Record a new delivery.
-         * Only Engineers can verify deliveries.
+         * Only Engineers can verify deliveries (enforced by checkAccess).
          */
         @Transactional
         public DeliveryResponseDTO recordDelivery(CreateDeliveryDTO dto, String userEmail) {
                 log.info("Recording delivery for PO {} by user {}", dto.getPurchaseOrderId(), userEmail);
 
-                // Get user
-                User receiver = userRepository.findByEmail(userEmail)
-                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-                // Validate user is an engineer (or project owner)
-                if (receiver.getRole() != Role.ENGINEER && receiver.getRole() != Role.PROJECT_OWNER) {
-                        throw new ForbiddenException("Only engineers can verify deliveries");
-                }
-
-                // Get purchase order
+                // Get purchase order first to get Project ID
                 PurchaseOrder po = purchaseOrderRepository.findById(dto.getPurchaseOrderId())
                                 .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found"));
+
+                // Validate Access - Enforce ENGINEER role (or Owner override)
+                checkAccess(userEmail, po.getProject().getId(), ProjectRole.PROJECT_SITE_ENGINEER,
+                                ProjectRole.PROJECT_LEAD_ENGINEER,
+                                ProjectRole.PROJECT_CONSULTANT_ENGINEER);
+
+                // Get user (still need user entity for 'receivedBy')
+                User receiver = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
                 // Create delivery
                 Delivery delivery = Delivery.builder()
@@ -193,21 +192,11 @@ public class DeliveryService {
          */
         @Transactional(readOnly = true)
         public List<DeliveryResponseDTO> getDeliveriesForPO(Long poId, String userEmail) {
-                User user = userRepository.findByEmail(userEmail)
-                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
                 PurchaseOrder po = purchaseOrderRepository.findById(poId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found"));
 
                 // Verify access
-                boolean hasAccess = po.getProject().getOwner().getId().equals(user.getId())
-                                || po.getProject().getTeamAssignments().stream()
-                                                .anyMatch(assignment -> assignment.getUser().getId()
-                                                                .equals(user.getId()));
-
-                if (!hasAccess) {
-                        throw new ForbiddenException("You don't have access to this purchase order");
-                }
+                checkAccess(userEmail, po.getProject().getId());
 
                 List<Delivery> deliveries = deliveryRepository.findByPurchaseOrderIdOrderByDeliveredDateDesc(poId);
 

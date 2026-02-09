@@ -20,12 +20,11 @@ export interface RegisterData {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   error: string | null;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
@@ -38,35 +37,31 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Restore user from localStorage on mount
     const storedUser = localStorage.getItem('user');
-    if (storedUser && token) {
+    if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
       } catch {
         // Invalid stored user, clear it
         localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        setToken(null);
       }
     }
     setIsLoading(false);
-  }, [token]);
+  }, []);
 
   const handleAuthResponse = (response: any) => {
-    const { token: newToken, email: userEmail, role, name, id, requirePasswordChange } = response.data;
-    
-    // Store token and user info
-    localStorage.setItem('token', newToken);
+    // Token is handled via HttpOnly cookie, we just need user info
+    const { email: userEmail, role, name, id, requirePasswordChange } = response.data;
+
+    // Store user info
     const userData: User = { id, email: userEmail, role, name, requirePasswordChange };
     localStorage.setItem('user', JSON.stringify(userData));
-    
-    setToken(newToken);
+
     setUser(userData);
   };
 
@@ -90,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setError(null);
     setIsLoading(true);
-    
+
     try {
       const response = await api.post('/auth/login', { email, password });
       handleAuthResponse(response);
@@ -115,12 +110,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
-    setError(null);
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token'); // Cleanup old token if exists
+      setUser(null);
+      setError(null);
+      window.location.href = '/login';
+    }
   };
 
   const changePassword = async (oldPassword: string, newPassword: string) => {
@@ -140,8 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
-    token,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated: !!user,
     isLoading,
     login,
     register,

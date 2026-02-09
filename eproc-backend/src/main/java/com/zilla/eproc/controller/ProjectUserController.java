@@ -28,7 +28,7 @@ public class ProjectUserController {
      * POST /api/project-users
      */
     @PostMapping
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectUserDTO> createProjectUser(
             @Valid @RequestBody CreateProjectUserRequest request,
             Authentication authentication) {
@@ -42,7 +42,7 @@ public class ProjectUserController {
      * GET /api/project-users
      */
     @GetMapping
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<List<ProjectUserDTO>> getMyProjectUsers(Authentication authentication) {
         String email = authentication.getName();
         List<ProjectUserDTO> users = projectUserService.getMyProjectUsers(email);
@@ -54,7 +54,7 @@ public class ProjectUserController {
      * POST /api/project-users/{userId}/assign
      */
     @PostMapping("/{userId}/assign")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectUserDTO> assignUserToProject(
             @PathVariable Long userId,
             @RequestParam Long projectId,
@@ -73,7 +73,7 @@ public class ProjectUserController {
      * DELETE /api/project-users/{userId}/projects/{projectId}
      */
     @DeleteMapping("/{userId}/projects/{projectId}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> removeUserFromProject(
             @PathVariable Long userId,
             @PathVariable Long projectId,
@@ -88,7 +88,7 @@ public class ProjectUserController {
      * PATCH /api/project-users/{userId}
      */
     @PatchMapping("/{userId}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectUserDTO> updateUser(
             @PathVariable Long userId,
             @RequestBody CreateProjectUserRequest request,
@@ -105,7 +105,7 @@ public class ProjectUserController {
      * DELETE /api/project-users/{userId}
      */
     @DeleteMapping("/{userId}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> deleteUser(
             @PathVariable Long userId,
             Authentication authentication) {

@@ -36,7 +36,7 @@ public class ProjectAssignmentController {
     }
 
     @PostMapping("/{projectId}/team")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectAssignmentDTO> addTeamMember(
             @PathVariable Long projectId,
             @Valid @RequestBody CreateAssignmentRequest request,
@@ -46,7 +46,7 @@ public class ProjectAssignmentController {
     }
 
     @DeleteMapping("/{projectId}/team/{assignmentId}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<Void> removeTeamMember(
             @PathVariable Long projectId,
             @PathVariable Long assignmentId,
@@ -57,7 +57,7 @@ public class ProjectAssignmentController {
     }
 
     @PatchMapping("/{projectId}/team/{assignmentId}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectAssignmentDTO> updateTeamMember(
             @PathVariable Long projectId,
             @PathVariable Long assignmentId,

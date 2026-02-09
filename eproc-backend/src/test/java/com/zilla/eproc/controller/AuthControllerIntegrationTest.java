@@ -4,6 +4,7 @@ import com.zilla.eproc.dto.LoginRequest;
 import com.zilla.eproc.dto.RegisterRequest;
 import com.zilla.eproc.model.Role;
 import com.zilla.eproc.repository.UserRepository;
+import com.zilla.eproc.repository.RefreshTokenRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,12 @@ class AuthControllerIntegrationTest {
         @Autowired
         private UserRepository userRepository;
 
+        @Autowired
+        private RefreshTokenRepository refreshTokenRepository;
+
         @BeforeEach
         void setUp() {
+                refreshTokenRepository.deleteAll();
                 userRepository.deleteAll();
         }
 
@@ -53,7 +58,6 @@ class AuthControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.token", notNullValue()))
                                 .andExpect(jsonPath("$.email", is("engineer@test.com")))
                                 .andExpect(jsonPath("$.role", is("ENGINEER")))
                                 .andExpect(jsonPath("$.name", is("Test Engineer")));
@@ -79,7 +83,7 @@ class AuthControllerIntegrationTest {
                                 .email("duplicate@test.com")
                                 .password("password456")
                                 .name("Second User")
-                                .role(Role.PROJECT_OWNER)
+                                .role(Role.OWNER)
                                 .build();
 
                 mockMvc.perform(post("/api/auth/register")
@@ -112,7 +116,7 @@ class AuthControllerIntegrationTest {
                                 .email("login@test.com")
                                 .password("password123")
                                 .name("Login User")
-                                .role(Role.PROJECT_OWNER)
+                                .role(Role.OWNER)
                                 .build();
 
                 mockMvc.perform(post("/api/auth/register")
@@ -130,9 +134,8 @@ class AuthControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.token", notNullValue()))
                                 .andExpect(jsonPath("$.email", is("login@test.com")))
-                                .andExpect(jsonPath("$.role", is("PROJECT_OWNER")));
+                                .andExpect(jsonPath("$.role", is("OWNER")));
         }
 
         @Test
@@ -142,7 +145,7 @@ class AuthControllerIntegrationTest {
                                 .email("wrongpass@test.com")
                                 .password("correctpassword")
                                 .name("Wrong Pass User")
-                                .role(Role.PROJECT_OWNER)
+                                .role(Role.OWNER)
                                 .build();
 
                 mockMvc.perform(post("/api/auth/register")

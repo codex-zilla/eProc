@@ -14,7 +14,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('PROJECT_OWNER');
+  const [role, setRole] = useState('OWNER');
   const [erbNumber, setErbNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +135,7 @@ const Register = () => {
                 className="w-full pl-9 pr-4 h-10 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:outline-none transition-colors appearance-none"
               >
                 <option value="ENGINEER">Engineer</option>
-                <option value="PROJECT_OWNER">Project Owner</option>
+                <option value="OWNER">Project Owner</option>
               </select>
             </div>
           </div>
@@ -159,9 +159,9 @@ const Register = () => {
             </div>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full h-11 text-base text-white font-semibold bg-[#2a3455] hover:bg-[#1e253e] transition-all shadow-md mt-2" 
+          <Button
+            type="submit"
+            className="w-full h-11 text-base text-white font-semibold bg-[#2a3455] hover:bg-[#1e253e] transition-all shadow-md mt-2"
             disabled={isLoading}
           >
             {isLoading ? (

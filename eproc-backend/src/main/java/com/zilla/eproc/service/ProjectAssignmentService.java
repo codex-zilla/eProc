@@ -78,6 +78,9 @@ public class ProjectAssignmentService {
             throw new IllegalArgumentException("Invalid role: " + request.getRole());
         }
 
+        // Validate system role to project role compatibility
+        validateRoleCompatibility(member, role);
+
         // Parse responsibility level (default to FULL)
         ResponsibilityLevel responsibilityLevel = ResponsibilityLevel.FULL;
         if (request.getResponsibilityLevel() != null && !request.getResponsibilityLevel().isBlank()) {
@@ -152,7 +155,7 @@ public class ProjectAssignmentService {
         }
 
         // Prevent self-removal (Owner cannot remove themselves via this method)
-        if (assignment.getUser().getId().equals(owner.getId())) {
+        if (assignment.getUser() != null && assignment.getUser().getId().equals(owner.getId())) {
             throw new IllegalArgumentException("Project Owner cannot be removed from the project");
         }
 
@@ -186,7 +189,7 @@ public class ProjectAssignmentService {
         }
 
         // Prevent updating self (Owner) role
-        if (assignment.getUser().getId().equals(owner.getId())) {
+        if (assignment.getUser() != null && assignment.getUser().getId().equals(owner.getId())) {
             throw new IllegalArgumentException("Project Owner assignment cannot be modified");
         }
 
@@ -199,7 +202,8 @@ public class ProjectAssignmentService {
 
                 // Validate ERB if switching to engineer role
                 if (isEngineerRole(role) && !isEngineerRole(assignment.getRole())) {
-                    if (assignment.getUser().getErbNumber() == null || assignment.getUser().getErbNumber().isBlank()) {
+                    if (assignment.getUser() == null || assignment.getUser().getErbNumber() == null
+                            || assignment.getUser().getErbNumber().isBlank()) {
                         throw new IllegalArgumentException("Cannot assign Engineer role: User has missing ERB number");
                     }
                 }
@@ -235,19 +239,58 @@ public class ProjectAssignmentService {
     // ==================== Private Helper Methods ====================
 
     private boolean isEngineerRole(ProjectRole role) {
-        return role == ProjectRole.LEAD_ENGINEER ||
-                role == ProjectRole.SITE_ENGINEER ||
-                role == ProjectRole.CONSULTANT_ENGINEER;
+        return role == ProjectRole.PROJECT_LEAD_ENGINEER ||
+                role == ProjectRole.PROJECT_SITE_ENGINEER ||
+                role == ProjectRole.PROJECT_CONSULTANT_ENGINEER;
+    }
+
+    /**
+     * Validates that a user's System Role is compatible with the target Project
+     * Role.
+     * Enforces strict mapping:
+     * - System ENGINEER -> ProjectRole.PROJECT_*_ENGINEER
+     * - System MANAGER -> ProjectRole.PROJECT_MANAGER
+     * - System ACCOUNTANT -> ProjectRole.PROJECT_ACCOUNTANT
+     * - System OWNER -> ProjectRole.PROJECT_OWNER (usually automatic)
+     */
+    private void validateRoleCompatibility(User user, ProjectRole targetRole) {
+        Role systemRole = user.getRole();
+        boolean isCompatible = switch (systemRole) {
+            case ENGINEER -> isEngineerRole(targetRole);
+            case MANAGER -> targetRole == ProjectRole.PROJECT_MANAGER;
+            case ACCOUNTANT -> targetRole == ProjectRole.PROJECT_ACCOUNTANT;
+            case OWNER -> targetRole == ProjectRole.PROJECT_OWNER;
+            case ADMIN -> true; // Admin can be assigned any role
+        };
+
+        if (!isCompatible) {
+            throw new IllegalArgumentException(
+                    String.format("User with system role %s cannot be assigned project role %s",
+                            systemRole, targetRole));
+        }
     }
 
     private ProjectAssignmentDTO mapToDTO(ProjectAssignment assignment) {
+        // Handle null user (e.g., user was deleted)
+        Long userId = null;
+        String userName = "[Deleted User]";
+        String userEmail = null;
+
+        if (assignment.getUser() != null) {
+            userId = assignment.getUser().getId();
+            userName = assignment.getUser().getName();
+            userEmail = assignment.getUser().getEmail();
+        } else if (assignment.getDeletedUserSnapshot() != null) {
+            userName = assignment.getDeletedUserSnapshot().getDeletedUserEmail() + " (deleted)";
+        }
+
         ProjectAssignmentDTO.ProjectAssignmentDTOBuilder builder = ProjectAssignmentDTO.builder()
                 .id(assignment.getId())
                 .projectId(assignment.getProject().getId())
                 .projectName(assignment.getProject().getName())
-                .userId(assignment.getUser().getId())
-                .userName(assignment.getUser().getName())
-                .userEmail(assignment.getUser().getEmail())
+                .userId(userId)
+                .userName(userName)
+                .userEmail(userEmail)
                 .role(assignment.getRole().name())
                 .responsibilityLevel(assignment.getResponsibilityLevel().name())
                 .reportingLine(assignment.getReportingLine())

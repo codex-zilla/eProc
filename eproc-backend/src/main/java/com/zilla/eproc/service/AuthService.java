@@ -1,11 +1,9 @@
 package com.zilla.eproc.service;
 
-import com.zilla.eproc.dto.AuthResponse;
 import com.zilla.eproc.dto.LoginRequest;
 import com.zilla.eproc.dto.RegisterRequest;
 import com.zilla.eproc.model.User;
 import com.zilla.eproc.repository.UserRepository;
-import com.zilla.eproc.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,16 +17,11 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
 
     /**
      * Register a new user.
-     * 
-     * @param request the registration request
-     * @return AuthResponse with JWT token
-     * @throws IllegalArgumentException if email already exists
      */
-    public AuthResponse register(RegisterRequest request) {
+    public User register(RegisterRequest request) {
         // Check if user already exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already registered");
@@ -44,28 +37,13 @@ public class AuthService {
                 .phoneNumber(request.getPhoneNumber())
                 .build();
 
-        userRepository.save(user);
-
-        // Generate token
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .role(user.getRole())
-                .name(user.getName())
-                .id(user.getId())
-                .build();
+        return userRepository.save(user);
     }
 
     /**
      * Authenticate a user.
-     * 
-     * @param request the login request
-     * @return AuthResponse with JWT token
-     * @throws IllegalArgumentException if credentials are invalid
      */
-    public AuthResponse login(LoginRequest request) {
+    public User login(LoginRequest request) {
         // Find user by email
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
@@ -75,22 +53,16 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        // Generate token
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        // Verify active status
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            throw new IllegalArgumentException("User account is inactive");
+        }
 
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .role(user.getRole())
-                .name(user.getName())
-                .id(user.getId())
-                .requirePasswordChange(user.getRequirePasswordChange())
-                .build();
+        return user;
     }
 
     /**
      * Change user password.
-     * Used for first-login password change or regular password updates.
      */
     public void changePassword(String userEmail, String oldPassword, String newPassword) {
         User user = userRepository.findByEmail(userEmail)

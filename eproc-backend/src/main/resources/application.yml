@@ -24,4 +24,7 @@ logging:
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:b50492e3aceb859392141ee7681353c8a1ef9e891085e554175ec75491547b79}
-  expiration: 86400000 # 24 hours in milliseconds
+  expiration: ${JWT_EXPIRATION:900000} # 15 minutes
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
+  cookie-name: eproc-jwt
+  refresh-cookie-name: eproc-refresh-jwt

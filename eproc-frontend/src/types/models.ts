@@ -154,10 +154,14 @@ export const ContractType = {
 
 /**
  * System-level roles for authentication and global access.
+ * These map to the backend Role enum:
+ * - ADMIN, OWNER, MANAGER, ACCOUNTANT, ENGINEER
  */
 export const SystemRole = {
-  SYSTEM_ADMIN: 'SYSTEM_ADMIN',
-  PROJECT_OWNER: 'PROJECT_OWNER',
+  ADMIN: 'ADMIN',
+  OWNER: 'OWNER',
+  MANAGER: 'MANAGER',
+  ACCOUNTANT: 'ACCOUNTANT',
   ENGINEER: 'ENGINEER'
 } as const;
 
@@ -165,14 +169,16 @@ export type SystemRole = (typeof SystemRole)[keyof typeof SystemRole];
 
 /**
  * Contextual roles within a specific project.
+ * These map to the backend ProjectRole enum.
+ * All have PROJECT_ prefix for clear distinction from SystemRole.
  */
 export const ProjectRole = {
-  OWNER: 'OWNER',
+  PROJECT_OWNER: 'PROJECT_OWNER',
   PROJECT_MANAGER: 'PROJECT_MANAGER',
   PROJECT_ACCOUNTANT: 'PROJECT_ACCOUNTANT',
-  LEAD_ENGINEER: 'LEAD_ENGINEER',
-  SITE_ENGINEER: 'SITE_ENGINEER',
-  CONSULTANT_ENGINEER: 'CONSULTANT_ENGINEER'
+  PROJECT_LEAD_ENGINEER: 'PROJECT_LEAD_ENGINEER',
+  PROJECT_SITE_ENGINEER: 'PROJECT_SITE_ENGINEER',
+  PROJECT_CONSULTANT_ENGINEER: 'PROJECT_CONSULTANT_ENGINEER'
 } as const;
 
 export type ProjectRole = (typeof ProjectRole)[keyof typeof ProjectRole];

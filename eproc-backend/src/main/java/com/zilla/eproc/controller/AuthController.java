@@ -4,9 +4,16 @@ import com.zilla.eproc.dto.AuthResponse;
 import com.zilla.eproc.dto.ChangePasswordRequest;
 import com.zilla.eproc.dto.LoginRequest;
 import com.zilla.eproc.dto.RegisterRequest;
+import com.zilla.eproc.model.RefreshToken;
+import com.zilla.eproc.model.User;
+import com.zilla.eproc.security.JwtUtil;
 import com.zilla.eproc.service.AuthService;
+import com.zilla.eproc.service.RefreshTokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,35 +28,82 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
+    private final JwtUtil jwtUtil;
 
-    /**
-     * Register a new user.
-     * 
-     * @param request the registration request
-     * @return AuthResponse with JWT token
-     */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
-        return ResponseEntity.ok(response);
+        User user = authService.register(request);
+
+        ResponseCookie jwtCookie = jwtUtil.generateJwtCookie(user.getEmail(), user.getRole().name());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        ResponseCookie jwtRefreshCookie = jwtUtil.generateRefreshJwtCookie(refreshToken.getToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                .body(AuthResponse.builder()
+                        .email(user.getEmail())
+                        .role(user.getRole())
+                        .name(user.getName())
+                        .id(user.getId())
+                        .build());
     }
 
-    /**
-     * Authenticate a user.
-     * 
-     * @param request the login request
-     * @return AuthResponse with JWT token
-     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+        User user = authService.login(request);
+
+        ResponseCookie jwtCookie = jwtUtil.generateJwtCookie(user.getEmail(), user.getRole().name());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        ResponseCookie jwtRefreshCookie = jwtUtil.generateRefreshJwtCookie(refreshToken.getToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                .body(AuthResponse.builder()
+                        .email(user.getEmail())
+                        .role(user.getRole())
+                        .name(user.getName())
+                        .id(user.getId())
+                        .requirePasswordChange(user.getRequirePasswordChange())
+                        .build());
     }
 
-    /**
-     * Change user password.
-     * Used for first-login password change or regular password updates.
-     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshMyToken(HttpServletRequest request) {
+        String refreshToken = jwtUtil.getJwtRefreshFromCookies(request);
+
+        if ((refreshToken != null) && (refreshToken.length() > 0)) {
+            return refreshTokenService.findByToken(refreshToken)
+                    .map(refreshTokenService::verifyExpiration)
+                    .map(RefreshToken::getUser)
+                    .map(user -> {
+                        // Rotation: create new refresh token
+                        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+                        ResponseCookie jwtCookie = jwtUtil.generateJwtCookie(user.getEmail(), user.getRole().name());
+                        ResponseCookie jwtRefreshCookie = jwtUtil.generateRefreshJwtCookie(newRefreshToken.getToken());
+
+                        return ResponseEntity.ok()
+                                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                                .body("Token Refreshed Successfully!");
+                    })
+                    .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+        }
+        return ResponseEntity.badRequest().body("Refresh Token is empty!");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser() {
+        ResponseCookie jwtCookie = jwtUtil.getCleanJwtCookie();
+        ResponseCookie jwtRefreshCookie = jwtUtil.getCleanJwtRefreshCookie();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                .body("You've been signed out!");
+    }
+
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> changePassword(

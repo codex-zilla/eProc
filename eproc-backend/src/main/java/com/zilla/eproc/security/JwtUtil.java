@@ -2,8 +2,12 @@ package com.zilla.eproc.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.WebUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -16,30 +20,93 @@ import java.util.Date;
 public class JwtUtil {
 
     private final SecretKey secretKey;
-    private final long expiration;
+    private final long jwtExpiration;
+    private final long refreshExpiration;
+    private final String jwtCookie;
+    private final String jwtRefreshCookie;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public JwtUtil(
-            @Value("${jwt.secret:your-256-bit-secret-key-for-development-only-change-in-production}") String secret,
-            @Value("${jwt.expiration:86400000}") long expiration) {
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration}") long jwtExpiration,
+            @Value("${jwt.refresh-expiration}") long refreshExpiration,
+            @Value("${jwt.cookie-name}") String jwtCookie,
+            @Value("${jwt.refresh-cookie-name}") String jwtRefreshCookie) {
         // Ensure the secret is at least 256 bits (32 bytes) for HS256
         String paddedSecret = secret;
         while (paddedSecret.length() < 32) {
             paddedSecret += secret;
         }
         this.secretKey = Keys.hmacShaKeyFor(paddedSecret.substring(0, 32).getBytes(StandardCharsets.UTF_8));
-        this.expiration = expiration;
+        this.jwtExpiration = jwtExpiration;
+        this.refreshExpiration = refreshExpiration;
+        this.jwtCookie = jwtCookie;
+        this.jwtRefreshCookie = jwtRefreshCookie;
+    }
+
+    /**
+     * Legacy constructor for tests.
+     */
+    public JwtUtil(String secret, long jwtExpiration) {
+        this(secret, jwtExpiration, 86400000L, "eproc-jwt", "eproc-refresh-jwt");
+    }
+
+    /**
+     * Legacy method for generating token string directly (used in tests).
+     */
+    public String generateToken(String email, String role) {
+        return generateTokenFromEmail(email, role);
+    }
+
+    public ResponseCookie generateJwtCookie(String email, String role) {
+        String jwt = generateTokenFromEmail(email, role);
+        return generateCookie(jwtCookie, jwt, "/api", jwtExpiration / 1000);
+    }
+
+    public ResponseCookie generateRefreshJwtCookie(String refreshToken) {
+        return generateCookie(jwtRefreshCookie, refreshToken, "/api/auth/refresh", refreshExpiration / 1000);
+    }
+
+    public ResponseCookie getCleanJwtCookie() {
+        return ResponseCookie.from(jwtCookie, null).path("/api").build();
+    }
+
+    public ResponseCookie getCleanJwtRefreshCookie() {
+        return ResponseCookie.from(jwtRefreshCookie, null).path("/api/auth/refresh").build();
+    }
+
+    public String getJwtFromCookies(HttpServletRequest request) {
+        return getCookieValueByName(request, jwtCookie);
+    }
+
+    public String getJwtRefreshFromCookies(HttpServletRequest request) {
+        return getCookieValueByName(request, jwtRefreshCookie);
+    }
+
+    private ResponseCookie generateCookie(String name, String value, String path, long maxAgeSeconds) {
+        return ResponseCookie.from(name, value)
+                .path(path)
+                .maxAge(maxAgeSeconds)
+                .httpOnly(true)
+                .secure(false) // Set to true in production with HTTPS
+                .sameSite("Strict")
+                .build();
+    }
+
+    private String getCookieValueByName(HttpServletRequest request, String name) {
+        Cookie cookie = WebUtils.getCookie(request, name);
+        if (cookie != null) {
+            return cookie.getValue();
+        }
+        return null;
     }
 
     /**
      * Generate a JWT token for a user.
-     * 
-     * @param email the user's email
-     * @param role  the user's role
-     * @return signed JWT token string
      */
-    public String generateToken(String email, String role) {
+    public String generateTokenFromEmail(String email, String role) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
+        Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
         return Jwts.builder()
                 .subject(email)
@@ -52,9 +119,6 @@ public class JwtUtil {
 
     /**
      * Validate a JWT token.
-     * 
-     * @param token the token to validate
-     * @return true if valid, false otherwise
      */
     public boolean validateToken(String token) {
         try {
@@ -70,9 +134,6 @@ public class JwtUtil {
 
     /**
      * Extract email from token.
-     * 
-     * @param token the JWT token
-     * @return the email (subject) from the token
      */
     public String getEmailFromToken(String token) {
         Claims claims = Jwts.parser()
@@ -85,9 +146,6 @@ public class JwtUtil {
 
     /**
      * Extract role from token.
-     * 
-     * @param token the JWT token
-     * @return the role claim from the token
      */
     public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser()

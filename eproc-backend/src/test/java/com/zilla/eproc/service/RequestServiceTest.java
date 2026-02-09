@@ -73,7 +73,7 @@ class RequestServiceTest {
 
                 ProjectAssignment assignment = new ProjectAssignment();
                 assignment.setUser(testEngineer);
-                assignment.setRole(ProjectRole.SITE_ENGINEER);
+                assignment.setRole(ProjectRole.PROJECT_SITE_ENGINEER);
                 testProject.getTeamAssignments().add(assignment);
 
                 testSite = new Site();
@@ -135,6 +135,24 @@ class RequestServiceTest {
                 assertThat(response.getBoqReferenceCode()).matches("BOQ-\\d{4}-\\d{3}");
 
                 verify(requestRepository).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("Should throw ForbiddenException when assignment is inactive")
+        void shouldThrowExceptionWhenAssignmentIsInactive() {
+                // Arrange
+                testProject.getTeamAssignments().get(0).setIsActive(false);
+
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
+
+                // Act & Assert
+                assertThatThrownBy(() -> requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail()))
+                                .isInstanceOf(ForbiddenException.class)
+                                .hasMessageContaining("You are not assigned to this project");
         }
 
         @Test

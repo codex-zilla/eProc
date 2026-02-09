@@ -46,7 +46,7 @@ public class ProjectUserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Verify owner has PROJECT_OWNER role
-        if (owner.getRole() != Role.PROJECT_OWNER) {
+        if (owner.getRole() != Role.OWNER) {
             throw new ForbiddenException("Only project owners can create project-bound users");
         }
 
@@ -71,7 +71,7 @@ public class ProjectUserService {
             throw new IllegalArgumentException("Invalid role: " + request.getRole());
         }
 
-        if (role != Role.PROJECT_MANAGER && role != Role.PROJECT_ACCOUNTANT) {
+        if (role != Role.MANAGER && role != Role.ACCOUNTANT) {
             throw new IllegalArgumentException(
                     "Only PROJECT_MANAGER and PROJECT_ACCOUNTANT roles can be created this way");
         }
@@ -352,8 +352,8 @@ public class ProjectUserService {
 
     private ProjectRole mapToProjectRole(Role systemRole) {
         return switch (systemRole) {
-            case PROJECT_MANAGER -> ProjectRole.PROJECT_MANAGER;
-            case PROJECT_ACCOUNTANT -> ProjectRole.PROJECT_ACCOUNTANT;
+            case MANAGER -> ProjectRole.PROJECT_MANAGER;
+            case ACCOUNTANT -> ProjectRole.PROJECT_ACCOUNTANT;
             default -> throw new IllegalArgumentException("Cannot map system role " + systemRole + " to project role");
         };
     }
@@ -383,13 +383,24 @@ public class ProjectUserService {
     }
 
     private ProjectAssignmentDTO mapAssignmentToDTO(ProjectAssignment assignment) {
+        // Handle null user (e.g., user was deleted)
+        Long userId = null;
+        String userName = "[Deleted User]";
+        String userEmail = null;
+
+        if (assignment.getUser() != null) {
+            userId = assignment.getUser().getId();
+            userName = assignment.getUser().getName();
+            userEmail = assignment.getUser().getEmail();
+        }
+
         return ProjectAssignmentDTO.builder()
                 .id(assignment.getId())
                 .projectId(assignment.getProject().getId())
                 .projectName(assignment.getProject().getName())
-                .userId(assignment.getUser().getId())
-                .userName(assignment.getUser().getName())
-                .userEmail(assignment.getUser().getEmail())
+                .userId(userId)
+                .userName(userName)
+                .userEmail(userEmail)
                 .role(assignment.getRole().name())
                 .responsibilityLevel(assignment.getResponsibilityLevel().name())
                 .startDate(assignment.getStartDate())

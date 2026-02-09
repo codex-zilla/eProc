@@ -1,4 +1,4 @@
-  import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,7 @@ const ManageProjectUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  
+
   // Assignment dialog state
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -116,7 +116,7 @@ const ManageProjectUsers = () => {
 
     // Validate required fields
     const errors: Record<string, string> = {};
-    
+
     if (!newUserName.trim()) {
       errors.name = 'Name is required';
     }
@@ -164,7 +164,7 @@ const ManageProjectUsers = () => {
       setNewUserPhone('');
       setNewUserStartDate('');
       setNewUserResponsibility('FULL');
-      
+
       // Reload data
       loadData();
 
@@ -514,7 +514,7 @@ const ManageProjectUsers = () => {
             <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-base sm:text-lg">Create New User</CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                Create a new PROJECT_MANAGER or PROJECT_ACCOUNTANT user with a default password of <code className="bg-slate-100 px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs">123456</code>. 
+                Create a new MANAGER or ACCOUNTANT user with a default password of <code className="bg-slate-100 px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs">123456</code>.
                 The user will be required to change their password on first login.
               </CardDescription>
             </CardHeader>
@@ -591,8 +591,8 @@ const ManageProjectUsers = () => {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PROJECT_MANAGER" className="text-xs sm:text-sm">Project Manager</SelectItem>
-                        <SelectItem value="PROJECT_ACCOUNTANT" className="text-xs sm:text-sm">Project Accountant</SelectItem>
+                        <SelectItem value="MANAGER" className="text-xs sm:text-sm">Project Manager</SelectItem>
+                        <SelectItem value="ACCOUNTANT" className="text-xs sm:text-sm">Project Accountant</SelectItem>
                       </SelectContent>
                     </Select>
                     {fieldErrors.role && <p className="text-xs text-red-500">{fieldErrors.role}</p>}
@@ -626,11 +626,11 @@ const ManageProjectUsers = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {projects.length === 0 ? (
-                            <SelectItem value="no-projects" disabled className="text-xs sm:text-sm text-muted-foreground">No projects available</SelectItem>
+                          <SelectItem value="no-projects" disabled className="text-xs sm:text-sm text-muted-foreground">No projects available</SelectItem>
                         ) : (
-                            projects.map(p => (
-                              <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
-                            ))
+                          projects.map(p => (
+                            <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
+                          ))
                         )}
                       </SelectContent>
                     </Select>
@@ -702,15 +702,15 @@ const ManageProjectUsers = () => {
               <Label className="text-xs sm:text-sm">Project</Label>
               <Select value={assignProjectId} onValueChange={setAssignProjectId} disabled={projects.length === 0}>
                 <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
-                    <SelectValue placeholder={projects.length === 0 ? "No projects available" : "Select project"} />
+                  <SelectValue placeholder={projects.length === 0 ? "No projects available" : "Select project"} />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.length === 0 ? (
-                      <SelectItem value="no-projects" disabled className="text-xs sm:text-sm text-muted-foreground">No projects available</SelectItem>
+                    <SelectItem value="no-projects" disabled className="text-xs sm:text-sm text-muted-foreground">No projects available</SelectItem>
                   ) : (
-                      projects.map(p => (
-                        <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
-                      ))
+                    projects.map(p => (
+                      <SelectItem key={p.id} value={p.id.toString()} className="text-xs sm:text-sm">{p.name}</SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>
@@ -720,8 +720,8 @@ const ManageProjectUsers = () => {
               <Select value={assignRole} onValueChange={setAssignRole}>
                 <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm"><SelectValue placeholder="Select role" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PROJECT_MANAGER" className="text-xs sm:text-sm">Project Manager</SelectItem>
-                  <SelectItem value="PROJECT_ACCOUNTANT" className="text-xs sm:text-sm">Project Accountant</SelectItem>
+                  <SelectItem value="MANAGER" className="text-xs sm:text-sm">Project Manager</SelectItem>
+                  <SelectItem value="ACCOUNTANT" className="text-xs sm:text-sm">Project Accountant</SelectItem>
                 </SelectContent>
               </Select>
             </div>

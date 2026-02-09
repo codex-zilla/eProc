@@ -49,4 +49,9 @@ public interface ProjectAssignmentRepository extends JpaRepository<ProjectAssign
      * Used for authorization checks.
      */
     Optional<ProjectAssignment> findByProjectIdAndUserIdAndIsActiveTrue(Long projectId, Long userId);
+
+    /**
+     * Find active assignment by user email and project ID.
+     */
+    Optional<ProjectAssignment> findByUserEmailAndProjectId(String userEmail, Long projectId);
 }

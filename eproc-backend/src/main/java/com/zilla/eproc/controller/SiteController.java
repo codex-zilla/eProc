@@ -25,26 +25,26 @@ public class SiteController {
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<SiteDTO>> getSitesByProject(@PathVariable Long projectId) {
-        return ResponseEntity.ok(siteService.getSitesByProject(projectId));
+    public ResponseEntity<List<SiteDTO>> getSitesByProject(@PathVariable Long projectId, Principal principal) {
+        return ResponseEntity.ok(siteService.getSitesByProject(projectId, principal.getName()));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
-    public ResponseEntity<SiteDTO> createSite(@RequestBody SiteDTO dto) {
-        return ResponseEntity.ok(siteService.createSite(dto));
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<SiteDTO> createSite(@RequestBody SiteDTO dto, Principal principal) {
+        return ResponseEntity.ok(siteService.createSite(dto, principal.getName()));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
-    public ResponseEntity<SiteDTO> updateSite(@PathVariable Long id, @RequestBody SiteDTO dto) {
-        return ResponseEntity.ok(siteService.updateSite(id, dto));
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<SiteDTO> updateSite(@PathVariable Long id, @RequestBody SiteDTO dto, Principal principal) {
+        return ResponseEntity.ok(siteService.updateSite(id, dto, principal.getName()));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
-    public ResponseEntity<Void> deleteSite(@PathVariable Long id) {
-        siteService.deleteSite(id);
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<Void> deleteSite(@PathVariable Long id, Principal principal) {
+        siteService.deleteSite(id, principal.getName());
         return ResponseEntity.noContent().build();
     }
 }

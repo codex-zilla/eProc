@@ -2,20 +2,20 @@ package com.zilla.eproc.model;
 
 /**
  * System-level roles for authentication and global access control.
- * These are distinct from ProjectRole which defines contextual authority
- * within a specific project.
+ * These roles determine which dashboard/UI a user sees and their
+ * global capabilities. They are distinct from ProjectRole which
+ * defines contextual authority within a specific project.
  * 
- * - SYSTEM_ADMIN: Global system oversight (future)
- * - PROJECT_OWNER: Business owner who can create projects and manage staff
- * - PROJECT_MANAGER: Manager role bound to specific projects, created by owners
- * - PROJECT_ACCOUNTANT: Accountant role bound to specific projects, created by
- * owners
+ * - ADMIN: Global system administrator (future use)
+ * - OWNER: Business owner who can create projects and manage staff
+ * - MANAGER: Manager role, routed to manager dashboard
+ * - ACCOUNTANT: Accountant role, routed to accountant dashboard
  * - ENGINEER: Technical staff who can self-register with ERB verification
  */
 public enum Role {
-    SYSTEM_ADMIN,
-    PROJECT_OWNER,
-    PROJECT_MANAGER,
-    PROJECT_ACCOUNTANT,
+    ADMIN,
+    OWNER,
+    MANAGER,
+    ACCOUNTANT,
     ENGINEER
 }

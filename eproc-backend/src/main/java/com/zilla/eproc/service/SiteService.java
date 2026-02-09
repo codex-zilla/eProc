@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class SiteService {
+public class SiteService extends BaseProjectService {
 
     private final SiteRepository siteRepository;
     private final ProjectRepository projectRepository;
@@ -38,7 +38,7 @@ public class SiteService {
         if (user.getRole() == Role.ENGINEER) {
             // Engineer sees sites via ProjectAssignment
             sites = siteRepository.findByUserAssignmentAndIsActiveTrue(user.getId());
-        } else if (user.getRole() == Role.PROJECT_OWNER) {
+        } else if (user.getRole() == Role.OWNER) {
             // Owner sees sites from their own projects
             sites = siteRepository.findByProjectOwnerIdAndIsActiveTrue(user.getId());
         } else {
@@ -52,16 +52,20 @@ public class SiteService {
     }
 
     @Transactional(readOnly = true)
-    public List<SiteDTO> getSitesByProject(Long projectId) {
+    public List<SiteDTO> getSitesByProject(Long projectId, String userEmail) {
+        checkAccess(userEmail, projectId);
         return siteRepository.findByProjectIdAndIsActiveTrue(projectId).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public SiteDTO createSite(SiteDTO dto) {
+    public SiteDTO createSite(SiteDTO dto, String userEmail) {
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        // Validate Ownership
+        checkOwner(userEmail, project.getId());
 
         Site site = Site.builder()
                 .project(project)
@@ -77,9 +81,12 @@ public class SiteService {
     }
 
     @Transactional
-    public SiteDTO updateSite(Long id, SiteDTO dto) {
+    public SiteDTO updateSite(Long id, SiteDTO dto, String userEmail) {
         Site site = siteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Site not found"));
+
+        // Validate Ownership of the project this site belongs to
+        checkOwner(userEmail, site.getProject().getId());
 
         site.setName(dto.getName());
         site.setLocation(dto.getLocation());
@@ -96,9 +103,12 @@ public class SiteService {
     }
 
     @Transactional
-    public void deleteSite(Long id) {
+    public void deleteSite(Long id, String userEmail) {
         Site site = siteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Site not found"));
+
+        // Validate Ownership
+        checkOwner(userEmail, site.getProject().getId());
 
         // Soft delete
         site.setIsActive(false);

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zilla.eproc.dto.CreateAssignmentRequest;
 import com.zilla.eproc.model.*;
 import com.zilla.eproc.repository.*;
+import com.zilla.eproc.repository.RefreshTokenRepository;
 import com.zilla.eproc.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,8 @@ public class ProjectAssignmentControllerIntegrationTest {
         private PasswordEncoder passwordEncoder;
         @Autowired
         private JwtUtil jwtUtil;
+        @Autowired
+        private RefreshTokenRepository refreshTokenRepository;
 
         private String bossToken;
         private String engineerToken;
@@ -49,6 +52,7 @@ public class ProjectAssignmentControllerIntegrationTest {
 
         @BeforeEach
         void setUp() {
+                refreshTokenRepository.deleteAll();
                 assignmentRepository.deleteAll();
                 projectRepository.deleteAll();
                 userRepository.deleteAll();
@@ -58,10 +62,10 @@ public class ProjectAssignmentControllerIntegrationTest {
                                 .email("boss@test.com")
                                 .passwordHash(passwordEncoder.encode("password"))
                                 .name("Boss")
-                                .role(Role.PROJECT_OWNER)
+                                .role(Role.OWNER)
                                 .build();
                 boss = userRepository.save(boss);
-                bossToken = jwtUtil.generateToken(boss.getEmail(), Role.PROJECT_OWNER.name());
+                bossToken = jwtUtil.generateToken(boss.getEmail(), Role.OWNER.name());
 
                 // Create Engineer with ERB number
                 engineer = User.builder()
@@ -89,7 +93,7 @@ public class ProjectAssignmentControllerIntegrationTest {
         void addTeamMember_success() throws Exception {
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(engineer.getId())
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .responsibilityLevel("FULL")
                                 .startDate(LocalDate.now())
                                 .build();
@@ -100,7 +104,7 @@ public class ProjectAssignmentControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.userId", is(engineer.getId().intValue())))
-                                .andExpect(jsonPath("$.role", is("SITE_ENGINEER")))
+                                .andExpect(jsonPath("$.role", is("PROJECT_SITE_ENGINEER")))
                                 .andExpect(jsonPath("$.responsibilityLevel", is("FULL")));
         }
 
@@ -108,7 +112,7 @@ public class ProjectAssignmentControllerIntegrationTest {
         void addTeamMember_failsWithoutAuth() throws Exception {
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(engineer.getId())
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .startDate(LocalDate.now())
                                 .build();
 
@@ -122,7 +126,7 @@ public class ProjectAssignmentControllerIntegrationTest {
         void addTeamMember_failsIfNotBoss() throws Exception {
                 CreateAssignmentRequest request = CreateAssignmentRequest.builder()
                                 .userId(engineer.getId())
-                                .role("SITE_ENGINEER")
+                                .role("PROJECT_SITE_ENGINEER")
                                 .startDate(LocalDate.now())
                                 .build();
 
@@ -139,7 +143,7 @@ public class ProjectAssignmentControllerIntegrationTest {
                 ProjectAssignment assignment = ProjectAssignment.builder()
                                 .project(project)
                                 .user(engineer)
-                                .role(ProjectRole.SITE_ENGINEER)
+                                .role(ProjectRole.PROJECT_SITE_ENGINEER)
                                 .responsibilityLevel(ResponsibilityLevel.FULL)
                                 .startDate(LocalDate.now())
                                 .isActive(true)
@@ -150,7 +154,7 @@ public class ProjectAssignmentControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + bossToken))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$", hasSize(1)))
-                                .andExpect(jsonPath("$[0].role", is("SITE_ENGINEER")));
+                                .andExpect(jsonPath("$[0].role", is("PROJECT_SITE_ENGINEER")));
         }
 
         @Test
@@ -159,7 +163,7 @@ public class ProjectAssignmentControllerIntegrationTest {
                 ProjectAssignment assignment = ProjectAssignment.builder()
                                 .project(project)
                                 .user(engineer)
-                                .role(ProjectRole.SITE_ENGINEER)
+                                .role(ProjectRole.PROJECT_SITE_ENGINEER)
                                 .responsibilityLevel(ResponsibilityLevel.FULL)
                                 .startDate(LocalDate.now())
                                 .isActive(true)

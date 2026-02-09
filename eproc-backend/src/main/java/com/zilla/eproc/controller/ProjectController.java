@@ -56,7 +56,7 @@ public class ProjectController {
      * Only PROJECT_OWNER can create projects.
      */
     @PostMapping
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectDTO> createProject(
             @Valid @RequestBody ProjectDTO dto,
             Authentication authentication) {
@@ -69,7 +69,7 @@ public class ProjectController {
      * Only PROJECT_OWNER can update.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectDTO> updateProject(
             @PathVariable Long id,
             @Valid @RequestBody ProjectDTO dto,
@@ -83,7 +83,7 @@ public class ProjectController {
      * Only the project owner can update status.
      */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ProjectDTO> updateProjectStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProjectStatusDTO dto,
@@ -98,7 +98,7 @@ public class ProjectController {
      * Only PROJECT_OWNER can access this.
      */
     @GetMapping("/available-engineers")
-    @PreAuthorize("hasRole('PROJECT_OWNER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<List<UserSummaryDTO>> getAvailableEngineers() {
         return ResponseEntity.ok(projectService.getAvailableEngineers());
     }

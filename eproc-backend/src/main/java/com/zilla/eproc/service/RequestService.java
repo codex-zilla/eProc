@@ -71,12 +71,14 @@ public class RequestService {
                                                 "Project not found with ID: " + dto.getProjectId()));
 
                 boolean isAssigned = project.getTeamAssignments().stream()
-                                .anyMatch(assignment -> assignment.getUser().getId().equals(requester.getId())
-                                                && (assignment.getRole() == ProjectRole.LEAD_ENGINEER
-                                                                || assignment.getRole() == ProjectRole.SITE_ENGINEER
-                                                                || assignment.getRole() == ProjectRole.CONSULTANT_ENGINEER));
+                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
+                                                && assignment.getUser() != null
+                                                && assignment.getUser().getId().equals(requester.getId())
+                                                && (assignment.getRole() == ProjectRole.PROJECT_LEAD_ENGINEER
+                                                                || assignment.getRole() == ProjectRole.PROJECT_SITE_ENGINEER
+                                                                || assignment.getRole() == ProjectRole.PROJECT_CONSULTANT_ENGINEER));
 
-                if (!isAssigned && requester.getRole() != Role.PROJECT_OWNER) {
+                if (!isAssigned && requester.getRole() != Role.OWNER) {
                         throw new ForbiddenException("You are not assigned to this project");
                 }
 
@@ -207,10 +209,14 @@ public class RequestService {
                 User requester = userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-                boolean canView = request.getCreatedBy().getId().equals(requester.getId())
-                                || request.getProject().getOwner().getId().equals(requester.getId());
+                boolean isProjectOwner = request.getProject().getOwner() != null
+                                && request.getProject().getOwner().getId().equals(requester.getId());
+                boolean isCreator = request.getCreatedBy().getId().equals(requester.getId());
+                boolean hasActiveAssignment = request.getProject().getTeamAssignments().stream()
+                                .anyMatch(a -> a.getUser().getId().equals(requester.getId())
+                                                && Boolean.TRUE.equals(a.getIsActive()));
 
-                if (!canView) {
+                if (!isProjectOwner && !(isCreator && hasActiveAssignment)) {
                         throw new ForbiddenException("You do not have permission to view this request");
                 }
 
@@ -244,7 +250,7 @@ public class RequestService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
                 // Authorization: Only project owner can view all requests
-                if (!project.getOwner().getId().equals(requester.getId())) {
+                if (project.getOwner() == null || !project.getOwner().getId().equals(requester.getId())) {
                         throw new ForbiddenException("Only project owner can view all requests");
                 }
 
@@ -264,7 +270,7 @@ public class RequestService {
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
                 // Only project owners can view pending requests
-                if (owner.getRole() != Role.PROJECT_OWNER) {
+                if (owner.getRole() != Role.OWNER) {
                         throw new ForbiddenException("Only project owners can view pending requests");
                 }
 
@@ -285,7 +291,7 @@ public class RequestService {
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
                 // Only project owners can view all requests
-                if (owner.getRole() != Role.PROJECT_OWNER) {
+                if (owner.getRole() != Role.OWNER) {
                         throw new ForbiddenException("Only project owners can view requests");
                 }
 
@@ -436,7 +442,7 @@ public class RequestService {
 
                 // Verify access
                 boolean hasAccess = request.getCreatedBy().getId().equals(user.getId())
-                                || user.getRole() == Role.PROJECT_OWNER;
+                                || user.getRole() == Role.OWNER;
 
                 if (!hasAccess) {
                         throw new ForbiddenException("You don't have access to this request");
@@ -479,7 +485,8 @@ public class RequestService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
                 // Only project owner can approve/reject materials
-                if (!request.getProject().getOwner().getId().equals(owner.getId())) {
+                if (request.getProject().getOwner() == null
+                                || !request.getProject().getOwner().getId().equals(owner.getId())) {
                         throw new ForbiddenException("Only project owner can approve/reject materials");
                 }
 
@@ -579,9 +586,13 @@ public class RequestService {
 
                 // Authorization: Only Creator (Engineer) or Project Owner can update
                 boolean isCreator = request.getCreatedBy().getId().equals(user.getId());
-                boolean isProjectOwner = request.getProject().getOwner().getId().equals(user.getId());
+                boolean isProjectOwner = request.getProject().getOwner() != null
+                                && request.getProject().getOwner().getId().equals(user.getId());
+                boolean hasActiveAssignment = request.getProject().getTeamAssignments().stream()
+                                .anyMatch(a -> a.getUser().getId().equals(user.getId())
+                                                && Boolean.TRUE.equals(a.getIsActive()));
 
-                if (!isCreator && !isProjectOwner) {
+                if (!isProjectOwner && !(isCreator && hasActiveAssignment)) {
                         throw new ForbiddenException("You don't have permission to update this material");
                 }
 

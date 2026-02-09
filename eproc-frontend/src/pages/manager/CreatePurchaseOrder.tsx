@@ -50,7 +50,7 @@ const CreatePurchaseOrder: React.FC = () => {
     const projectId = searchParams.get('projectId');
 
     // Determine base path based on user role
-    const basePath = user?.role === 'PROJECT_ACCOUNTANT' ? '/accountant' : '/manager';
+    const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -106,7 +106,7 @@ const CreatePurchaseOrder: React.FC = () => {
             setError(null);
         } catch (err: any) {
             console.error('Failed to fetch requests:', err);
-            setError('Failed to load approved requests');
+            setError(err.response?.data?.message || 'Failed to load approved requests');
         } finally {
             setLoading(false);
         }

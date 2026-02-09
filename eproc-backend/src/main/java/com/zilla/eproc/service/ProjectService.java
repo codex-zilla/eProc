@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class ProjectService {
+public class ProjectService extends BaseProjectService {
 
         private final ProjectRepository projectRepository;
         private final UserRepository userRepository;
@@ -46,7 +46,7 @@ public class ProjectService {
 
                 List<Project> projects;
 
-                if (user.getRole() == Role.PROJECT_OWNER) {
+                if (user.getRole() == Role.OWNER) {
                         // Owner sees their own projects
                         projects = projectRepository.findByOwnerIdAndIsActiveTrue(user.getId());
                 } else if (user.getRole() == Role.ENGINEER) {
@@ -58,8 +58,17 @@ public class ProjectService {
                         projects = projectRepository.findAllById(projectIds).stream()
                                         .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
                                         .collect(Collectors.toList());
+                } else if (user.getRole() == Role.MANAGER || user.getRole() == Role.ACCOUNTANT) {
+                        // Manager/Accountant sees projects via team assignments (same as Engineer)
+                        List<Long> projectIds = projectAssignmentRepository.findByUserIdAndIsActiveTrue(user.getId())
+                                        .stream()
+                                        .map(pa -> pa.getProject().getId())
+                                        .collect(Collectors.toList());
+                        projects = projectRepository.findAllById(projectIds).stream()
+                                        .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
+                                        .collect(Collectors.toList());
                 } else {
-                        // SYSTEM_ADMIN and others - show all active
+                        // ADMIN only - show all active projects
                         projects = projectRepository.findByIsActiveTrue();
                 }
 
@@ -79,7 +88,7 @@ public class ProjectService {
                 User owner = userRepository.findByEmail(ownerEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-                if (owner.getRole() != Role.PROJECT_OWNER) {
+                if (owner.getRole() != Role.OWNER) {
                         throw new ForbiddenException("Only Project Owners can create projects");
                 }
 
@@ -134,7 +143,7 @@ public class ProjectService {
                 ProjectAssignment ownerAssignment = ProjectAssignment.builder()
                                 .project(saved)
                                 .user(owner)
-                                .role(ProjectRole.OWNER)
+                                .role(ProjectRole.PROJECT_OWNER)
                                 .startDate(LocalDate.now())
                                 .isActive(true)
                                 .build();
@@ -164,16 +173,12 @@ public class ProjectService {
          */
         @Transactional
         public ProjectDTO updateProjectStatus(Long projectId, ProjectStatus newStatus, String ownerEmail) {
-                User owner = userRepository.findByEmail(ownerEmail)
-                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
+                // Find Project Checks
                 Project project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
                 // Authorization: only project owner can update status
-                if (!project.isOwner(owner)) {
-                        throw new ForbiddenException("Only the project owner can update project status");
-                }
+                checkOwner(ownerEmail, projectId);
 
                 project.setStatus(newStatus);
 
@@ -192,15 +197,11 @@ public class ProjectService {
          */
         @Transactional
         public ProjectDTO updateProject(Long id, ProjectDTO dto, String ownerEmail) {
-                User owner = userRepository.findByEmail(ownerEmail)
-                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
                 Project project = projectRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-                if (!project.isOwner(owner)) {
-                        throw new ForbiddenException("Only the project owner can update this project");
-                }
+                // Authorization Check
+                checkOwner(ownerEmail, id);
 
                 // Update Project Fields
                 project.setName(dto.getName());
@@ -286,25 +287,11 @@ public class ProjectService {
          */
         @Transactional(readOnly = true)
         public ProjectDTO getProjectById(Long projectId, String userEmail) {
-                User user = userRepository.findByEmail(userEmail)
-                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
                 Project project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
                 // Authorization check
-                if (user.getRole() == Role.PROJECT_OWNER && !project.isOwner(user)) {
-                        throw new ForbiddenException("You can only view your own projects");
-                }
-                if (user.getRole() == Role.ENGINEER) {
-                        // Check if user has an assignment on this project
-                        boolean hasAssignment = projectAssignmentRepository
-                                        .findByProjectIdAndUserIdAndIsActiveTrue(projectId, user.getId())
-                                        .isPresent();
-                        if (!hasAssignment) {
-                                throw new ForbiddenException("You can only view projects you are assigned to");
-                        }
-                }
+                checkAccess(userEmail, projectId);
 
                 return mapToDTO(project);
         }

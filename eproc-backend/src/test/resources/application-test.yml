@@ -18,6 +18,9 @@ spring:
 jwt:
   secret: 129f0475b767d565a9460de4e3b6b3e6e5bf1edb73516050c612d6919fc83544
   expiration: 86400000
+  refresh-expiration: 604800000
+  cookie-name: eproc-jwt
+  refresh-cookie-name: eproc-refresh-jwt
 
 logging:
   level:

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zilla.eproc.dto.*;
 import com.zilla.eproc.model.*;
 import com.zilla.eproc.repository.*;
+import com.zilla.eproc.repository.RefreshTokenRepository;
 import com.zilla.eproc.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,8 @@ public class ProjectControllerIntegrationTest {
         private PasswordEncoder passwordEncoder;
         @Autowired
         private JwtUtil jwtUtil;
+        @Autowired
+        private RefreshTokenRepository refreshTokenRepository;
 
         private String pm1Token;
         private String pm2Token;
@@ -50,16 +53,17 @@ public class ProjectControllerIntegrationTest {
 
         @BeforeEach
         void setUp() {
+                refreshTokenRepository.deleteAll();
                 projectRepository.deleteAll();
                 userRepository.deleteAll();
 
                 // Create PM 1 (Owner 1)
-                User pm1 = createUser("pm1@test.com", Role.PROJECT_OWNER, "Boss 1");
+                User pm1 = createUser("pm1@test.com", Role.OWNER, "Boss 1");
                 userId_PM1 = pm1.getId();
                 pm1Token = jwtUtil.generateToken(pm1.getEmail(), pm1.getRole().name());
 
                 // Create PM 2 (Owner 2)
-                User pm2 = createUser("pm2@test.com", Role.PROJECT_OWNER, "Boss 2");
+                User pm2 = createUser("pm2@test.com", Role.OWNER, "Boss 2");
                 pm2Token = jwtUtil.generateToken(pm2.getEmail(), pm2.getRole().name());
 
                 // Create Engineer 1
@@ -70,7 +74,7 @@ public class ProjectControllerIntegrationTest {
 
                 // Create Accountant
                 // Create System Admin
-                createUser("admin@test.com", Role.SYSTEM_ADMIN, "Admin");
+                createUser("admin@test.com", Role.ADMIN, "Admin");
         }
 
         private User createUser(String email, Role role, String name) {

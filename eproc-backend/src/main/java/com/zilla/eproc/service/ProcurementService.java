@@ -48,9 +48,10 @@ public class ProcurementService {
                 Project project = projectRepository.findById(dto.getProjectId())
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-                boolean isOwner = project.getOwner().getId().equals(creator.getId());
+                boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(creator.getId());
                 boolean isAccountant = project.getTeamAssignments().stream()
-                                .anyMatch(assignment -> assignment.getUser() != null
+                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
+                                                && assignment.getUser() != null
                                                 && assignment.getUser().getId().equals(creator.getId())
                                                 && assignment.getRole() == ProjectRole.PROJECT_ACCOUNTANT);
 
@@ -159,11 +160,13 @@ public class ProcurementService {
                 Project project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-                // Verify access
-                boolean hasAccess = project.getOwner().getId().equals(user.getId())
-                                || project.getTeamAssignments().stream()
-                                                .anyMatch(assignment -> assignment.getUser().getId()
-                                                                .equals(user.getId()));
+                // Verify access - check if user is project owner or assigned to the project
+                boolean isProjectOwner = project.getOwner() != null && project.getOwner().getId().equals(user.getId());
+                boolean isTeamMember = project.getTeamAssignments().stream()
+                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
+                                                && assignment.getUser() != null
+                                                && assignment.getUser().getId().equals(user.getId()));
+                boolean hasAccess = isProjectOwner || isTeamMember;
 
                 if (!hasAccess) {
                         throw new ForbiddenException("You don't have access to this project");
@@ -187,11 +190,14 @@ public class ProcurementService {
                 User user = userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-                // Verify access
-                boolean hasAccess = po.getProject().getOwner().getId().equals(user.getId())
-                                || po.getProject().getTeamAssignments().stream()
-                                                .anyMatch(assignment -> assignment.getUser().getId()
-                                                                .equals(user.getId()));
+                // Verify access - check if user is project owner or assigned to the project
+                Project project = po.getProject();
+                boolean isProjectOwner = project.getOwner() != null && project.getOwner().getId().equals(user.getId());
+                boolean isTeamMember = project.getTeamAssignments().stream()
+                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
+                                                && assignment.getUser() != null
+                                                && assignment.getUser().getId().equals(user.getId()));
+                boolean hasAccess = isProjectOwner || isTeamMember;
 
                 if (!hasAccess) {
                         throw new ForbiddenException("You don't have access to this purchase order");

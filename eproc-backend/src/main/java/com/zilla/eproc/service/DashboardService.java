@@ -97,7 +97,7 @@ public class DashboardService {
                         if (p.getStatus() == ProjectStatus.ACTIVE && p.getTeamAssignments() != null) {
                                 assignedTeamMembers += (int) p.getTeamAssignments().stream()
                                                 .filter(pa -> Boolean.TRUE.equals(pa.getIsActive())
-                                                                && pa.getRole() != ProjectRole.OWNER)
+                                                                && pa.getRole() != ProjectRole.PROJECT_OWNER)
                                                 .count();
                         }
                 }

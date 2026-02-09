@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import api from '../lib/axios';
@@ -40,7 +40,6 @@ interface SidebarItem {
 const AppLayout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [pendingCount, setPendingCount] = useState(0);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -78,7 +77,7 @@ const AppLayout = () => {
 
   // Fetch pending count for manager badge
   useEffect(() => {
-    if (user?.role === 'PROJECT_OWNER') {
+    if (user?.role === 'OWNER') {
       const fetchPending = async () => {
         try {
           const res = await api.get('/dashboard/manager');
@@ -91,9 +90,8 @@ const AppLayout = () => {
     }
   }, [user]);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
   };
 
   const getNavItems = (): SidebarItem[] => {
@@ -105,7 +103,7 @@ const AppLayout = () => {
         { label: 'Deliveries', path: '/engineer/deliveries', icon: Package },
       ];
     }
-    if (user?.role === 'PROJECT_OWNER') {
+    if (user?.role === 'OWNER' || user?.role === 'MANAGER') {
       return [
         { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/manager/projects', icon: Briefcase },
@@ -115,7 +113,7 @@ const AppLayout = () => {
         { label: 'Deliveries', path: '/manager/deliveries', icon: Package },
       ];
     }
-    if (user?.role === 'PROJECT_ACCOUNTANT') {
+    if (user?.role === 'ACCOUNTANT') {
       return [
         { label: 'Procurement', path: '/accountant/procurement', icon: ShoppingCart },
         { label: 'Deliveries', path: '/accountant/deliveries', icon: Package },

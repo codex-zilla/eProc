@@ -73,7 +73,7 @@ function App() {
               </Route>
 
               {/* Manager Routes (Project Owner) */}
-              <Route element={<ProtectedRoute allowedRoles={['PROJECT_OWNER']} />}>
+              <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
                 <Route path="/manager/dashboard" element={<ManagerDashboard />} />
                 <Route path="/manager/projects" element={<MyProjects />} />
                 <Route path="/manager/projects/new" element={<ProjectWizard />} />
@@ -88,8 +88,8 @@ function App() {
                 <Route path="/manager/deliveries" element={<ManagerDeliveries />} />
               </Route>
 
-              {/* Accountant Routes (PROJECT_ACCOUNTANT) */}
-              <Route element={<ProtectedRoute allowedRoles={['PROJECT_ACCOUNTANT']} />}>
+              {/* Accountant Routes (ACCOUNTANT) */}
+              <Route element={<ProtectedRoute allowedRoles={['ACCOUNTANT']} />}>
                 <Route path="/accountant/procurement" element={<ProcurementDashboard />} />
                 <Route path="/accountant/procurement/create" element={<CreatePurchaseOrder />} />
                 <Route path="/accountant/deliveries" element={<ManagerDeliveries />} />
