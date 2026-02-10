@@ -41,6 +41,12 @@ import CreatePurchaseOrder from './pages/manager/CreatePurchaseOrder';
 import DeliveryRegistration from './pages/engineer/DeliveryRegistration';
 import ManagerDeliveries from './pages/manager/ManagerDeliveries';
 
+// Accountant pages
+import AccountantDashboard from './pages/accountant/AccountantDashboard';
+import PurchaseOrders from './pages/accountant/PurchaseOrders';
+import PurchaseOrderDetails from './pages/accountant/PurchaseOrderDetails';
+import AccountantReports from './pages/accountant/AccountantReports';
+
 function App() {
   return (
     <AuthProvider>
@@ -92,9 +98,13 @@ function App() {
 
               {/* Accountant Routes (ACCOUNTANT) */}
               <Route element={<ProtectedRoute allowedRoles={['ACCOUNTANT']} />}>
+                <Route path="/accountant/dashboard" element={<AccountantDashboard />} />
                 <Route path="/accountant/procurement" element={<ProcurementDashboard />} />
                 <Route path="/accountant/procurement/create" element={<CreatePurchaseOrder />} />
+                <Route path="/accountant/purchase-orders" element={<PurchaseOrders />} />
+                <Route path="/accountant/purchase-orders/:id" element={<PurchaseOrderDetails />} />
                 <Route path="/accountant/deliveries" element={<ManagerDeliveries />} />
+                <Route path="/accountant/reports" element={<AccountantReports />} />
               </Route>
 
               {/* Legacy routes redirect */}

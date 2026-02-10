@@ -47,7 +47,7 @@ export function getRoleDefaultRoute(role: string): string {
     case 'MANAGER':
       return '/manager/dashboard';
     case 'ACCOUNTANT':
-      return '/accountant/procurement';
+      return '/accountant/dashboard';
     default:
       return '/engineer/dashboard';
   }

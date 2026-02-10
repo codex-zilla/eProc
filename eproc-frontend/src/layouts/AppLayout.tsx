@@ -16,7 +16,9 @@ import {
   Menu,
   X,
   ShoppingCart,
-  Package
+  Package,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -115,8 +117,11 @@ const AppLayout = () => {
     }
     if (user?.role === 'ACCOUNTANT') {
       return [
+        { label: 'Dashboard', path: '/accountant/dashboard', icon: LayoutDashboard },
         { label: 'Procurement', path: '/accountant/procurement', icon: ShoppingCart },
+        { label: 'Purchase Orders', path: '/accountant/purchase-orders', icon: FileText },
         { label: 'Deliveries', path: '/accountant/deliveries', icon: Package },
+        { label: 'Reports', path: '/accountant/reports', icon: BarChart3 },
       ];
     }
     return [];
