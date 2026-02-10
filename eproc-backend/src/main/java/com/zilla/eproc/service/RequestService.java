@@ -32,6 +32,7 @@ public class RequestService {
         private final RequestAuditLogRepository auditLogRepository;
         private final MaterialRepository materialRepository;
         private final DuplicateDetectionService duplicateDetectionService;
+        private final ProjectSecurityService projectSecurityService;
 
         /**
          * Create multiple requests at once.
@@ -47,7 +48,7 @@ public class RequestService {
                 Set<String> usedBoqCodes = new HashSet<>();
 
                 for (CreateRequestDTO dto : dtos) {
-                        Request request = createSingleRequest(dto, requester, usedBoqCodes);
+                        Request request = createSingleRequest(dto, requester, usedBoqCodes, userEmail);
                         requests.add(request);
                 }
 
@@ -64,23 +65,18 @@ public class RequestService {
         /**
          * Create a single request.
          */
-        private Request createSingleRequest(CreateRequestDTO dto, User requester, Set<String> usedBoqCodes) {
+        private Request createSingleRequest(CreateRequestDTO dto, User requester, Set<String> usedBoqCodes,
+                        String userEmail) {
                 // Validate project access
                 Project project = projectRepository.findById(dto.getProjectId())
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Project not found with ID: " + dto.getProjectId()));
 
-                boolean isAssigned = project.getTeamAssignments().stream()
-                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
-                                                && assignment.getUser() != null
-                                                && assignment.getUser().getId().equals(requester.getId())
-                                                && (assignment.getRole() == ProjectRole.PROJECT_LEAD_ENGINEER
-                                                                || assignment.getRole() == ProjectRole.PROJECT_SITE_ENGINEER
-                                                                || assignment.getRole() == ProjectRole.PROJECT_CONSULTANT_ENGINEER));
-
-                if (!isAssigned && requester.getRole() != Role.OWNER) {
-                        throw new ForbiddenException("You are not assigned to this project");
-                }
+                // Use ProjectSecurityService to validate access
+                projectSecurityService.validateProjectAccess(userEmail, dto.getProjectId(),
+                                ProjectRole.PROJECT_LEAD_ENGINEER,
+                                ProjectRole.PROJECT_SITE_ENGINEER,
+                                ProjectRole.PROJECT_CONSULTANT_ENGINEER);
 
                 // Get site
                 Site site = siteRepository.findById(dto.getSiteId())
@@ -212,9 +208,10 @@ public class RequestService {
                 boolean isProjectOwner = request.getProject().getOwner() != null
                                 && request.getProject().getOwner().getId().equals(requester.getId());
                 boolean isCreator = request.getCreatedBy().getId().equals(requester.getId());
-                boolean hasActiveAssignment = request.getProject().getTeamAssignments().stream()
-                                .anyMatch(a -> a.getUser().getId().equals(requester.getId())
-                                                && Boolean.TRUE.equals(a.getIsActive()));
+
+                // Use ProjectSecurityService for assignment check to avoid NPE
+                boolean hasActiveAssignment = projectSecurityService.hasProjectAccess(userEmail,
+                                request.getProject().getId());
 
                 if (!isProjectOwner && !(isCreator && hasActiveAssignment)) {
                         throw new ForbiddenException("You do not have permission to view this request");
@@ -588,9 +585,10 @@ public class RequestService {
                 boolean isCreator = request.getCreatedBy().getId().equals(user.getId());
                 boolean isProjectOwner = request.getProject().getOwner() != null
                                 && request.getProject().getOwner().getId().equals(user.getId());
-                boolean hasActiveAssignment = request.getProject().getTeamAssignments().stream()
-                                .anyMatch(a -> a.getUser().getId().equals(user.getId())
-                                                && Boolean.TRUE.equals(a.getIsActive()));
+
+                // Use ProjectSecurityService for assignment check to avoid NPE
+                boolean hasActiveAssignment = projectSecurityService.hasProjectAccess(userEmail,
+                                request.getProject().getId());
 
                 if (!isProjectOwner && !(isCreator && hasActiveAssignment)) {
                         throw new ForbiddenException("You don't have permission to update this material");
