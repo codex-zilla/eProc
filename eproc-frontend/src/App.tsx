@@ -1,3 +1,4 @@
+import { Toaster } from 'sonner';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import AppLayout from './layouts/AppLayout';
@@ -45,6 +46,7 @@ function App() {
     <AuthProvider>
       <ChangePasswordModal />
       <BrowserRouter>
+        <Toaster position="top-right" richColors closeButton />
         <Routes>
           {/* Public Routes (Login) */}
           <Route element={<AuthLayout />}>

@@ -79,16 +79,26 @@ public class AuthController {
                     .map(refreshTokenService::verifyExpiration)
                     .map(RefreshToken::getUser)
                     .map(user -> {
-                        // Rotation: delete old token and create new one
-                        refreshTokenService.delete(refreshTokenService.findByToken(refreshToken).get());
-                        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
-                        ResponseCookie jwtCookie = jwtUtil.generateJwtCookie(user.getEmail(), user.getRole().name());
-                        ResponseCookie jwtRefreshCookie = jwtUtil.generateRefreshJwtCookie(newRefreshToken.getToken());
+                        try {
+                            // Rotation: delete old token and create new one
+                            refreshTokenService.delete(refreshTokenService.findByToken(refreshToken).get());
+                            RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+                            ResponseCookie jwtCookie = jwtUtil.generateJwtCookie(user.getEmail(),
+                                    user.getRole().name());
+                            ResponseCookie jwtRefreshCookie = jwtUtil
+                                    .generateRefreshJwtCookie(newRefreshToken.getToken());
 
-                        return ResponseEntity.ok()
-                                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
-                                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
-                                .body("Token Refreshed Successfully!");
+                            return ResponseEntity.ok()
+                                    .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                                    .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
+                                    .body("Token Refreshed Successfully!");
+                        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException
+                                | org.hibernate.StaleObjectStateException e) {
+                            // Token was already used/deleted by another concurrent request
+                            return ResponseEntity.status(401).body("Refresh token was already used.");
+                        } catch (Exception e) {
+                            return ResponseEntity.status(401).body("Refresh failed.");
+                        }
                     })
                     .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
         }

@@ -21,7 +21,7 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
     const [availableUsers, setAvailableUsers] = useState<UserSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
-    
+
     // Form State
     const [selectedUser, setSelectedUser] = useState('');
     const [selectedRole, setSelectedRole] = useState('');
@@ -75,7 +75,7 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
             } else {
                 await projectService.addTeamMember(projectId, payload);
             }
-            
+
             setIsAddOpen(false);
             setEditingAssignmentId(null);
             resetForm();
@@ -129,7 +129,7 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
         if (!open) {
             resetForm();
         } else if (!editingAssignmentId) {
-           loadAvailableUsers();
+            loadAvailableUsers();
         }
     };
 
@@ -139,14 +139,14 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
     // Ideally we match user.role with ProjectRole compatibility
     const filteredUsers = availableUsers.filter(u => {
         if (!selectedRole) return true;
-        
+
         // Engineer roles require an ENGINEER system user
         if (selectedRole.includes('ENGINEER')) {
             if (u.role !== 'ENGINEER') return false;
             // Also require valid ERB number for engineers
             return u.erbNumber && u.erbNumber.length > 0;
         }
-        
+
         return true;
     });
 
@@ -183,30 +183,30 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                         <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
                                         <SelectContent>
                                             {Object.values(ProjectRole)
-                                                .filter(role => role !== ProjectRole.OWNER)
+                                                .filter(role => role !== ProjectRole.PROJECT_OWNER)
                                                 .map(role => (
-                                                <SelectItem key={role} value={role}>{role.replace('_', ' ')}</SelectItem>
-                                            ))}
+                                                    <SelectItem key={role} value={role}>{role.replace('_', ' ')}</SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>User</Label>
-                                    <Select 
-                                        value={selectedUser} 
-                                        onValueChange={setSelectedUser} 
+                                    <Select
+                                        value={selectedUser}
+                                        onValueChange={setSelectedUser}
                                         disabled={!selectedRole || !!editingAssignmentId || (filteredUsers.length === 0 && !editingAssignmentId)}
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder={
                                                 !selectedRole ? "Select Role first" :
-                                                (filteredUsers.length === 0 && !editingAssignmentId) ? "No eligible users found" : 
-                                                "Select User" 
+                                                    (filteredUsers.length === 0 && !editingAssignmentId) ? "No eligible users found" :
+                                                        "Select User"
                                             } />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {/* If editing, show the current user even if not in available list immediately */}
-                                             {editingAssignmentId && !filteredUsers.find(u => u.id.toString() === selectedUser) && (
+                                            {editingAssignmentId && !filteredUsers.find(u => u.id.toString() === selectedUser) && (
                                                 <SelectItem key={selectedUser} value={selectedUser}>
                                                     Current User
                                                 </SelectItem>
@@ -277,7 +277,7 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                                             {Number(member.userId) !== Number(currentUser?.id) && (
                                                 <>
                                                     <Button variant="ghost" size="sm" onClick={() => handleEditMember(member)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-8 w-8 p-0">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
                                                     </Button>
 
                                                     <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(member.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0">
@@ -293,8 +293,8 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                     </div>
                 )}
             </CardContent>
-             {/* Delete Confirmation Modal */}
-             <Dialog open={!!deleteConfirmationId} onOpenChange={(open) => !open && setDeleteConfirmationId(null)}>
+            {/* Delete Confirmation Modal */}
+            <Dialog open={!!deleteConfirmationId} onOpenChange={(open) => !open && setDeleteConfirmationId(null)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Remove Team Member</DialogTitle>
@@ -307,7 +307,7 @@ const TeamManagement = ({ projectId, projectOwnerId }: TeamManagementProps) => {
                         <Button variant="destructive" onClick={confirmRemoveMember}>Remove</Button>
                     </DialogFooter>
                 </DialogContent>
-             </Dialog>
+            </Dialog>
         </Card>
     );
 };

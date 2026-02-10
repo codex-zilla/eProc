@@ -17,14 +17,55 @@ const Register = () => {
   const [role, setRole] = useState('OWNER');
   const [erbNumber, setErbNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); // Keep for API errors
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {};
+    let isValid = true;
+
+    if (!name.trim()) {
+      newErrors.name = 'Full Name is required';
+      isValid = false;
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Invalid email address';
+      isValid = false;
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      isValid = false;
+    }
+
+    if (role === 'ENGINEER' && !erbNumber.trim()) {
+      newErrors.erbNumber = 'ERB Number is required';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setErrors({});
+
+    if (!validate()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -39,12 +80,25 @@ const Register = () => {
       const redirectPath = getRoleDefaultRoute(role as any);
       navigate(redirectPath, { replace: true });
     } catch (err: any) {
-      // Error is already set in context, but we can also set local error if needed
-      // context error might be cleared on next navigation, so local state is good
-      const msg = err.message || 'Registration failed';
-      setError(msg);
+      // AuthContext.handleError() throws a plain Error(message), NOT the original Axios error.
+      // So err.response is undefined here. We use err.message to detect the error type.
+      const message = err?.message || 'Registration failed';
+
+      // Network/server errors are already shown via global toast by axios interceptor.
+      // Only show registration-specific errors locally.
+      const isNetworkError = message.toLowerCase().includes('unable to connect') ||
+        message.toLowerCase().includes('network');
+
+      if (!isNetworkError) {
+        setError(message);
+      }
       setIsLoading(false);
     }
+  };
+
+  const getInputClassName = (hasError: boolean) => {
+    return `pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900 ${hasError ? 'border-red-500 focus:border-red-500' : ''
+      }`;
   };
 
   return (
@@ -57,7 +111,7 @@ const Register = () => {
       </CardHeader>
 
       <CardContent className="py-0">
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3" noValidate>
           {error && (
             <div className="p-2.5 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm font-medium text-center">
               {error}
@@ -73,11 +127,14 @@ const Register = () => {
                 type="text"
                 placeholder=""
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
-                required
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors({ ...errors, name: '' });
+                }}
+                className={getInputClassName(!!errors.name)}
               />
             </div>
+            {errors.name && <p className="text-xs text-red-600 font-medium mt-1 ml-1">{errors.name}</p>}
           </div>
 
           <div className="space-y-1">
@@ -89,11 +146,14 @@ const Register = () => {
                 type="email"
                 placeholder=""
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
-                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors({ ...errors, email: '' });
+                }}
+                className={getInputClassName(!!errors.email)}
               />
             </div>
+            {errors.email && <p className="text-xs text-red-600 font-medium mt-1 ml-1">{errors.email}</p>}
           </div>
 
           <div className="space-y-1">
@@ -105,10 +165,12 @@ const Register = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder=""
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
-                required
-                minLength={6}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPassword(val);
+                  if (errors.password) setErrors({ ...errors, password: '' });
+                }}
+                className={`pl-9 pr-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
               />
               <button
                 type="button"
@@ -122,6 +184,7 @@ const Register = () => {
                 )}
               </button>
             </div>
+            {errors.password && <p className="text-xs text-red-600 font-medium mt-1 ml-1">{errors.password}</p>}
           </div>
 
           <div className="space-y-1">
@@ -152,10 +215,14 @@ const Register = () => {
                   type="text"
                   placeholder="ERB/XXXX/XXXX"
                   value={erbNumber}
-                  onChange={(e) => setErbNumber(e.target.value)}
-                  className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-slate-900"
+                  onChange={(e) => {
+                    setErbNumber(e.target.value);
+                    if (errors.erbNumber) setErrors({ ...errors, erbNumber: '' });
+                  }}
+                  className={getInputClassName(!!errors.erbNumber)}
                 />
               </div>
+              {errors.erbNumber && <p className="text-xs text-red-600 font-medium mt-1 ml-1">{errors.erbNumber}</p>}
             </div>
           )}
 
