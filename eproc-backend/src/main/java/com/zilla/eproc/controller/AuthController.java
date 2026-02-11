@@ -100,7 +100,7 @@ public class AuthController {
                             return ResponseEntity.status(401).body("Refresh failed.");
                         }
                     })
-                    .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+                    .orElseGet(() -> ResponseEntity.status(401).body("Refresh token is not in database!"));
         }
         return ResponseEntity.badRequest().body("Refresh Token is empty!");
     }

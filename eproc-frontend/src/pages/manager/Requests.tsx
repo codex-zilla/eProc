@@ -215,7 +215,7 @@ const Requests = () => {
           {/* Sort Dropdown */}
           <div className="flex items-center gap-2">
             <Select value={sortField} onValueChange={(val) => setSortField(val as SortField)}>
-              <SelectTrigger className="w-[160px] h-10 bg-white border-slate-200">
+              <SelectTrigger className="w-[160px] h-10 bg-white border-slate-200 focus:border-indigo-500">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-500">Sort by</span>
                   <span className="font-medium">{sortField}</span>
@@ -232,7 +232,7 @@ const Requests = () => {
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    className="h-10 px-3 border-slate-200 bg-white hover:bg-slate-50 gap-1 flex items-center"
+                    className="h-10 px-3 border-slate-200 bg-white hover:bg-slate-50 gap-1 flex items-center focus:bg-indigo-50"
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                   >
                     <span className="text-sm font-medium text-slate-600">{sortOrder === 'asc' ? 'asc' : 'desc'}</span>
@@ -248,7 +248,7 @@ const Requests = () => {
         </div>
 
         {/* Status Filters - Pills */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1 sm:gap-2">
           {['ALL', 'PENDING', 'APPROVED', 'PARTIALLY_APPROVED', 'REJECTED'].map(status => {
             const count = requests.filter(r => status === 'ALL' ? true : r.status === status).length;
             const isActive = statusFilter === status;
@@ -257,14 +257,14 @@ const Requests = () => {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 shadow-sm ${isActive
+                className={`flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full text-[10px] sm:text-xs font-bold transition-all duration-200 shadow-sm ${isActive
                   ? 'bg-[#2a3455] text-white hover:bg-[#1e253e]'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                   }`}
               >
                 {status.replace('_', ' ')}
                 {count > 0 && (
-                  <span className={`ml-1.5 flex items-center justify-center px-1.5 h-5 min-w-[1.25rem] rounded-full text-[10px] ${isActive
+                  <span className={`flex items-center justify-center px-1 sm:px-1.5  h-4 sm:h-5 min-w-[1.25rem] rounded-full text-[10px] ${isActive
                     ? 'bg-white text-[#2a3455]'
                     : 'bg-slate-100 text-slate-600'
                     }`}>
@@ -355,15 +355,12 @@ const Requests = () => {
                               onClick={() => handleRowClick(request.id)}
                               className="hover:bg-indigo-50/50 cursor-pointer transition-colors group border-slate-100"
                             >
-                              <TableCell className="p-2 pr-0 max-w-[210px]">
-                                <span className="font-semibold text-slate-700 text-xs lg:text-sm block " title={request.title}>
-                                  {request.title || request.additionalDetails || 'BOQ Request'}
-                                </span>
+                              <TableCell className="p-2 pr-0 max-w-[300px] flex items-center">
                                 {request.isDuplicateFlagged && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <span className="inline-flex ml-1 align-middle cursor-help">
+                                        <span className="mr-1 align-middle cursor-help">
                                           <AlertTriangle className="h-4 w-4 text-orange-500" />
                                         </span>
                                       </TooltipTrigger>
@@ -373,6 +370,10 @@ const Requests = () => {
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
+                                <span className="text-slate-800 text-xs lg:text-sm block " title={request.title}>
+                                  {request.title || request.additionalDetails || 'BOQ Request'}
+                                </span>
+
                               </TableCell>
                               <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
                                 {request.siteName || 'N/A'}
@@ -424,11 +425,11 @@ const Requests = () => {
                         className="border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
                         onClick={() => handleRowClick(request.id)}
                       >
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start gap-3 mb-3">
-                            <div>
+                        <CardContent className="p-2 px-3">
+                          <div className="grid grid-cols-4 items-start gap-2 mb-3">
+                            <div className='col-span-3'>
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-bold text-sm text-slate-900 line-clamp-1">
+                                <h3 className="font-bold text-sm text-slate-900">
                                   {request.title || request.additionalDetails || 'BOQ Request'}
                                 </h3>
                                 {request.priority === 'HIGH' && (
@@ -454,10 +455,11 @@ const Requests = () => {
                                 </TooltipProvider>
                               )}
                             </div>
-                            <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] px-2 py-0.5 whitespace-nowrap flex-shrink-0 border`}>
+                            <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] px-2 py-0.5 whitespace-nowrap flex-shrink-0 border justify-self-end`}>
                               {getStatusIcon(request.status)}
                               {request.status.replace('_', ' ')}
                             </Badge>
+
                           </div>
 
                           <div className="flex items-center justify-between pt-3 border-t border-slate-100">

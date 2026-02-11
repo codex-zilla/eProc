@@ -209,7 +209,7 @@ const Requests = () => {
           {/* Sort Dropdown */}
           <div className="flex items-center gap-2">
             <Select value={sortField} onValueChange={(val) => setSortField(val as SortField)}>
-              <SelectTrigger className="w-[160px] h-10 bg-white border-slate-200">
+              <SelectTrigger className="w-[160px] h-10 bg-white border-slate-200 focus:border-indigo-500">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-500">Sort by</span>
                   <span className="font-medium">{sortField}</span>
@@ -349,15 +349,12 @@ const Requests = () => {
                               onClick={() => handleRowClick(request.id)}
                               className="hover:bg-indigo-50/50 cursor-pointer transition-colors group border-slate-100"
                             >
-                              <TableCell className="p-2 pr-0 max-w-[210px]">
-                                <span className="font-semibold text-slate-700 text-xs lg:text-sm block " title={request.title}>
-                                  {request.title || request.additionalDetails || 'BOQ Request'}
-                                </span>
-                                {request.isDuplicateFlagged && (
+                              <TableCell className="p-2 pr-0 max-w-[300px] flex items-center">
+                                  {request.isDuplicateFlagged && (
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <span className="inline-flex ml-1 align-middle cursor-help">
+                                        <span className="ml-1 align-middle cursor-help">
                                           <AlertTriangle className="h-4 w-4 text-orange-500" />
                                         </span>
                                       </TooltipTrigger>
@@ -367,6 +364,10 @@ const Requests = () => {
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
+                                <span className="text-slate-800 text-xs lg:text-sm block " title={request.title}>
+                                  {request.title || request.additionalDetails || 'BOQ Request'}
+                                </span>
+
                               </TableCell>
                               <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
                                 {request.siteName || 'N/A'}
