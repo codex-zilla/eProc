@@ -559,7 +559,7 @@ const PurchaseOrders = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-2 sm:p-3 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div className="space-y-2">
                 <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
 
                     <div className="flex items-center gap-2 w-full lg:w-auto flex-grow lg:flex-1">
@@ -627,9 +627,7 @@ const PurchaseOrders = () => {
 
                 {/* Active Filters Summary (Chips) */}
                 {(statusFilter !== 'ALL' || projectFilter !== 'ALL' || datePreset !== 'ALL') && (
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">Active Filters:</span>
-
+                    <div className="flex flex-wrap items-center gap-2 px-1 border-t border-slate-100">
                         {statusFilter !== 'ALL' && (
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-100">
                                 <span>Status: {statusFilter === 'OPEN' ? 'Open' : 'Closed'}</span>
@@ -669,7 +667,7 @@ const PurchaseOrders = () => {
 
             {/* Content */}
             {filteredOrders.length === 0 ? (
-                <Card className="border-slate-200 shadow-sm border-dashed">
+                <Card className="border-slate-200 shadow-none border-dashed bg-stone--100">
                     <CardContent className="p-8 sm:p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
                         <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                             <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-slate-300" />
@@ -710,7 +708,7 @@ const PurchaseOrders = () => {
                                             <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700">
                                                 {po.projectName}
                                             </TableCell>
-                                            <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600">
+                                            <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700">
                                                 {formatDate(po.createdAt)}
                                             </TableCell>
                                             <TableCell className="p-2 pr-0 text-xs lg:text-sm font-bold text-slate-900 font-mono">
@@ -736,7 +734,7 @@ const PurchaseOrders = () => {
                                 className="border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer"
                                 onClick={() => navigate(`/accountant/purchase-orders/${po.id}`)}
                             >
-                                <CardContent className="p-4">
+                                <CardContent className="p-3">
                                     <div className="flex justify-between items-start gap-3 mb-2">
                                         <div className="min-w-0 flex-1">
                                             <h3 className="font-bold text-sm text-[#2a3455] line-clamp-1">{po.poNumber}</h3>

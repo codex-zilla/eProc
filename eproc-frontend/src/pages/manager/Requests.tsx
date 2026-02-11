@@ -248,7 +248,8 @@ const Requests = () => {
         </div>
 
         {/* Status Filters - Pills */}
-        <div className="flex flex-wrap gap-1 sm:gap-2">
+        <div className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide">
+          <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
           {['ALL', 'PENDING', 'APPROVED', 'PARTIALLY_APPROVED', 'REJECTED'].map(status => {
             const count = requests.filter(r => status === 'ALL' ? true : r.status === status).length;
             const isActive = statusFilter === status;
@@ -257,7 +258,7 @@ const Requests = () => {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full text-[10px] sm:text-xs font-bold transition-all duration-200 shadow-sm ${isActive
+                className={`flex items-center gap-2 px-2 sm:px-4 py-2 rounded-full text-[10px] sm:text-xs font-bold transition-all duration-200 shadow-sm whitespace-nowrap ${isActive
                   ? 'bg-[#2a3455] text-white hover:bg-[#1e253e]'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                   }`}
@@ -356,6 +357,9 @@ const Requests = () => {
                               className="hover:bg-indigo-50/50 cursor-pointer transition-colors group border-slate-100"
                             >
                               <TableCell className="p-2 pr-0 max-w-[300px] flex items-center">
+                                <span className="text-[#2a3455] text-xs lg:text-sm block pr-2 font-semibold" title={request.title}>
+                                  {request.title || request.additionalDetails || 'BOQ Request'}
+                                </span>
                                 {request.isDuplicateFlagged && (
                                   <TooltipProvider>
                                     <Tooltip>
@@ -370,18 +374,16 @@ const Requests = () => {
                                     </Tooltip>
                                   </TooltipProvider>
                                 )}
-                                <span className="text-slate-800 text-xs lg:text-sm block " title={request.title}>
-                                  {request.title || request.additionalDetails || 'BOQ Request'}
-                                </span>
+
 
                               </TableCell>
-                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700 lg:max-w-[120px]">
                                 {request.siteName || 'N/A'}
                               </TableCell>
-                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 lg:max-w-[120px]">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700 lg:max-w-[120px]">
                                 {request.createdByName || 'Unknown'}
                               </TableCell>
-                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-600 hidden lg:table-cell lg:max-w-[100px]">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700 hidden lg:table-cell lg:max-w-[100px]">
                                 {request.plannedStartDate
                                   ? new Date(request.plannedStartDate).toLocaleDateString()
                                   : new Date(request.createdAt).toLocaleDateString()}

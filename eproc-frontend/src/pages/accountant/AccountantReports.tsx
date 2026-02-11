@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-    FileText,
     Download,
     AlertTriangle,
     TrendingDown,
@@ -425,8 +424,8 @@ const AccountantReports = () => {
                                     </div>
                                     <div className="ml-4 text-right">
                                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${item.condition === 'DAMAGED'
-                                                ? 'bg-red-100 text-red-700'
-                                                : 'bg-orange-100 text-orange-700'
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-orange-100 text-orange-700'
                                             }`}>
                                             {item.condition.replace('_', ' ')}
                                         </span>
