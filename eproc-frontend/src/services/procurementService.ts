@@ -24,11 +24,14 @@ export interface PurchaseOrderItemResponse {
   requestTitle: string;
   materialDisplayName: string;
   orderedQty: number;
+  requestedQty: number;
   unit: string;
   unitPrice: number;
   totalPrice: number;
   totalDelivered: number;
   fullyDelivered: boolean;
+  siteName: string;
+  orderedDate: string;
 }
 
 export interface PurchaseOrderResponse {
@@ -133,5 +136,15 @@ export const getDeliveriesForPO = async (
   poId: number
 ): Promise<DeliveryResponse[]> => {
   const response = await api.get(`/deliveries/purchase-order/${poId}`);
+  return response.data;
+};
+
+/**
+ * Close a purchase order
+ */
+export const closePurchaseOrder = async (
+  id: number
+): Promise<PurchaseOrderResponse> => {
+  const response = await api.post(`/purchase-orders/${id}/close`);
   return response.data;
 };

@@ -204,13 +204,14 @@ const ManagerDeliveries: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg border border-slate-200 bg-white p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+            <div className="flex sm:grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 overflow-x-auto scrollbar-hide">
+                <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
+                <div className="rounded-lg border border-slate-200 bg-white p-3 smp-4 min-w-[160px] shadow-sm">
+                    <div className="flex flex-col items-start gap-3">
+                        <div className="h-6 sm:h-10 w-6 sm:w-10 rounded-full bg-slate-100 flex items-center justify-center">
                             <Package className="h-5 w-5 text-slate-600" />
                         </div>
-                        <div>
+                        <div className='flex sm:flex-col'>
                             <p className="text-2xl font-bold text-slate-900">{totalPOs}</p>
                             <p className="text-sm text-slate-500">Total POs</p>
                         </div>

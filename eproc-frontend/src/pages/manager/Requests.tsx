@@ -383,7 +383,7 @@ const Requests = () => {
                               <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700 lg:max-w-[120px]">
                                 {request.createdByName || 'Unknown'}
                               </TableCell>
-                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-700 hidden lg:table-cell lg:max-w-[100px]">
+                              <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-00 hidden lg:table-cell lg:max-w-[100px]">
                                 {request.plannedStartDate
                                   ? new Date(request.plannedStartDate).toLocaleDateString()
                                   : new Date(request.createdAt).toLocaleDateString()}

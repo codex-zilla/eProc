@@ -46,10 +46,13 @@ public class PurchaseOrderResponseDTO {
         private String requestTitle;
         private String materialDisplayName;
         private BigDecimal orderedQty;
+        private BigDecimal requestedQty;
         private String unit;
         private BigDecimal unitPrice;
         private BigDecimal totalPrice;
         private BigDecimal totalDelivered;
         private boolean fullyDelivered;
+        private String siteName;
+        private LocalDateTime orderedDate;
     }
 }

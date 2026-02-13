@@ -4,7 +4,6 @@ import {
     FileText,
     Loader2,
     Calendar,
-    Edit,
     Printer,
     CheckCircle2,
     Search,
@@ -17,10 +16,12 @@ import {
     Package,
     ChevronLeft,
     ChevronRight,
-    X
+    X,
+    ArrowUpDown,
+    Check
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPurchaseOrder, type PurchaseOrderResponse } from '../../services/procurementService';
+import { getPurchaseOrder, closePurchaseOrder, type PurchaseOrderResponse } from '../../services/procurementService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,31 @@ const PurchaseOrderDetails = () => {
     const [po, setPo] = useState<PurchaseOrderResponse | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+    const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [showFilter, setShowFilter] = useState(false);
+
+    const handleCloseOrder = async () => {
+        if (!po) return;
+        try {
+            setLoading(true);
+            const updatedPo = await closePurchaseOrder(po.id);
+            setPo(updatedPo);
+            toast.success('Purchase order closed successfully');
+        } catch (error) {
+            console.error('Failed to close purchase order:', error);
+            toast.error('Failed to close purchase order');
+            setLoading(false);
+        }
+    };
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     useEffect(() => {
         if (id) {
@@ -96,14 +122,56 @@ const PurchaseOrderDetails = () => {
         );
     }
 
-    const totalOrderedQty = po.items.reduce((sum, item) => sum + item.orderedQty, 0);
+    const totalRequestedQty = po.items.reduce((sum, item) => sum + item.requestedQty, 0);
     const totalDeliveredQty = po.items.reduce((sum, item) => sum + item.totalDelivered, 0);
-    const deliveryPercentage = totalOrderedQty > 0 ? Math.round((totalDeliveredQty / totalOrderedQty) * 100) : 0;
-    const pendingItems = po.items.filter(item => item.totalDelivered < item.orderedQty).length;
+    // Pending Delivery: Marked as ordered but not yet delivered
+    const totalPendingDelivery = po.items.reduce((sum, item) => sum + (item.orderedQty - item.totalDelivered), 0);
 
-    const filteredItems = po.items.filter(item =>
-        item.materialDisplayName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Calculate delivery percentage against REQUESTED quantity as per requirement
+    const deliveryPercentage = totalRequestedQty > 0 ? Math.round((totalDeliveredQty / totalRequestedQty) * 100) : 0;
+
+    const pendingItemsCount = po.items.filter(item => item.totalDelivered < item.orderedQty).length;
+
+    const filteredItems = po.items.filter(item => {
+        const matchesSearch = item.materialDisplayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (item.siteName && item.siteName.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        if (!matchesSearch) return false;
+
+        if (filterStatus === 'pending') {
+            return item.totalDelivered < item.orderedQty;
+        }
+        if (filterStatus === 'completed') {
+            return item.totalDelivered >= item.orderedQty;
+        }
+        return true;
+    }).sort((a, b) => {
+        if (!sortConfig) return 0;
+        const { key, direction } = sortConfig;
+
+        let aValue: any = (a as any)[key];
+        let bValue: any = (b as any)[key];
+
+        if (key === 'siteName') {
+            aValue = a.siteName || '';
+            bValue = b.siteName || '';
+        }
+
+        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const getProgressColor = (percent: number) => {
+        if (percent < 30) return 'bg-red-500';
+        if (percent < 70) return 'bg-orange-500';
+        return 'bg-green-500';
+    };
+
+    const isOrderOpen = po.status === 'OPEN';
+    // Show complete button if order is open AND (all requested items ordered OR manually closed logic? User said "if the order is still open... add button to close")
+    // Requirement: "add a conditional render a button to complete the order if the order is still open"
+    const showCloseButton = isOrderOpen;
 
     return (
         <div className="space-y-4 max-w-[1600px] mx-auto pb-10">
@@ -136,13 +204,20 @@ const PurchaseOrderDetails = () => {
                         <div className="flex flex-col items-end gap-3 w-full lg:w-auto">
                             <div className="flex items-center gap-2 w-full lg:w-auto">
                                 <Button variant="outline" size="sm" className="flex-1 lg:flex-none gap-2 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
-                                    <Edit className="h-3.5 w-3.5" />
-                                    Edit
-                                </Button>
-                                <Button variant="outline" size="sm" className="flex-1 lg:flex-none gap-2 px-3 bg-[#2a3455] border-slate-200 text-white hover:bg-[#1e253e]">
                                     <Printer className="h-3.5 w-3.5" />
                                     PDF
                                 </Button>
+                                {showCloseButton && (
+                                    <Button
+                                        onClick={handleCloseOrder}
+                                        size="sm"
+                                        className="flex-1 lg:flex-none gap-2 px-3 bg-[#2a3455] border-slate-200 text-white hover:bg-[#1e253e] hover:text-white"
+                                    >
+                                        <Check className="h-3.5 w-3.5" />
+                                        Complete Order
+                                    </Button>
+                                )}
+
                             </div>
                         </div>
                     </div>
@@ -159,8 +234,8 @@ const PurchaseOrderDetails = () => {
                         </div>
                         <div>
                             <p className="text-xs sm:text-sm font-medium text-slate-500">Total Requested Items</p>
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalOrderedQty.toLocaleString()}</h3>
-                            <p className="text-xs text-green-600 font-medium mt-1">Unit count</p>
+                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalRequestedQty.toLocaleString()}</h3>
+                            <p className="text-xs text-green-600 font-medium mt-1">Requested Qty</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -175,7 +250,7 @@ const PurchaseOrderDetails = () => {
                             <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalDeliveredQty.toLocaleString()}</h3>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="flex-1">
-                                    <Progress value={deliveryPercentage} className="h-1.5 bg-slate-100 [&>div]:bg-green-500" />
+                                    <Progress value={deliveryPercentage} className="h-1.5 bg-slate-100" indicatorClassName={getProgressColor(deliveryPercentage)} />
                                 </div>
                                 <span className="text-[10px] sm:text-xs font-medium text-slate-600 whitespace-nowrap">{deliveryPercentage}% Complete</span>
                             </div>
@@ -190,9 +265,9 @@ const PurchaseOrderDetails = () => {
                         </div>
                         <div>
                             <p className="text-xs sm:text-sm font-medium text-slate-500">Pending Delivery</p>
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalOrderedQty - totalDeliveredQty}</h3>
+                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalPendingDelivery.toLocaleString()}</h3>
                             <p className="text-xs text-amber-600 font-medium mt-1">
-                                {pendingItems} items require attention
+                                {pendingItemsCount} items require attention
                             </p>
                         </div>
                     </CardContent>
@@ -204,13 +279,10 @@ const PurchaseOrderDetails = () => {
                             <PieChart className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs sm:text-sm font-medium text-slate-500">Budget Consumed</p>
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">100%</h3>
+                            <p className="text-xs sm:text-sm font-medium text-slate-500">Total Expenses</p>
+                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{formatCurrency(po.totalValue)}</h3>
                             <div className="flex items-center gap-2 mt-2">
-                                <div className="flex-1">
-                                    <Progress value={100} className="h-1.5 bg-slate-100 [&>div]:bg-blue-500" />
-                                </div>
-                                <span className="text-[10px] sm:text-xs font-medium text-slate-600 whitespace-nowrap">On Track</span>
+                                <span className="text-[10px] sm:text-xs font-medium text-blue-500 whitespace-nowrap">Total Cost</span>
                             </div>
                         </div>
                     </CardContent>
@@ -243,7 +315,7 @@ const PurchaseOrderDetails = () => {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
                                 <Input
                                     type="text"
-                                    placeholder="Search Material..."
+                                    placeholder="Search Material or Site..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="pl-10 h-9 bg-white w-full pr-8"
@@ -263,11 +335,48 @@ const PurchaseOrderDetails = () => {
                             </div>
 
                             {/* Actions Buttons (Visible, allowing flex to handle spacing) */}
-                            <div className="flex gap-2">
-                                <Button variant="outline" className="h-9 gap-2 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 px-3">
+                            <div className="flex gap-2 relative">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowFilter(!showFilter)}
+                                    className={`h-9 gap-2 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 px-3 ${showFilter ? 'bg-slate-100 ring-2 ring-slate-200' : ''}`}
+                                >
                                     <Filter className="h-4 w-4" />
                                     <span className="hidden sm:inline">Filter</span>
                                 </Button>
+
+                                {/* Filter Dropdown */}
+                                {showFilter && (
+                                    <div className="absolute top-10 right-0 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                                        <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-100 mb-1">
+                                            Filter by Status
+                                        </div>
+                                        <button
+                                            onClick={() => { setFilterStatus('all'); setShowFilter(false); }}
+                                            className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${filterStatus === 'all' ? 'text-white font-medium bg-[#2a3455] hover:bg-[#1e235e]' : 'text-slate-600 hover:bg-slate-50 '
+                                                }`}
+                                        >
+                                            All Items
+                                            {filterStatus === 'all' && <Check className="h-3.5 w-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={() => { setFilterStatus('pending'); setShowFilter(false); }}
+                                            className={`w-full text-left px-4 py-2 text-smflex items-center justify-between ${filterStatus === 'pending' ? 'text-white font-medium bg-[#2a3455] hover:bg-[#1e235e]' : 'text-slate-600 hover:bg-slate-50 '
+                                                }`}
+                                        >
+                                            Pending Delivery
+                                            {filterStatus === 'pending' && <Check className="h-3.5 w-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={() => { setFilterStatus('completed'); setShowFilter(false); }}
+                                            className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${filterStatus === 'completed' ? 'text-white font-medium bg-[#2a3455] hover:bg-[#1e235e]' : 'text-slate-600 hover:bg-slate-50 '
+                                                }`}
+                                        >
+                                            Fully Delivered
+                                            {filterStatus === 'completed' && <Check className="h-3.5 w-3.5" />}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -276,18 +385,22 @@ const PurchaseOrderDetails = () => {
                         <Table>
                             <TableHeader className="bg-[#2a3455]/10">
                                 <TableRow className="hover:bg-transparent">
-                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">Material</TableHead>
-                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">Unit Cost</TableHead>
-                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider text-center">Req. Qty</TableHead>
-                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider text-center">Ord. Qty</TableHead>
-                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">Delivered</TableHead>
+                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => handleSort('materialDisplayName')}>
+                                        <div className="flex items-center gap-1">Material / Site <ArrowUpDown className="h-3 w-3" /></div>
+                                    </TableHead>
+                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => handleSort('unitPrice')}>Unit Cost</TableHead>
+                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider text-center cursor-pointer hover:bg-slate-100" onClick={() => handleSort('requestedQty')}>Req. Qty</TableHead>
+                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider text-center cursor-pointer hover:bg-slate-100" onClick={() => handleSort('orderedQty')}>Ord. Qty</TableHead>
+                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">Delivered (of Req)</TableHead>
                                     <TableHead className="p-3 text-xs font-semibold text-slate-900 uppercase tracking-wider text-center">Remaining</TableHead>
+                                    <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider cursor-pointer hover:bg-slate-100" onClick={() => handleSort('orderedDate')}>Date</TableHead>
                                     <TableHead className="p-3 pr-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredItems.map(item => {
-                                    const percent = item.orderedQty > 0 ? Math.round((item.totalDelivered / item.orderedQty) * 100) : 0;
+                                    // Delivered % is against REQUESTED Qty now
+                                    const percent = item.requestedQty > 0 ? Math.round((item.totalDelivered / item.requestedQty) * 100) : 0;
                                     const remaining = item.orderedQty - item.totalDelivered;
 
                                     return (
@@ -299,7 +412,7 @@ const PurchaseOrderDetails = () => {
                                                     </div>
                                                     <div>
                                                         <p className="font-semibold text-slate-900 text-sm">{item.materialDisplayName}</p>
-                                                        <p className="text-xs text-slate-500 mt-0.5">SKU: {`MAT-${item.id.toString().padStart(4, '0')}`}</p>
+                                                        <p className="text-xs text-slate-500 mt-0.5">Site: {item.siteName || 'N/A'}</p>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -307,7 +420,7 @@ const PurchaseOrderDetails = () => {
                                                 {formatCurrency(item.unitPrice)}
                                             </TableCell>
                                             <TableCell className="p-2 pr-0 text-center text-sm font-medium text-slate-700">
-                                                {item.orderedQty}
+                                                {item.requestedQty}
                                             </TableCell>
                                             <TableCell className="p-2 pr-0 text-center text-sm font-medium text-slate-700">
                                                 {item.orderedQty}
@@ -318,10 +431,10 @@ const PurchaseOrderDetails = () => {
                                                         <span className={`font-semibold ${percent === 100 ? 'text-green-600' : 'text-slate-700'}`}>
                                                             {item.totalDelivered} ({percent}%)
                                                         </span>
-                                                        {percent === 100 && <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
+                                                        {percent >= 100 && <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />}
                                                     </div>
                                                     <div className="h-2 w-full">
-                                                        <Progress value={percent} className="h-full bg-slate-100 [&>div]:bg-green-500" />
+                                                        <Progress value={percent} className="h-full bg-slate-100" indicatorClassName={getProgressColor(percent)} />
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -329,6 +442,9 @@ const PurchaseOrderDetails = () => {
                                                 <span className={`text-sm font-medium ${remaining < 0 ? 'text-red-600' : 'text-slate-700'}`}>
                                                     {remaining}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell className="p-2 pr-0 text-nowrap text-sm text-slate-600">
+                                                {item.orderedDate ? formatDate(item.orderedDate) : '-'}
                                             </TableCell>
                                             <TableCell className="p-2 pr-0 font-semibold text-slate-700 text-sm font-mono tracking-tight">
                                                 {formatCurrency(item.totalPrice)}
@@ -339,7 +455,7 @@ const PurchaseOrderDetails = () => {
                             </TableBody>
                             <TableFooter className="bg-slate-50/50">
                                 <TableRow>
-                                    <TableCell colSpan={7} className="p-2 pe-4 text-right text-sm font-semibold text-slate-900 tracking-wider">
+                                    <TableCell colSpan={8} className="p-2 pe-4 text-right text-sm font-semibold text-slate-900 tracking-wider">
                                         Total:
                                         <span className="ps-2 text-lg font-bold font-mono text-[#2a3455] tracking-tighter">{formatCurrency(po.totalValue)}</span>
                                     </TableCell>
@@ -361,7 +477,7 @@ const PurchaseOrderDetails = () => {
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-900">{item.materialDisplayName}</p>
-                                            <p className="text-xs text-slate-500 mt-1">SKU: {`MAT-${item.id.toString().padStart(4, '0')}`}</p>
+                                            <p className="text-xs text-slate-500 mt-1">Site: {item.siteName || 'N/A'}</p>
                                         </div>
                                         <Badge variant="secondary" className={`ml-2 ${item.totalDelivered >= item.orderedQty
                                             ? 'bg-green-100 text-green-700'

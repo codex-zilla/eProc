@@ -97,12 +97,21 @@ public class ProcurementService {
                         // Calculate total price
                         BigDecimal totalPrice = itemDto.getOrderedQty().multiply(itemDto.getUnitPrice());
 
+                        // Find original material to get requested quantity
+                        BigDecimal requestedQty = request.getMaterials().stream()
+                                        .filter(m -> m.getName().equals(itemDto.getMaterialDisplayName()))
+                                        .findFirst()
+                                        .map(Material::getQuantity)
+                                        .orElse(BigDecimal.ZERO);
+
                         // Create PO item
                         PurchaseOrderItem poItem = PurchaseOrderItem.builder()
                                         .purchaseOrder(po)
                                         .request(request)
                                         .materialDisplayName(itemDto.getMaterialDisplayName())
                                         .orderedQty(itemDto.getOrderedQty())
+                                        .requestedQty(requestedQty)
+                                        .updatedAt(java.time.LocalDateTime.now())
                                         .unit(itemDto.getUnit())
                                         .unitPrice(itemDto.getUnitPrice())
                                         .totalPrice(totalPrice)
@@ -207,6 +216,42 @@ public class ProcurementService {
         }
 
         /**
+         * Close a purchase order manually.
+         */
+        @Transactional
+        public PurchaseOrderResponseDTO closePurchaseOrder(Long id, String userEmail) {
+                PurchaseOrder po = purchaseOrderRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found"));
+
+                User user = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                // Verify access - check if user is project owner or accountant
+                Project project = po.getProject();
+                boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(user.getId());
+                boolean isAccountant = project.getTeamAssignments().stream()
+                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
+                                                && assignment.getUser() != null
+                                                && assignment.getUser().getId().equals(user.getId())
+                                                && assignment.getRole() == ProjectRole.PROJECT_ACCOUNTANT);
+
+                if (!isOwner && !isAccountant) {
+                        throw new ForbiddenException("Only project owners and accountants can close purchase orders");
+                }
+
+                if (po.getStatus() == PurchaseOrderStatus.CLOSED) {
+                        throw new IllegalStateException("Purchase order is already closed");
+                }
+
+                po.setStatus(PurchaseOrderStatus.CLOSED);
+                po = purchaseOrderRepository.save(po);
+
+                log.info("Closed purchase order {} by user {}", po.getPoNumber(), userEmail);
+
+                return mapToResponseDTO(po);
+        }
+
+        /**
          * Map PO to response DTO.
          */
         private PurchaseOrderResponseDTO mapToResponseDTO(PurchaseOrder po) {
@@ -217,11 +262,22 @@ public class ProcurementService {
                                                 .requestTitle(item.getRequest().getTitle())
                                                 .materialDisplayName(item.getMaterialDisplayName())
                                                 .orderedQty(item.getOrderedQty())
+                                                .requestedQty(item.getRequestedQty())
                                                 .unit(item.getUnit())
                                                 .unitPrice(item.getUnitPrice())
                                                 .totalPrice(item.getTotalPrice())
                                                 .totalDelivered(item.getTotalDelivered())
                                                 .fullyDelivered(item.isFullyDelivered())
+                                                .siteName(item.getRequest().getSite().getName())
+                                                .orderedDate(item.getUpdatedAt() != null ? item.getUpdatedAt()
+                                                                : item.getCreatedAt())
+                                                .requestedQty(item.getRequestedQty() != null ? item.getRequestedQty()
+                                                                : item.getRequest().getMaterials().stream()
+                                                                                .filter(m -> m.getName().equals(item
+                                                                                                .getMaterialDisplayName()))
+                                                                                .findFirst()
+                                                                                .map(Material::getQuantity)
+                                                                                .orElse(BigDecimal.ZERO))
                                                 .build())
                                 .collect(Collectors.toList());
 

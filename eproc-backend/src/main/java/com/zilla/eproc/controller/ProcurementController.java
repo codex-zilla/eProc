@@ -57,4 +57,16 @@ public class ProcurementController {
         PurchaseOrderResponseDTO response = procurementService.getPurchaseOrderById(id, userEmail);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Close a purchase order.
+     */
+    @PostMapping("/{id}/close")
+    public ResponseEntity<PurchaseOrderResponseDTO> closePurchaseOrder(
+            @PathVariable Long id,
+            Authentication authentication) {
+        String userEmail = authentication.getName();
+        PurchaseOrderResponseDTO response = procurementService.closePurchaseOrder(id, userEmail);
+        return ResponseEntity.ok(response);
+    }
 }
