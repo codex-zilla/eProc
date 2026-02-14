@@ -4,10 +4,12 @@ import {
     AlertTriangle,
     TrendingDown,
     AlertCircle,
-    Loader2,
     BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EmptyState } from '@/components/common/EmptyState';
 
 // Mock data interfaces - replace with actual API calls
 interface OrderedVsDelivered {
@@ -137,22 +139,7 @@ const AccountantReports = () => {
         }
     };
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-TZ', {
-            style: 'currency',
-            currency: 'TZS',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount);
-    };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-TZ', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    };
 
     const exportToCSV = (data: any[], filename: string, headers: string[]) => {
         const csvContent = [
@@ -216,7 +203,7 @@ const AccountantReports = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="h-8 w-8 animate-spin text-[#2a3455]" />
+                <LoadingSpinner size="lg" text="Loading reports..." />
             </div>
         );
     }
@@ -387,9 +374,12 @@ const AccountantReports = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="p-12 text-center">
-                        <TrendingDown className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-                        <p className="text-slate-500 text-sm">No under-ordered requests</p>
+                    <div className="py-6">
+                        <EmptyState
+                            icon={TrendingDown}
+                            title="No under-ordered requests"
+                            description="All requests are within ordered limits."
+                        />
                     </div>
                 )}
             </div>
@@ -444,9 +434,13 @@ const AccountantReports = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="p-12 text-center">
-                        <AlertCircle className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-                        <p className="text-slate-500 text-sm">No damaged deliveries reported</p>
+                    <div className="py-6">
+                        <EmptyState
+                            icon={AlertCircle}
+                            title="No damaged deliveries"
+                            description="No damaged deliveries reported."
+                            className="py-6"
+                        />
                     </div>
                 )}
             </div>

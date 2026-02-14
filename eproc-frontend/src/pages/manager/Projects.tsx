@@ -3,11 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { Project } from '@/types/models';
+import { formatNumber } from '@/lib/formatters';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 
 const MyProjects = () => {
   const navigate = useNavigate();
@@ -41,18 +44,11 @@ const MyProjects = () => {
     loadProjects();
   }, [loadProjects]);
 
-  const filteredProjects = projects.filter(p => 
+  const filteredProjects = projects.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'default'; // Uses primary color
-      case 'COMPLETED': return 'secondary';
-      case 'CANCELLED': return 'destructive';
-      default: return 'outline';
-    }
-  };
+
 
   const handleRowClick = (projectId: number) => {
     navigate(`/manager/projects/${projectId}`);
@@ -85,10 +81,10 @@ const MyProjects = () => {
                 />
               </div>
               <Button variant="outline" size="icon" className="border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
-                 <Filter className="h-4 w-4" />
+                <Filter className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md text-xs sm:text-sm h-9 sm:h-10 flex-shrink-0">
               <Link to="/manager/projects/new" className="flex items-center justify-center gap-1 sm:gap-1.5">
                 <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -100,11 +96,24 @@ const MyProjects = () => {
         </CardHeader>
         <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
           {loading ? (
-             <div className="text-center py-8 sm:py-10 text-slate-500 text-sm sm:text-base">Loading projects...</div>
+            <div className="flex items-center justify-center p-8 sm:p-12">
+              <LoadingSpinner size="lg" text="Loading projects..." />
+            </div>
           ) : error ? (
-             <div className="text-center py-8 sm:py-10 text-slate-400 text-sm sm:text-base">Could not load projects.</div>
+            <div className="text-center py-8 sm:py-10 text-slate-400 text-sm sm:text-base">Could not load projects.</div>
           ) : filteredProjects.length === 0 ? (
-             <div className="text-center py-8 sm:py-10 text-slate-500 text-sm sm:text-base">No projects found.</div>
+            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
+              <EmptyState
+                icon={Search}
+                title="No projects found"
+                description={searchTerm ? "Try adjusting your search query to find what you're looking for." : "No projects have been created yet."}
+                action={
+                  <Button asChild className="mt-4 bg-[#2a3455] hover:bg-[#1e253e]">
+                    <Link to="/manager/projects/new">Create Project</Link>
+                  </Button>
+                }
+              />
+            </div>
           ) : (
             <div className="overflow-hidden rounded-md border border-slate-200">
               <div className="overflow-x-auto">
@@ -120,8 +129,8 @@ const MyProjects = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredProjects.map((project) => (
-                      <TableRow 
-                        key={project.id} 
+                      <TableRow
+                        key={project.id}
                         onClick={() => handleRowClick(project.id)}
                         className="hover:bg-indigo-50/50 transition-colors cursor-pointer"
                       >
@@ -129,17 +138,15 @@ const MyProjects = () => {
                           <span className="line-clamp-1">{project.name}</span>
                         </TableCell>
                         <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3">
-                          <Badge 
-                            variant={getStatusBadgeVariant(project.status)}
-                            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5"
-                          >
-                            {project.status.toLowerCase()}
-                          </Badge>
+                          <StatusBadge
+                            status={project.status}
+                            type="project"
+                          />
                         </TableCell>
                         <TableCell className="text-slate-600 text-xs sm:text-sm px-2 sm:px-4 py-2.5 sm:py-3 whitespace-nowrap">
                           <span className="hidden sm:inline">{project.currency} </span>
                           <span className="sm:hidden">TZS </span>
-                          {project.budgetTotal?.toLocaleString() || 0}
+                          {formatNumber(project.budgetTotal || 0)}
                         </TableCell>
                         <TableCell className="text-slate-600 text-xs sm:text-sm px-2 sm:px-4 py-2.5 sm:py-3 hidden md:table-cell">
                           <div className="flex items-center gap-1.5 sm:gap-2">
@@ -149,28 +156,28 @@ const MyProjects = () => {
                         </TableCell>
                         <TableCell className="text-right px-2 sm:px-4 py-2.5 sm:py-3 hidden md:table-cell">
                           <div className="flex items-center justify-end gap-2">
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                asChild 
-                                className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Link to={`/manager/projects/${project.id}/edit`}>
-                                  Edit
-                                </Link>
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                asChild 
-                                className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Link to={`/manager/projects/${project.id}`}>
-                                  View
-                                </Link>
-                              </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link to={`/manager/projects/${project.id}/edit`}>
+                                Edit
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link to={`/manager/projects/${project.id}`}>
+                                View
+                              </Link>
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>

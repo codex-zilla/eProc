@@ -14,6 +14,7 @@ import {
 import { createPurchaseOrder, type CreatePurchaseOrderDTO } from '../../services/procurementService';
 import api from '../../lib/axios';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../lib/formatters';
 
 interface MaterialItem {
     id: number;
@@ -404,10 +405,7 @@ const CreatePurchaseOrder: React.FC = () => {
                                     <div className="flex justify-between text-lg font-semibold">
                                         <span className="text-slate-900">Total</span>
                                         <span className="text-indigo-600">
-                                            {new Intl.NumberFormat('en-US', {
-                                                style: 'currency',
-                                                currency: 'USD'
-                                            }).format(calculateTotal())}
+                                            {formatCurrency(calculateTotal())}
                                         </span>
                                     </div>
                                 </div>

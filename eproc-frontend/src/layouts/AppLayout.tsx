@@ -101,7 +101,7 @@ const AppLayout = () => {
       return [
         { label: 'Dashboard', path: '/engineer/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/engineer/project', icon: Building },
-        { label: 'Requests', path: '/engineer/batches', icon: ClipboardList },
+        { label: 'Requests', path: '/engineer/requests', icon: ClipboardList },
         { label: 'Deliveries', path: '/engineer/deliveries', icon: Package },
       ];
     }

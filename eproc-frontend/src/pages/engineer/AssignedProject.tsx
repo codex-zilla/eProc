@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/axios';
 import type { Project } from '@/types/models';
+import { formatNumber } from '../../lib/formatters';
 
 /**
  * Assigned Project page - read-only view of the engineer's assigned project.
@@ -58,13 +59,12 @@ const AssignedProject = () => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">{project.name}</h2>
-              <span className={`px-3 py-1 text-sm font-medium rounded ${
-                project.status === 'ACTIVE' 
-                  ? 'bg-green-100 text-green-800' 
+              <span className={`px-3 py-1 text-sm font-medium rounded ${project.status === 'ACTIVE'
+                  ? 'bg-green-100 text-green-800'
                   : project.status === 'COMPLETED'
                     ? 'bg-blue-100 text-blue-800'
                     : 'bg-red-100 text-red-800'
-              }`}>
+                }`}>
                 {project.status}
               </span>
             </div>
@@ -76,7 +76,7 @@ const AssignedProject = () => {
               <div>
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Budget</h3>
                 <p className="mt-1 text-lg font-medium text-gray-900">
-                  {project.currency} {project.budgetTotal?.toLocaleString() || '0'}
+                  {project.currency} {formatNumber(project.budgetTotal || 0)}
                 </p>
               </div>
               <div>

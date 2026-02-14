@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Package, Loader2, AlertCircle, CheckCircle, Clock, Building, ArrowRight, Truck } from 'lucide-react';
+import { Package, AlertCircle, CheckCircle, Clock, Building, ArrowRight, Truck } from 'lucide-react';
 import {
     getProjectPurchaseOrders,
     type PurchaseOrderResponse,
 } from '../../services/procurementService';
 import { projectService } from '../../services/projectService';
+import { formatDate, formatCurrency } from '../../lib/formatters';
 import type { Project } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EmptyState } from '@/components/common/EmptyState';
 
 /**
  * Delivery Tracking page for Project Owners and Accountants.
@@ -123,7 +126,7 @@ const ManagerDeliveries: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <LoadingSpinner size="lg" text="Loading delivery data..." />
             </div>
         );
     }
@@ -254,12 +257,12 @@ const ManagerDeliveries: React.FC = () => {
 
             {/* Purchase Orders List */}
             {purchaseOrders.length === 0 ? (
-                <div className="rounded-lg border border-slate-200 bg-white p-12 text-center">
-                    <Package className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900 mb-2">No Purchase Orders</h3>
-                    <p className="text-slate-500 max-w-md mx-auto">
-                        There are no purchase orders to track for this project yet.
-                    </p>
+                <div className="rounded-lg border border-slate-200 bg-white p-6">
+                    <EmptyState
+                        icon={Package}
+                        title="No Purchase Orders"
+                        description="There are no purchase orders to track for this project yet."
+                    />
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -285,7 +288,7 @@ const ManagerDeliveries: React.FC = () => {
                                                     <p className="text-sm text-slate-600">Vendor: {po.vendorName}</p>
                                                 )}
                                                 <p className="text-sm text-slate-500">
-                                                    {po.items.length} items • Created {new Date(po.createdAt).toLocaleDateString()}
+                                                    {po.items.length} items • Created {formatDate(po.createdAt)}
                                                 </p>
                                             </div>
                                         </div>
@@ -294,10 +297,7 @@ const ManagerDeliveries: React.FC = () => {
                                                 {getDeliveryStatusText(po)}
                                             </span>
                                             <span className="text-lg font-bold text-slate-900">
-                                                {new Intl.NumberFormat('en-US', {
-                                                    style: 'currency',
-                                                    currency: 'USD'
-                                                }).format(po.totalValue)}
+                                                {formatCurrency(po.totalValue)}
                                             </span>
                                         </div>
                                     </div>

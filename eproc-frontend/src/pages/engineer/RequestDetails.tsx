@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -87,10 +88,16 @@ interface AuditEntry {
   actorRole: string;
 }
 
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { toast } from 'sonner';
+import { formatDate, formatCurrency, formatNumber, formatDateTime } from '../../lib/formatters';
+
+// ... imports
+
 /**
- * Batch Details page - view complete BOQ batch with material/labour breakdown.
+ * Request Details page - view complete BOQ batch with material/labour breakdown.
  */
-const BatchDetails = () => {
+const RequestDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [batch, setBatch] = useState<BatchDetails | null>(null);
   const [history, setHistory] = useState<AuditEntry[]>([]);
@@ -100,6 +107,7 @@ const BatchDetails = () => {
   const [editValues, setEditValues] = useState<Partial<MaterialItem>>({});
 
   const [updating, setUpdating] = useState(false);
+  const { handleError } = useErrorHandler();
 
   useEffect(() => {
     if (selectedMaterial && selectedMaterial.status === 'REJECTED') {
@@ -118,7 +126,7 @@ const BatchDetails = () => {
     if (!selectedMaterial || !batch) return;
 
     setUpdating(true);
-    setError(null);
+    // setError(null); // No longer using local error for mutations
     try {
       await api.patch(`/requests/${batch.id}/materials/${selectedMaterial.id}`, {
         quantity: editValues.quantity,
@@ -127,11 +135,11 @@ const BatchDetails = () => {
         rateType: editValues.rateType
       });
 
+      toast.success('Material updated successfully');
       await loadData();
       setSelectedMaterial(null);
     } catch (err) {
-      console.error('Failed to update material:', err);
-      setError('Failed to update material details');
+      handleError(err, 'Failed to update material details');
     } finally {
       setUpdating(false);
     }
@@ -177,16 +185,6 @@ const BatchDetails = () => {
     );
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'DRAFT': return 'bg-slate-100 text-slate-800 hover:bg-slate-200';
-      case 'PARTIALLY_APPROVED': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-      case 'PENDING': return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
-      case 'APPROVED': return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'REJECTED': return 'bg-red-100 text-red-800 hover:bg-red-200';
-      default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200';
-    }
-  };
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -297,9 +295,7 @@ const BatchDetails = () => {
 
                 {/* Status Badges */}
                 <div className="px-3 py-1 flex flex-wrap items-center gap-2 tracking-tight">
-                  <Badge className={`${getStatusBadgeClass(batch.status)} text-[10px] sm:text-xs px-3 py-1 font-semibold`}>
-                    {batch.status}
-                  </Badge>
+                  <StatusBadge status={batch.status} type="request" className="text-[10px] sm:text-xs px-3 py-1 font-semibold" />
                   {batch.priority === 'HIGH' && (
                     <Badge variant="destructive" className="text-[10px] sm:text-xs px-3 py-1 font-semibold">
                       <AlertOctagon className="h-3 w-3 mr-1" />
@@ -316,7 +312,7 @@ const BatchDetails = () => {
                       <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Starting</p>
                       <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                         {batch.plannedStartDate
-                          ? new Date(batch.plannedStartDate).toLocaleDateString()
+                          ? formatDate(batch.plannedStartDate)
                           : 'Not specified'}
                       </p>
                     </div>
@@ -327,7 +323,7 @@ const BatchDetails = () => {
                       <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Ending</p>
                       <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                         {batch.plannedEndDate
-                          ? new Date(batch.plannedEndDate).toLocaleDateString()
+                          ? formatDate(batch.plannedEndDate)
                           : 'Not specified'}
                       </p>
                     </div>
@@ -344,7 +340,7 @@ const BatchDetails = () => {
                     <div>
                       <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Created</p>
                       <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
-                        {new Date(batch.createdAt).toLocaleDateString()}
+                        {formatDate(batch.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -354,7 +350,7 @@ const BatchDetails = () => {
                 <div className="border-t border-slate-200 p-3 pt-1 mb-0 bg-[#fcfcfc]">
                   <p className="text-lg sm:text-xl font-bold text-[#2a3455]">
                     <span className="text-xs sm:text-sm text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
-                    <span className='font-mono tracking-tighter'>TZS {(batch.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span className='font-mono tracking-tighter'>{formatCurrency(batch.totalValue || 0)}</span>
                   </p>
                   <p className="text-xs sm:text-sm text-slate-600 mt-1 font-semibold">
                     Status: <span className="font-bold text-yellow-400">{pendingCount} {pendingCount === 1 ? 'Pending Review' : 'Pending Reviews'}</span>
@@ -404,15 +400,13 @@ const BatchDetails = () => {
                                 {item.measurementUnit}
                               </TableCell>
                               <TableCell className="px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter">
-                                {item.rateEstimate.toLocaleString()}
+                                {formatNumber(item.rateEstimate)}
                               </TableCell>
                               <TableCell className="px-2 py-2.5 text-right text-sm font-medium font-mono text-slate-700 tracking-tighter">
-                                {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                                {formatNumber(item.totalEstimate || item.quantity * item.rateEstimate)}
                               </TableCell>
                               <TableCell className="px-2 py-2.5 text-center tracking-tighter">
-                                <Badge className={`${getStatusBadgeClass(item.status || 'PENDING')} text-[10px] px-2 py-0.5`}>
-                                  {item.status || 'PENDING'}
-                                </Badge>
+                                <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5" />
                               </TableCell>
                             </TableRow>
                           ))}
@@ -438,18 +432,16 @@ const BatchDetails = () => {
                             </div>
                             <div>
                               <p className="text-slate-600">Rate</p>
-                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.rateEstimate)}</p>
                             </div>
                             <div>
                               <p className="text-slate-600">Amount</p>
-                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate)}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-600">Status:</p>
-                            <Badge className={`${getStatusBadgeClass(item.status || 'PENDING')} text-[10px] px-2 py-0.5 uppercase font-bold`}>
-                              {item.status || 'PENDING'}
-                            </Badge>
+                            <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
                           </div>
                         </div>
                       ))}
@@ -458,7 +450,7 @@ const BatchDetails = () => {
                     {/* Materials Subtotal */}
                     <div className="bg-slate-50 px-2 py-2 flex justify-end border-t border-slate-200 hidden md:flex">
                       <span className="text-sm font-medium text-slate-600 me-3">Materials Subtotal:</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">TZS {materialTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">{formatCurrency(materialTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -497,15 +489,13 @@ const BatchDetails = () => {
                                 {item.measurementUnit}
                               </TableCell>
                               <TableCell className="px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter">
-                                {item.rateEstimate.toLocaleString()}
+                                {formatNumber(item.rateEstimate)}
                               </TableCell>
                               <TableCell className="px-2 py-2.5 text-right text-sm font-medium font-mono text-slate-700 tracking-tighter">
-                                {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                                {formatNumber(item.totalEstimate || item.quantity * item.rateEstimate)}
                               </TableCell>
                               <TableCell className="px-2 py-2.5 text-center tracking-tighter">
-                                <Badge className={`${getStatusBadgeClass(item.status || 'PENDING')} text-[10px] px-2 py-0.5`}>
-                                  {item.status || 'PENDING'}
-                                </Badge>
+                                <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5" />
                               </TableCell>
                             </TableRow>
                           ))}
@@ -531,18 +521,16 @@ const BatchDetails = () => {
                             </div>
                             <div>
                               <p className="text-slate-600">Rate</p>
-                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.rateEstimate)}</p>
                             </div>
                             <div>
                               <p className="text-slate-600">Amount</p>
-                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate)}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-600">Status:</p>
-                            <Badge className={`${getStatusBadgeClass(item.status || 'PENDING')} text-[10px] px-2 py-0.5 uppercase font-bold`}>
-                              {item.status || 'PENDING'}
-                            </Badge>
+                            <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
                           </div>
                         </div>
                       ))}
@@ -551,7 +539,7 @@ const BatchDetails = () => {
                     {/* Labour Subtotal */}
                     <div className="bg-slate-50 px-2 py-2 flex justify-end border-t border-slate-200 hidden md:flex">
                       <span className="text-sm font-medium text-slate-600 me-3">Labour Subtotal:</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">TZS {labourTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">{formatCurrency(labourTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -588,13 +576,7 @@ const BatchDetails = () => {
                       <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Name</h4>
                       <p className="text-sm font-medium text-slate-900">{selectedMaterial.name}</p>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${selectedMaterial.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-                      selectedMaterial.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                        selectedMaterial.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                          'bg-slate-100 text-slate-600'
-                      }`}>
-                      {selectedMaterial.status || 'PENDING'}
-                    </span>
+                    <StatusBadge status={selectedMaterial.status || 'PENDING'} type="request" className="text-[10px] font-bold uppercase tracking-wide" />
                   </div>
 
                   {/* Rejection Reason - Only for REJECTED */}
@@ -673,7 +655,7 @@ const BatchDetails = () => {
                         <div>
                           <label className="text-xs font-semibold text-slate-500 mb-1 block">Amount (TZS)</label>
                           <div className="w-full text-sm bg-slate-100 border border-slate-200 rounded-md px-3 py-2 text-slate-700 font-medium">
-                            {((editValues.quantity || 0) * (editValues.rateEstimate || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatNumber(((editValues.quantity || 0) * (editValues.rateEstimate || 0)), 2)}
                           </div>
                         </div>
                       </div>
@@ -699,13 +681,13 @@ const BatchDetails = () => {
                         <div>
                           <label className="text-xs font-semibold text-slate-500 mb-1 block">Rate (TZS)</label>
                           <div className="w-full text-sm border border-slate-200 rounded-md px-3 py-2 text-slate-700 bg-white">
-                            {selectedMaterial.rateEstimate.toLocaleString()}
+                            {formatNumber(selectedMaterial.rateEstimate)}
                           </div>
                         </div>
                         <div>
                           <label className="text-xs font-semibold text-slate-500 mb-1 block">Amount (TZS)</label>
                           <div className="w-full text-sm border border-slate-200 rounded-md px-3 py-2 text-slate-700 bg-slate-50 font-medium">
-                            {(selectedMaterial.quantity * selectedMaterial.rateEstimate).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatNumber((selectedMaterial.quantity * selectedMaterial.rateEstimate), 2)}
                           </div>
                         </div>
                       </div>
@@ -784,7 +766,7 @@ const BatchDetails = () => {
                             by {entry.actorName}
                           </p>
                           <p className="text-[10px] sm:text-xs text-slate-400">
-                            {new Date(entry.timestamp).toLocaleString()}
+                            {formatDateTime(entry.timestamp)}
                           </p>
                           {entry.comment && (
                             <p className="mt-1 text-[10px] sm:text-xs text-slate-600 italic bg-slate-50 p-1.5 rounded">
@@ -831,4 +813,4 @@ const BatchDetails = () => {
   );
 };
 
-export default BatchDetails;
+export default RequestDetails;

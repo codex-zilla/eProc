@@ -261,6 +261,8 @@ export interface MaterialRequest {
   id: number;
   siteId: number;
   siteName: string;
+  projectId?: number; // Added for list view context
+  projectName?: string; // Added for list view context
   workPackageId?: number;
   workPackageName?: string;
   materialId?: number;

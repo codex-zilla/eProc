@@ -17,6 +17,7 @@ import {
     type DeliveryResponse,
     type CreateDeliveryDTO
 } from '../../services/procurementService';
+import { formatDate, formatCurrency } from '../../lib/formatters';
 
 interface DeliveryItemInput {
     purchaseOrderItemId: number;
@@ -245,13 +246,13 @@ const DeliveryRegistration: React.FC = () => {
                     <div>
                         <p className="text-slate-500">Total Value</p>
                         <p className="font-medium text-slate-900">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchaseOrder.totalValue)}
+                            {formatCurrency(purchaseOrder.totalValue)}
                         </p>
                     </div>
                     <div>
                         <p className="text-slate-500">Created</p>
                         <p className="font-medium text-slate-900">
-                            {new Date(purchaseOrder.createdAt).toLocaleDateString()}
+                            {formatDate(purchaseOrder.createdAt)}
                         </p>
                     </div>
                 </div>
@@ -285,8 +286,8 @@ const DeliveryRegistration: React.FC = () => {
                             <div
                                 key={item.purchaseOrderItemId}
                                 className={`rounded-lg border bg-white p-4 transition-all ${item.quantityToReceive > 0
-                                        ? 'border-indigo-300 shadow-sm'
-                                        : 'border-slate-200'
+                                    ? 'border-indigo-300 shadow-sm'
+                                    : 'border-slate-200'
                                     }`}
                             >
                                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -414,7 +415,7 @@ const DeliveryRegistration: React.FC = () => {
                                 <div className="flex items-start justify-between mb-2">
                                     <div>
                                         <p className="font-medium text-slate-900">
-                                            {new Date(delivery.deliveredDate).toLocaleDateString()}
+                                            {formatDate(delivery.deliveredDate)}
                                         </p>
                                         <p className="text-sm text-slate-500">
                                             Received by {delivery.receivedByName}
@@ -431,8 +432,8 @@ const DeliveryRegistration: React.FC = () => {
                                             <span className="font-medium text-slate-900">
                                                 +{item.quantityDelivered}
                                                 <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${item.condition === 'GOOD'
-                                                        ? 'bg-green-50 text-green-700'
-                                                        : 'bg-yellow-50 text-yellow-700'
+                                                    ? 'bg-green-50 text-green-700'
+                                                    : 'bg-yellow-50 text-yellow-700'
                                                     }`}>
                                                     {item.condition}
                                                 </span>

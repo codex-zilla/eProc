@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { User, Calendar, MapPin, FileText, CheckCircle, XCircle, Briefcase, Layers, Flag } from 'lucide-react';
 import TeamManagement from '@/components/TeamManagement';
+import { getProjectStatusClass } from '@/lib/status-utils';
+import { formatNumber } from '@/lib/formatters';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const ProjectDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -26,7 +29,7 @@ const ProjectDetails = () => {
         try {
             const data = await projectService.getProjectById(parseInt(id));
             setProject(data);
-            
+
             // Fetch Sites
             try {
                 const sitesData = await projectService.getSitesByProject(parseInt(id));
@@ -58,17 +61,14 @@ const ProjectDetails = () => {
         }
     };
 
-    if (loading) return <div className="text-center py-6 sm:py-8 text-sm sm:text-base">Loading project...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <LoadingSpinner size="lg" text="Loading project..." />
+        </div>
+    );
     if (!project) return <div className="text-center py-6 sm:py-8 text-red-500 text-sm sm:text-base">Project not found</div>;
 
-    const statusColorClass = (status: string) => {
-        switch (status) {
-            case 'ACTIVE': return 'bg-green-500';
-            case 'COMPLETED': return 'bg-blue-500';
-            case 'CANCELLED': return 'bg-red-500';
-            default: return 'bg-gray-500';
-        }
-    };
+
 
     // Calculate progress based on milestones (mock for now, or use project count fields)
 
@@ -79,36 +79,36 @@ const ProjectDetails = () => {
             <div className="flex flex-col gap-3 sm:gap-4">
                 <div className="flex flex-col gap-3 sm:gap-4">
                     <div>
-                         <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                             <Badge variant="outline" className="text-gray-500 text-[10px] sm:text-xs">{project.code || 'NO-CODE'}</Badge>
-                            <Badge className={`${statusColorClass(project.status)} text-[10px] sm:text-xs`}>{project.status}</Badge>
-                         </div>
+                            <Badge className={`${getProjectStatusClass(project.status)} text-[10px] sm:text-xs border`}>{project.status}</Badge>
+                        </div>
                         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900">{project.name}</h1>
                         <p className="text-gray-500 flex items-center gap-1.5 sm:gap-2 mt-1 text-xs sm:text-sm">
                             <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {project.industry} • {project.projectType}
                         </p>
                     </div>
-                     {project.status === 'ACTIVE' && (
+                    {project.status === 'ACTIVE' && (
                         <div className="flex flex-wrap gap-2">
-                           <Button 
-                             variant="outline" 
-                             size="sm" 
-                             onClick={() => handleUpdateStatus('COMPLETED')} 
-                             className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs sm:text-sm h-8 sm:h-9"
-                           >
-                             <CheckCircle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
-                             <span className="hidden xs:inline">Mark </span>Completed
-                           </Button>
-                           <Button 
-                             variant="outline" 
-                             size="sm" 
-                             onClick={() => handleUpdateStatus('CANCELLED')} 
-                             className="text-red-600 border-red-200 hover:bg-red-50 text-xs sm:text-sm h-8 sm:h-9"
-                           >
-                             <XCircle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Cancel
-                           </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUpdateStatus('COMPLETED')}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs sm:text-sm h-8 sm:h-9"
+                            >
+                                <CheckCircle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                <span className="hidden xs:inline">Mark </span>Completed
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUpdateStatus('CANCELLED')}
+                                className="text-red-600 border-red-200 hover:bg-red-50 text-xs sm:text-sm h-8 sm:h-9"
+                            >
+                                <XCircle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Cancel
+                            </Button>
                         </div>
-                     )}
+                    )}
                 </div>
 
                 {/* Quick Stats Bar */}
@@ -130,9 +130,9 @@ const ProjectDetails = () => {
                                 <span className="text-gray-500 hidden sm:inline">Due:</span>
                                 <span className="font-medium">{project.expectedCompletionDate || 'TBD'}</span>
                             </div>
-                             <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
                                 <span className="text-gray-500 hidden sm:inline">Budget:</span>
-                                <span className="font-medium text-green-700">{project.currency} {project.budgetTotal?.toLocaleString()}</span>
+                                <span className="font-medium text-green-700">{project.currency} {formatNumber(project.budgetTotal || 0)}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -151,7 +151,7 @@ const ProjectDetails = () => {
                     <TabsTrigger value="scopes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Scopes</TabsTrigger>
                     <TabsTrigger value="documents" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Documents</TabsTrigger>
                 </TabsList>
-                
+
                 {/* OVERVIEW TAB */}
                 <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -186,7 +186,7 @@ const ProjectDetails = () => {
                                         <span className="text-gray-500 block text-[10px] sm:text-xs uppercase tracking-wide">Access Notes</span>
                                         <p className="text-gray-700 font-medium">{project.siteAccessNotes || 'None'}</p>
                                     </div>
-                                     <div className="col-span-2 mt-1 sm:mt-2">
+                                    <div className="col-span-2 mt-1 sm:mt-2">
                                         <span className="text-gray-500 block text-[10px] sm:text-xs uppercase tracking-wide">GPS</span>
                                         <code className="bg-gray-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs">{project.gpsCoordinates || 'Not pinned'}</code>
                                     </div>
@@ -219,7 +219,7 @@ const ProjectDetails = () => {
                                 </CardContent>
                             </Card>
 
-                             <Card>
+                            <Card>
                                 <CardHeader className="p-3 sm:p-6">
                                     <CardTitle className="text-base sm:text-lg">Team Summary</CardTitle>
                                 </CardHeader>
@@ -242,7 +242,7 @@ const ProjectDetails = () => {
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-semibold">Active Sites</h2>
                         <Button variant="outline" size="sm" asChild>
-                             <a href={`/manager/projects/${project.id}/sites`}>Manage Sites</a>
+                            <a href={`/manager/projects/${project.id}/sites`}>Manage Sites</a>
                         </Button>
                     </div>
                     {sites.length === 0 ? (
@@ -262,7 +262,7 @@ const ProjectDetails = () => {
                                     <CardContent className="text-sm space-y-2">
                                         <div className="flex justify-between">
                                             <span className="text-gray-500">Budget Cap:</span>
-                                            <span className="font-medium">{project.currency} {site.budgetCap?.toLocaleString() || '0'}</span>
+                                            <span className="font-medium">{project.currency} {formatNumber(site.budgetCap || 0)}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-500">GPS:</span>
@@ -304,7 +304,7 @@ const ProjectDetails = () => {
                 {/* SCOPES TAB */}
                 <TabsContent value="scopes" className="mt-4 sm:mt-6">
                     <Card>
-                         <CardHeader className="p-3 sm:p-6">
+                        <CardHeader className="p-3 sm:p-6">
                             <CardTitle className="text-base sm:text-lg">Project Scopes</CardTitle>
                             <CardDescription className="text-xs sm:text-sm">Defined work categories for this project.</CardDescription>
                         </CardHeader>

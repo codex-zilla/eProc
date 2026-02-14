@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
+import { formatDate, formatCurrency } from '../../lib/formatters';
+import { getRequestStatusClass } from '../../lib/status-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EmptyState } from '@/components/common/EmptyState';
 
 interface RequestSummary {
   id: number;
@@ -166,15 +170,6 @@ const Requests = () => {
     return groups;
   }, [processedRequests]);
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200';
-      case 'APPROVED': return 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200';
-      case 'REJECTED': return 'bg-red-100 text-red-800 hover:bg-red-200 border-red-200';
-      case 'PARTIALLY_APPROVED': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200';
-      default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200';
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -189,10 +184,7 @@ const Requests = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-2 sm:gap-3">
-          <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
-          <p className="text-sm sm:text-base text-slate-500 font-medium animate-pulse">Loading requests...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading requests..." />
       </div>
     );
   }
@@ -292,23 +284,14 @@ const Requests = () => {
       {/* Content */}
       {processedRequests.length === 0 ? (
         <Card className="border-slate-200 shadow-sm border-dashed">
-          <CardContent className="p-8 sm:p-12 text-center flex flex-col items-center justify-center min-h-[300px]">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-              <Filter className="h-6 w-6 sm:h-8 sm:w-8 text-slate-300" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-900 mb-1">No requests found</h3>
-            {/* <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              Try adjusting your filters or search query to find what you're looking for.
-            </p>
-            {statusFilter !== 'ALL' && (
-              <Button
-                variant="link"
-                onClick={() => setStatusFilter('ALL')}
-                className="mt-4 text-indigo-600 font-medium"
-              >
-                Clear Filters
-              </Button>
-            )} */}
+          <CardContent className="p-0">
+            <EmptyState
+              icon={Filter}
+              title="No requests found"
+              description={statusFilter !== 'ALL'
+                ? "Try adjusting your filters or search query to find what you're looking for."
+                : "No requests have been created yet."}
+            />
           </CardContent>
         </Card>
       ) : (
@@ -385,8 +368,8 @@ const Requests = () => {
                               </TableCell>
                               <TableCell className="p-2 pr-0 text-xs lg:text-sm text-slate-00 hidden lg:table-cell lg:max-w-[100px]">
                                 {request.plannedStartDate
-                                  ? new Date(request.plannedStartDate).toLocaleDateString()
-                                  : new Date(request.createdAt).toLocaleDateString()}
+                                  ? formatDate(request.plannedStartDate, 'short')
+                                  : formatDate(request.createdAt, 'short')}
                               </TableCell>
                               <TableCell className="p-2 pr-0 lg:max-w-[100px]">
                                 {request.priority && (
@@ -398,7 +381,7 @@ const Requests = () => {
                                 )}
                               </TableCell>
                               <TableCell className="p-2 pr-0 text-xs lg:text-sm font-bold text-slate-900 font-mono lg:max-w-[130px]">
-                                {request.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                {formatCurrency(request.totalValue)}
                               </TableCell>
                               <TableCell className="p-2 pr-0">
                                 <div className={`flex gap-1 text-[10px] lg:text-xs font-medium items-center ${request.status === 'PENDING' ? 'text-amber-700' :
@@ -457,7 +440,7 @@ const Requests = () => {
                                 </TooltipProvider>
                               )}
                             </div>
-                            <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] px-2 py-0.5 whitespace-nowrap flex-shrink-0 border justify-self-end`}>
+                            <Badge className={`${getRequestStatusClass(request.status as any)} text-[10px] px-2 py-0.5 whitespace-nowrap flex-shrink-0 border justify-self-end`}>
                               {getStatusIcon(request.status)}
                               {request.status.replace('_', ' ')}
                             </Badge>
@@ -468,11 +451,11 @@ const Requests = () => {
                             <div className="flex items-center gap-2 text-xs text-slate-500">
                               <Calendar className="h-3.5 w-3.5" />
                               {request.plannedStartDate
-                                ? new Date(request.plannedStartDate).toLocaleDateString()
-                                : new Date(request.createdAt).toLocaleDateString()}
+                                ? formatDate(request.plannedStartDate, 'short')
+                                : formatDate(request.createdAt, 'short')}
                             </div>
                             <span className="font-bold text-sm text-slate-900 font-mono">
-                              TZS {request.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              {formatCurrency(request.totalValue)}
                             </span>
                           </div>
                         </CardContent>

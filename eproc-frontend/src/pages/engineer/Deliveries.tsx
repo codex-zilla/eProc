@@ -6,6 +6,7 @@ import {
     type PurchaseOrderResponse,
 } from '../../services/procurementService';
 import { projectService } from '../../services/projectService';
+import { formatDate, formatCurrency } from '../../lib/formatters';
 import type { Project } from '../../types/models';
 
 /**
@@ -246,7 +247,7 @@ const Deliveries: React.FC = () => {
                                         </div>
                                     </div>
                                     <span className="font-semibold text-slate-900">
-                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(po.totalValue)}
+                                        {formatCurrency(po.totalValue)}
                                     </span>
                                 </div>
 
@@ -257,7 +258,7 @@ const Deliveries: React.FC = () => {
                                     </div>
                                     <div className="text-right">
                                         <p className="text-slate-500">Date</p>
-                                        <p className="font-medium text-slate-900">{new Date(po.createdAt).toLocaleDateString()}</p>
+                                        <p className="font-medium text-slate-900">{formatDate(po.createdAt)}</p>
                                     </div>
                                 </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +48,6 @@ const ManageProjectUsers = () => {
   const [assignRole, setAssignRole] = useState('');
   const [assignStartDate, setAssignStartDate] = useState('');
   const [assignResponsibility, setAssignResponsibility] = useState('FULL');
-  const [assignError, setAssignError] = useState<string | null>(null);
 
   // Create user form state
   const [newUserName, setNewUserName] = useState('');
@@ -57,7 +57,6 @@ const ManageProjectUsers = () => {
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserStartDate, setNewUserStartDate] = useState('');
   const [newUserResponsibility, setNewUserResponsibility] = useState('FULL');
-  const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState(false);
 
   // Edit user dialog state
@@ -66,13 +65,14 @@ const ManageProjectUsers = () => {
   const [editUserName, setEditUserName] = useState('');
   const [editUserEmail, setEditUserEmail] = useState('');
   const [editUserPhone, setEditUserPhone] = useState('');
-  const [editError, setEditError] = useState<string | null>(null);
 
   // Delete user confirmation
   const [deleteUserConfirm, setDeleteUserConfirm] = useState<{ userId: number; userName: string } | null>(null);
 
   // Delete from project confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ userId: number; projectId: number; userName: string; projectName: string } | null>(null);
+
+  const { handleError } = useErrorHandler();
 
   const loadData = useCallback(async () => {
     setError(null);
@@ -110,7 +110,6 @@ const ManageProjectUsers = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreateError(null);
     setCreateSuccess(false);
     setFieldErrors({});
 
@@ -170,30 +169,17 @@ const ManageProjectUsers = () => {
 
       // Clear success message after 3 seconds
       setTimeout(() => setCreateSuccess(false), 3000);
+      setTimeout(() => setCreateSuccess(false), 3000);
     } catch (err: any) {
-      console.error('Failed to create user:', err);
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setCreateError('Connection failed. Please check your internet connection and try again.');
-      } else if (err.response?.status === 400) {
-        setCreateError(err.response?.data?.message || 'Invalid input. Please check your data and try again.');
-      } else if (err.response?.status === 409) {
-        setCreateError('A user with this email already exists.');
-      } else if (err.response?.status === 401) {
-        setCreateError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setCreateError('Server error. Please try again later.');
-      } else {
-        setCreateError(err.response?.data?.message || 'Failed to create user. Please try again.');
-      }
+      handleError(err, 'Failed to create user');
     }
   };
 
   const handleAssignUser = async () => {
     if (!selectedUserId || !assignProjectId || !assignRole || !assignStartDate) {
-      setAssignError('Please fill in all required fields');
+      handleError(new Error('Please fill in all required fields'), 'Validation Error');
       return;
     }
-    setAssignError(null);
 
     try {
       await projectService.assignUserToProject(
@@ -208,20 +194,7 @@ const ManageProjectUsers = () => {
       resetAssignForm();
       loadData();
     } catch (err: any) {
-      console.error('Failed to assign user:', err);
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setAssignError('Connection failed. Please check your internet connection and try again.');
-      } else if (err.response?.status === 400) {
-        setAssignError(err.response?.data?.message || 'Invalid input. Please check your data and try again.');
-      } else if (err.response?.status === 409) {
-        setAssignError('User is already assigned to this project.');
-      } else if (err.response?.status === 401) {
-        setAssignError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setAssignError('Server error. Please try again later.');
-      } else {
-        setAssignError(err.response?.data?.message || 'Failed to assign user. Please try again.');
-      }
+      handleError(err, 'Failed to assign user');
     }
   };
 
@@ -233,17 +206,7 @@ const ManageProjectUsers = () => {
       setDeleteConfirm(null);
       loadData();
     } catch (err: any) {
-      console.error('Failed to remove user from project:', err);
-      // Show error to user
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setError('Connection failed. Unable to remove user from project.');
-      } else if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setError('Server error. Unable to remove user from project.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to remove user from project.');
-      }
+      handleError(err, 'Failed to remove user from project');
     }
   };
 
@@ -258,7 +221,6 @@ const ManageProjectUsers = () => {
     setAssignRole('');
     setAssignStartDate('');
     setAssignResponsibility('FULL');
-    setAssignError(null);
   };
 
   const openEditDialog = (user: ProjectUser) => {
@@ -266,7 +228,6 @@ const ManageProjectUsers = () => {
     setEditUserName(user.name);
     setEditUserEmail(user.email);
     setEditUserPhone(user.phoneNumber || '');
-    setEditError(null);
     setIsEditOpen(true);
   };
 
@@ -275,27 +236,25 @@ const ManageProjectUsers = () => {
     setEditUserName('');
     setEditUserEmail('');
     setEditUserPhone('');
-    setEditError(null);
   };
 
   const handleEditUser = async () => {
     if (!editUserId) return;
-    setEditError(null);
 
     // Validate required fields
     if (!editUserName.trim()) {
-      setEditError('Name is required');
+      handleError(new Error('Name is required'), 'Validation Error');
       return;
     }
     if (!editUserEmail.trim()) {
-      setEditError('Email is required');
+      handleError(new Error('Email is required'), 'Validation Error');
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(editUserEmail)) {
-      setEditError('Please enter a valid email address');
+      handleError(new Error('Please enter a valid email address'), 'Validation Error');
       return;
     }
 
@@ -310,20 +269,7 @@ const ManageProjectUsers = () => {
       resetEditForm();
       loadData();
     } catch (err: any) {
-      console.error('Failed to update user:', err);
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setEditError('Connection failed. Please check your internet connection and try again.');
-      } else if (err.response?.status === 400) {
-        setEditError(err.response?.data?.message || 'Invalid input. Please check your data and try again.');
-      } else if (err.response?.status === 409) {
-        setEditError('A user with this email already exists.');
-      } else if (err.response?.status === 401) {
-        setEditError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setEditError('Server error. Please try again later.');
-      } else {
-        setEditError(err.response?.data?.message || 'Failed to update user. Please try again.');
-      }
+      handleError(err, 'Failed to update user');
     }
   };
 
@@ -335,16 +281,7 @@ const ManageProjectUsers = () => {
       setDeleteUserConfirm(null);
       loadData();
     } catch (err: any) {
-      console.error('Failed to delete user:', err);
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setError('Connection failed. Unable to delete user.');
-      } else if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setError('Server error. Unable to delete user.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to delete user.');
-      }
+      handleError(err, 'Failed to delete user');
     }
   };
 
@@ -524,11 +461,6 @@ const ManageProjectUsers = () => {
                   User created successfully! They can now log in with password:123456
                 </div>
               )}
-              {createError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg mb-3 sm:mb-4 text-xs sm:text-sm">
-                  {createError}
-                </div>
-              )}
 
               <form onSubmit={handleCreateUser} className="space-y-3 sm:space-y-4">
                 <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
@@ -692,11 +624,6 @@ const ManageProjectUsers = () => {
               Assign this user to another project with a specific role.
             </DialogDescription>
           </DialogHeader>
-          {assignError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm">
-              {assignError}
-            </div>
-          )}
           <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
             <div className="grid gap-1.5 sm:gap-2">
               <Label className="text-xs sm:text-sm">Project</Label>
@@ -761,11 +688,6 @@ const ManageProjectUsers = () => {
               Update user details. Note: This will not affect their project assignments.
             </DialogDescription>
           </DialogHeader>
-          {editError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm">
-              {editError}
-            </div>
-          )}
           <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
             <div className="grid gap-1.5 sm:gap-2">
               <Label className="text-xs sm:text-sm">Name <span className="text-red-500">*</span></Label>
@@ -840,7 +762,7 @@ const ManageProjectUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 };
 

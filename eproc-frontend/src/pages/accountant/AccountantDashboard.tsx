@@ -6,12 +6,14 @@ import {
     CheckCircle,
     Clock,
     AlertTriangle,
-    Loader2,
     Plus,
     ArrowRight,
     DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
+import { StatCard } from '@/components/common/StatCard';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 // Mock data - replace with actual API calls when backend is ready
 interface DashboardStats {
@@ -106,36 +108,12 @@ const AccountantDashboard = () => {
         fetchDashboardData();
     }, []);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-TZ', {
-            style: 'currency',
-            currency: 'TZS',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount);
-    };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-TZ', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    };
-
-    const formatDateTime = (dateString: string) => {
-        return new Date(dateString).toLocaleString('en-TZ', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
 
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="h-8 w-8 animate-spin text-[#2a3455]" />
+                <LoadingSpinner size="lg" text="Loading dashboard..." />
             </div>
         );
     }
@@ -169,74 +147,49 @@ const AccountantDashboard = () => {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {/* Approved Requests */}
-                <div className="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                            <Clock className="h-5 w-5 text-gray-600" />
-                        </div>
-                        <span className="text-xs font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded">APPROVED</span>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-2xl font-bold text-slate-900">{stats?.approvedCount || 0}</p>
-                        <p className="text-sm text-slate-500 mt-1">Approved Requests</p>
-                    </div>
-                </div>
+                <StatCard
+                    label="Approved Requests"
+                    value={stats?.approvedCount || 0}
+                    icon={Clock}
+                    color="slate"
+                    className="hover:shadow-md transition-shadow"
+                />
 
                 {/* Ordered Requests */}
-                <div className="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                            <ShoppingCart className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">ORDERED</span>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-2xl font-bold text-slate-900">{stats?.orderedCount || 0}</p>
-                        <p className="text-sm text-slate-500 mt-1">Ordered Requests</p>
-                    </div>
-                </div>
+                <StatCard
+                    label="Ordered Requests"
+                    value={stats?.orderedCount || 0}
+                    icon={ShoppingCart}
+                    color="blue"
+                    className="hover:shadow-md transition-shadow"
+                />
 
                 {/* Partially Delivered */}
-                <div className="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                        <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                            <Package className="h-5 w-5 text-orange-600" />
-                        </div>
-                        <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">PARTIAL</span>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-2xl font-bold text-slate-900">{stats?.partiallyDeliveredCount || 0}</p>
-                        <p className="text-sm text-slate-500 mt-1">Partially Delivered</p>
-                    </div>
-                </div>
+                <StatCard
+                    label="Partially Delivered"
+                    value={stats?.partiallyDeliveredCount || 0}
+                    icon={Package}
+                    color="amber"
+                    className="hover:shadow-md transition-shadow"
+                />
 
                 {/* Fully Delivered */}
-                <div className="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                        <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                        </div>
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">DELIVERED</span>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-2xl font-bold text-slate-900">{stats?.fullyDeliveredCount || 0}</p>
-                        <p className="text-sm text-slate-500 mt-1">Fully Delivered</p>
-                    </div>
-                </div>
+                <StatCard
+                    label="Fully Delivered"
+                    value={stats?.fullyDeliveredCount || 0}
+                    icon={CheckCircle}
+                    color="green"
+                    className="hover:shadow-md transition-shadow"
+                />
 
                 {/* Total Ordered Value */}
-                <div className="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1">
-                    <div className="flex items-center justify-between">
-                        <div className="h-10 w-10 rounded-lg bg-[#2a3455]/10 flex items-center justify-center">
-                            <DollarSign className="h-5 w-5 text-[#2a3455]" />
-                        </div>
-                        <span className="text-xs font-medium text-[#2a3455] bg-[#2a3455]/5 px-2 py-1 rounded">TOTAL</span>
-                    </div>
-                    <div className="mt-4">
-                        <p className="text-xl font-bold text-slate-900">{formatCurrency(stats?.totalOrderedValue || 0)}</p>
-                        <p className="text-sm text-slate-500 mt-1">Total Ordered Value</p>
-                    </div>
-                </div>
+                <StatCard
+                    label="Total Ordered Value"
+                    value={formatCurrency(stats?.totalOrderedValue || 0)}
+                    icon={DollarSign}
+                    color="slate"
+                    className="hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1"
+                />
             </div>
 
             {/* Dashboard Content Grid */}

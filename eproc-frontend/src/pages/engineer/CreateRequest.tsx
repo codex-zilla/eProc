@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import { DuplicateWarningModal } from '@/components/DuplicateWarningModal';
+import { formatCurrency } from '../../lib/formatters';
 
 interface Site {
   id: number;
@@ -721,7 +722,7 @@ const CreateBatch = () => {
                             />
                           </td>
                           <td className="p-2 text-right font-semibold text-xs">
-                            {((parseFloat(material.quantity) || 0) * (parseFloat(material.rateEstimate) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatCurrency(((parseFloat(material.quantity) || 0) * (parseFloat(material.rateEstimate) || 0)))}
                           </td>
                           <td className="p-2">
                             {entry.materials.length > 1 && (
@@ -756,7 +757,7 @@ const CreateBatch = () => {
                 <div className="bg-blue-50 p-2 rounded flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-700">Materials Total:</span>
                   <span className="text-sm font-bold text-blue-900">
-                    TZS {calculateMaterialCost(entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {formatCurrency(calculateMaterialCost(entry))}
                   </span>
                 </div>
               </div>
@@ -829,7 +830,7 @@ const CreateBatch = () => {
                             />
                           </td>
                           <td className="p-2 text-right font-semibold text-xs">
-                            {((parseFloat(labour.quantity) || 0) * (parseFloat(labour.rateEstimate) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatCurrency(((parseFloat(labour.quantity) || 0) * (parseFloat(labour.rateEstimate) || 0)))}
                           </td>
                           <td className="p-2">
                             {entry.labour.length > 1 && (
@@ -864,7 +865,7 @@ const CreateBatch = () => {
                 <div className="bg-green-50 p-2 rounded flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-700">Labour Total:</span>
                   <span className="text-sm font-bold text-green-900">
-                    TZS {calculateLabourCost(entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {formatCurrency(calculateLabourCost(entry))}
                   </span>
                 </div>
               </div>
@@ -873,7 +874,7 @@ const CreateBatch = () => {
               <div className="flex items-center justify-between pt-3 border-t bg-slate-50 -mx-3 sm:-mx-6 px-3 sm:px-6 py-2">
                 <span className="text-sm font-semibold text-slate-800">BOQ {entryIndex + 1} Total:</span>
                 <span className="text-lg font-bold text-indigo-900">
-                  TZS {calculateBOQTotal(entry).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatCurrency(calculateBOQTotal(entry))}
                 </span>
               </div>
             </CardContent>
@@ -903,7 +904,7 @@ const CreateBatch = () => {
                 <span className="text-base font-semibold text-slate-800">Grand Total ({boqEntries.length} BOQ{boqEntries.length > 1 ? 's' : ''})</span>
               </div>
               <span className="text-xl sm:text-2xl font-bold text-indigo-900">
-                TZS {calculateGrandTotal().toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                {formatCurrency(calculateGrandTotal())}
               </span>
             </div>
           </CardContent>

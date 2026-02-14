@@ -18,16 +18,14 @@ import NotAuthorized from './pages/shared/NotAuthorized';
 // Engineer pages
 import EngineerDashboard from './pages/engineer/EngineerDashboard';
 import AssignedProject from './pages/engineer/AssignedProject';
-import MyRequests from './pages/engineer/MyRequests';
-import RequestDetails from './pages/engineer/RequestDetails';
+import RequestDetails from './pages/engineer/RequestDetails'; // Renamed from BatchDetails
 import CreateRequest from './pages/engineer/CreateRequest';
 import Requests from './pages/engineer/Requests';
-import BatchDetails from './pages/engineer/BatchDetails';
 import Deliveries from './pages/engineer/Deliveries';
 
 // Manager pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
-import MyProjects from './pages/manager/MyProjects';
+import Projects from './pages/manager/Projects'; // Renamed from MyProjects
 import ProjectWizard from './components/ProjectWizard';
 import ProjectDetails from './pages/manager/ProjectDetails';
 import ManagerRequests from './pages/manager/Requests';
@@ -39,7 +37,7 @@ import ManageSites from './pages/manager/ManageSites';
 import ProcurementDashboard from './pages/manager/ProcurementDashboard';
 import CreatePurchaseOrder from './pages/manager/CreatePurchaseOrder';
 import DeliveryRegistration from './pages/engineer/DeliveryRegistration';
-import ManagerDeliveries from './pages/manager/ManagerDeliveries';
+import ManagerDeliveries from './pages/manager/Deliveries'; // Renamed from ManagerDeliveries
 
 // Accountant pages
 import AccountantDashboard from './pages/accountant/AccountantDashboard';
@@ -71,10 +69,8 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['ENGINEER']} />}>
                 <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
                 <Route path="/engineer/project" element={<AssignedProject />} />
-                <Route path="/engineer/requests" element={<MyRequests />} />
+                <Route path="/engineer/requests" element={<Requests />} />
                 <Route path="/engineer/requests/:id" element={<RequestDetails />} />
-                <Route path="/engineer/batches" element={<Requests />} />
-                <Route path="/engineer/batches/:id" element={<BatchDetails />} />
                 <Route path="/engineer/create-batch" element={<CreateRequest />} />
                 <Route path="/engineer/deliveries" element={<Deliveries />} />
                 <Route path="/engineer/deliveries/:poId" element={<DeliveryRegistration />} />
@@ -83,7 +79,7 @@ function App() {
               {/* Manager Routes (Project Owner) */}
               <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
                 <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-                <Route path="/manager/projects" element={<MyProjects />} />
+                <Route path="/manager/projects" element={<Projects />} />
                 <Route path="/manager/projects/new" element={<ProjectWizard />} />
                 <Route path="/manager/projects/:id" element={<ProjectDetails />} />
                 <Route path="/manager/projects/:id/edit" element={<EditProject />} />

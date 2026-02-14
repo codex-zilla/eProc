@@ -22,12 +22,17 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPurchaseOrder, closePurchaseOrder, type PurchaseOrderResponse } from '../../services/procurementService';
+import { formatDate, formatCurrency, formatNumber } from '../../lib/formatters';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+
+// ... imports
 
 const PurchaseOrderDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -40,6 +45,8 @@ const PurchaseOrderDetails = () => {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [showFilter, setShowFilter] = useState(false);
 
+    const { handleError } = useErrorHandler();
+
     const handleCloseOrder = async () => {
         if (!po) return;
         try {
@@ -48,8 +55,7 @@ const PurchaseOrderDetails = () => {
             setPo(updatedPo);
             toast.success('Purchase order closed successfully');
         } catch (error) {
-            console.error('Failed to close purchase order:', error);
-            toast.error('Failed to close purchase order');
+            handleError(error, 'Failed to close purchase order');
             setLoading(false);
         }
     };
@@ -75,28 +81,12 @@ const PurchaseOrderDetails = () => {
             setPo(poData);
             setLoading(false);
         } catch (error) {
-            console.error('Failed to fetch purchase order details:', error);
-            toast.error('Failed to load purchase order details');
+            handleError(error, 'Failed to load purchase order details');
             setLoading(false);
         }
     };
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-TZ', {
-            style: 'currency',
-            currency: 'TZS',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount);
-    };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-TZ', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-    };
 
     if (loading) {
         return (
@@ -234,7 +224,7 @@ const PurchaseOrderDetails = () => {
                         </div>
                         <div>
                             <p className="text-xs sm:text-sm font-medium text-slate-500">Total Requested Items</p>
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalRequestedQty.toLocaleString()}</h3>
+                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{formatNumber(totalRequestedQty)}</h3>
                             <p className="text-xs text-green-600 font-medium mt-1">Requested Qty</p>
                         </div>
                     </CardContent>
@@ -247,7 +237,7 @@ const PurchaseOrderDetails = () => {
                         </div>
                         <div className="flex-1">
                             <p className="text-xs sm:text-sm font-medium text-slate-500">Total Delivered</p>
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalDeliveredQty.toLocaleString()}</h3>
+                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{formatNumber(totalDeliveredQty)}</h3>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="flex-1">
                                     <Progress value={deliveryPercentage} className="h-1.5 bg-slate-100" indicatorClassName={getProgressColor(deliveryPercentage)} />
@@ -265,7 +255,7 @@ const PurchaseOrderDetails = () => {
                         </div>
                         <div>
                             <p className="text-xs sm:text-sm font-medium text-slate-500">Pending Delivery</p>
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalPendingDelivery.toLocaleString()}</h3>
+                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{formatNumber(totalPendingDelivery)}</h3>
                             <p className="text-xs text-amber-600 font-medium mt-1">
                                 {pendingItemsCount} items require attention
                             </p>

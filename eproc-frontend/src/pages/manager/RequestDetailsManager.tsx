@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import api from '../../lib/axios';
+import { formatDate, formatCurrency } from '../../lib/formatters';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -103,6 +106,8 @@ const RequestDetailsManager = () => {
   const [rejectingMaterialId, setRejectingMaterialId] = useState<number | null>(null);
   const [processingMaterialId, setProcessingMaterialId] = useState<number | null>(null);
 
+  const { handleError } = useErrorHandler();
+
   const loadData = useCallback(async () => {
     try {
       const [reqRes, histRes] = await Promise.all([
@@ -155,22 +160,14 @@ const RequestDetailsManager = () => {
       setRejectingMaterialId(null);
       setRejectComment('');
       loadData();
+      loadData();
     } catch (err: any) {
-      setError(err.response?.data?.message || `Failed to ${status.toLowerCase()} material`);
+      handleError(err, `Failed to ${status.toLowerCase()} material`);
     } finally {
       setProcessingMaterialId(null);
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'bg-amber-100 text-amber-800 hover:bg-amber-200';
-      case 'PARTIALLY_APPROVED': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-      case 'APPROVED': return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'REJECTED': return 'bg-red-100 text-red-800 hover:bg-red-200';
-      default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200';
-    }
-  };
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -317,13 +314,13 @@ const RequestDetailsManager = () => {
                                     <td className="py-1.5 px-2 text-orange-800">
                                       Qty: {detail.currentQuantity}<br />
                                       <span className="opacity-75 text-[10px]">
-                                        {new Date(detail.currentStartDate).toLocaleDateString()} - {new Date(detail.currentEndDate).toLocaleDateString()}
+                                        {formatDate(detail.currentStartDate, 'short')} - {formatDate(detail.currentEndDate, 'short')}
                                       </span>
                                     </td>
                                     <td className="py-1.5 px-2 text-orange-800">
                                       Qty: {detail.originalQuantity}<br />
                                       <span className="opacity-75 text-[10px]">
-                                        {new Date(detail.originalStartDate).toLocaleDateString()} - {new Date(detail.originalEndDate).toLocaleDateString()}
+                                        {formatDate(detail.originalStartDate, 'short')} - {formatDate(detail.originalEndDate, 'short')}
                                       </span>
                                     </td>
                                   </tr>
@@ -346,9 +343,7 @@ const RequestDetailsManager = () => {
 
                 {/* Status Badges */}
                 <div className="px-3 py-1 flex flex-wrap items-center gap-2 tracking-tight">
-                  <Badge className={`${getStatusBadgeClass(request.status)} text-[10px] sm:text-xs px-3 py-1 font-semibold`}>
-                    {request.status}
-                  </Badge>
+                  <StatusBadge status={request.status} type="request" className="text-[10px] sm:text-xs px-3 py-1 font-semibold" />
                   {request.priority === 'HIGH' && (
                     <Badge variant="destructive" className="text-[10px] sm:text-xs px-3 py-1 font-semibold">
                       <AlertOctagon className="h-3 w-3 mr-1" />
@@ -365,7 +360,7 @@ const RequestDetailsManager = () => {
                       <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Starting</p>
                       <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                         {request.plannedStartDate
-                          ? new Date(request.plannedStartDate).toLocaleDateString()
+                          ? formatDate(request.plannedStartDate, 'short')
                           : 'Not specified'}
                       </p>
                     </div>
@@ -376,7 +371,7 @@ const RequestDetailsManager = () => {
                       <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Ending</p>
                       <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
                         {request.plannedEndDate
-                          ? new Date(request.plannedEndDate).toLocaleDateString()
+                          ? formatDate(request.plannedEndDate, 'short')
                           : 'Not specified'}
                       </p>
                     </div>
@@ -393,7 +388,7 @@ const RequestDetailsManager = () => {
                     <div>
                       <p className="text-[10px] sm:text-xs text-slate-600 uppercase tracking-wide">Created</p>
                       <p className="text-xs sm:text-sm font-semibold text-[#2a3455]">
-                        {new Date(request.createdAt).toLocaleDateString()}
+                        {formatDate(request.createdAt, 'short')}
                       </p>
                     </div>
                   </div>
@@ -403,7 +398,7 @@ const RequestDetailsManager = () => {
                 <div className="border-t border-slate-200 p-3 pt-1 mb-0 bg-[#fcfcfc]">
                   <p className="text-lg sm:text-xl font-bold text-[#2a3455]">
                     <span className="text-xs sm:text-sm text-slate-600 mb-0 font-semibold pr-2">Total Estimate:</span>
-                    <span className='font-mono tracking-tighter'>TZS {(request.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span className='font-mono tracking-tighter'>{formatCurrency(request.totalValue || 0)}</span>
                   </p>
                   <p className="text-xs sm:text-sm text-slate-600 mt-1 font-semibold">
                     Status: <span className="font-bold text-yellow-400">{pendingCount} {pendingCount === 1 ? 'Pending Review' : 'Pending Reviews'}</span>
@@ -456,15 +451,13 @@ const RequestDetailsManager = () => {
                                   {item.measurementUnit}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter">
-                                  {item.rateEstimate.toLocaleString()}
+                                  {formatCurrency(item.rateEstimate, false)}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-right text-sm font-medium font-mono text-slate-700 tracking-tighter">
-                                  {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                                  {formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate, false)}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
-                                  <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
-                                    {item.status}
-                                  </Badge>
+                                  <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5" />
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
                                   {item.status === 'PENDING' && (
@@ -553,20 +546,18 @@ const RequestDetailsManager = () => {
                             </div>
                             <div>
                               <p className="text-slate-600">Rate</p>
-                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.rateEstimate, false)}</p>
                             </div>
                             <div>
                               <p className="text-slate-600">Amount</p>
-                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate, false)}</p>
                             </div>
                           </div>
 
                           {/* Status */}
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-600">Status:</p>
-                            <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
-                              {item.status}
-                            </Badge>
+                            <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
                           </div>
 
                           {/* Action Buttons */}
@@ -635,7 +626,7 @@ const RequestDetailsManager = () => {
                     {/* Materials Subtotal */}
                     <div className="bg-slate-50 px-2 py-2 flex justify-end border-t border-slate-200 hidden md:flex">
                       <span className="text-sm font-medium text-slate-600 me-3">Materials Subtotal:</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">TZS {materialTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">{formatCurrency(materialTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -676,15 +667,13 @@ const RequestDetailsManager = () => {
                                   {item.measurementUnit}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter">
-                                  {item.rateEstimate.toLocaleString()}
+                                  {formatCurrency(item.rateEstimate, false)}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-right text-sm font-medium font-mono text-slate-700 tracking-tighter">
-                                  {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}
+                                  {formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate, false)}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
-                                  <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5`}>
-                                    {item.status}
-                                  </Badge>
+                                  <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5" />
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
                                   {item.status === 'PENDING' && (
@@ -773,20 +762,18 @@ const RequestDetailsManager = () => {
                             </div>
                             <div>
                               <p className="text-slate-600">Rate</p>
-                              <p className="font-semibold text-slate-900">TZS {item.rateEstimate.toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.rateEstimate, false)}</p>
                             </div>
                             <div>
                               <p className="text-slate-600">Amount</p>
-                              <p className="font-semibold text-slate-900">TZS {(item.totalEstimate || item.quantity * item.rateEstimate).toLocaleString()}</p>
+                              <p className="font-semibold text-slate-900">{formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate, false)}</p>
                             </div>
                           </div>
 
                           {/* Status */}
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-600">Status:</p>
-                            <Badge className={`${getStatusBadgeClass(item.status)} text-[10px] px-2 py-0.5 uppercase font-bold`}>
-                              {item.status}
-                            </Badge>
+                            <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
                           </div>
 
                           {/* Action Buttons */}
@@ -855,7 +842,7 @@ const RequestDetailsManager = () => {
                     {/* Labour Subtotal */}
                     <div className="bg-slate-50 px-2 py-2 flex justify-end border-t border-slate-200 hidden md:flex">
                       <span className="text-sm font-medium text-slate-600 me-3">Labour Subtotal:</span>
-                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">TZS {labourTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-sm font-bold font-mono text-slate-900 pe-2 tracking-tighter">{formatCurrency(labourTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -894,7 +881,7 @@ const RequestDetailsManager = () => {
                             by {entry.actorName}
                           </p>
                           <p className="text-[10px] sm:text-xs text-slate-400">
-                            {new Date(entry.timestamp).toLocaleString()}
+                            {formatDate(entry.timestamp, 'long')}
                           </p>
                           {entry.comment && (
                             <p className="mt-1 text-[10px] sm:text-xs text-slate-600 italic bg-slate-50 p-1.5 rounded">
@@ -940,18 +927,16 @@ const RequestDetailsManager = () => {
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide">Rate</p>
-                    <p className="text-sm font-semibold text-slate-900">TZS {selectedMaterial.rateEstimate.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatCurrency(selectedMaterial.rateEstimate, false)}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide">Amount</p>
-                    <p className="text-sm font-semibold text-slate-900">TZS {(selectedMaterial.totalEstimate || selectedMaterial.quantity * selectedMaterial.rateEstimate).toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatCurrency(selectedMaterial.totalEstimate || selectedMaterial.quantity * selectedMaterial.rateEstimate, false)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Status</p>
-                  <Badge className={`${getStatusBadgeClass(selectedMaterial.status)} text-[10px] px-2 py-0.5`}>
-                    {selectedMaterial.status}
-                  </Badge>
+                  <StatusBadge status={selectedMaterial.status} type="request" className="text-[10px] px-2 py-0.5" />
                 </div>
 
                 {selectedMaterial.status === 'PENDING' && (

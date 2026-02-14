@@ -10,17 +10,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, Pencil, Trash2, MapPin } from 'lucide-react';
 import { LocationPicker } from '@/components/ui/location-picker';
+import { formatNumber } from '@/lib/formatters';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EmptyState } from '@/components/common/EmptyState';
 // import { useToast } from '@/components/ui/use-toast'; // Not found, temporarily removing
 
 const ManageSites = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     // const { toast } = useToast();
-    
+
     const [project, setProject] = useState<Project | null>(null);
     const [sites, setSites] = useState<Site[]>([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSite, setEditingSite] = useState<Site | null>(null);
@@ -31,7 +34,7 @@ const ManageSites = () => {
         gpsCenter: ''
     });
     const [saving, setSaving] = useState(false);
-    const [markerPosition, setMarkerPosition] = useState<{lat: number, lng: number} | null>(null);
+    const [markerPosition, setMarkerPosition] = useState<{ lat: number, lng: number } | null>(null);
 
     useEffect(() => {
         loadData();
@@ -81,7 +84,7 @@ const ManageSites = () => {
 
     const handleSave = async () => {
         if (!id || !formData.name) return;
-        
+
         try {
             setSaving(true);
             const payload = {
@@ -99,7 +102,7 @@ const ManageSites = () => {
                 await projectService.createSite(payload);
                 // toast({ title: "Success", description: "Site created successfully" });
             }
-            
+
             setIsModalOpen(false);
             loadData(); // Refresh list
         } catch (error) {
@@ -128,7 +131,11 @@ const ManageSites = () => {
         setFormData(prev => ({ ...prev, gpsCenter: `${lat.toFixed(6)},${lng.toFixed(6)}` }));
     };
 
-    if (loading) return <div className="p-8 text-center">Loading...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <LoadingSpinner size="lg" text="Loading..." />
+        </div>
+    );
     if (!project) return <div className="p-8 text-center text-red-500">Project not found</div>;
 
     return (
@@ -170,14 +177,14 @@ const ManageSites = () => {
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Budget Cap</span>
-                                    <span className="font-medium">{project.currency} {site.budgetCap?.toLocaleString() || '0'}</span>
+                                    <span className="font-medium">{project.currency} {formatNumber(site.budgetCap || 0)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">GPS</span>
                                     <code className="bg-gray-100 px-1 rounded text-xs">{site.gpsCenter || 'N/A'}</code>
                                 </div>
                             </div>
-                            
+
                             {/* Actions */}
                             <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                                 <Button variant="outline" size="sm" onClick={() => handleOpenModal(site)}>
@@ -190,11 +197,18 @@ const ManageSites = () => {
                         </CardContent>
                     </Card>
                 ))}
-                
+
                 {sites.length === 0 && (
-                    <div className="col-span-full py-12 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                        <p className="text-gray-500">No sites found for this project.</p>
-                        <Button variant="link" onClick={() => handleOpenModal()}>Create your first site</Button>
+                    <div className="col-span-full">
+                        <EmptyState
+                            icon={MapPin}
+                            title="No sites found"
+                            description="No sites found for this project."
+                            action={{
+                                label: "Create your first site",
+                                onClick: () => handleOpenModal()
+                            }}
+                        />
                     </div>
                 )}
             </div>
@@ -208,40 +222,40 @@ const ManageSites = () => {
                             {editingSite ? 'Update site details below.' : 'Enter details for the new site.'}
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="space-y-4 py-4">
                         <div className="grid gap-2">
                             <Label>Site Name <span className="text-red-500">*</span></Label>
-                            <Input 
-                                value={formData.name} 
-                                onChange={e => setFormData({...formData, name: e.target.value})} 
-                                placeholder="e.g. Block A" 
+                            <Input
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="e.g. Block A"
                             />
                         </div>
                         <div className="grid gap-2">
                             <Label>Budget Cap ({project.currency})</Label>
-                            <Input 
-                                type="number" 
-                                value={formData.budgetCap} 
-                                onChange={e => setFormData({...formData, budgetCap: e.target.value})} 
-                                placeholder="0.00" 
+                            <Input
+                                type="number"
+                                value={formData.budgetCap}
+                                onChange={e => setFormData({ ...formData, budgetCap: e.target.value })}
+                                placeholder="0.00"
                             />
                         </div>
                         <div className="grid gap-2">
                             <Label>Location</Label>
-                            <Input 
-                                value={formData.location} 
-                                onChange={e => setFormData({...formData, location: e.target.value})} 
-                                placeholder="e.g. Ward, District" 
+                            <Input
+                                value={formData.location}
+                                onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                placeholder="e.g. Ward, District"
                             />
                         </div>
-                         <div className="grid gap-2">
+                        <div className="grid gap-2">
                             <Label>GPS Coordinates</Label>
                             <div className="h-[200px] w-full border rounded-md overflow-hidden relative">
-                                <LocationPicker 
+                                <LocationPicker
                                     center={markerPosition || { lat: -6.7924, lng: 39.2083 }}
-                                    markerPosition={markerPosition} 
-                                    onLocationSelect={handleLocationSelect} 
+                                    markerPosition={markerPosition}
+                                    onLocationSelect={handleLocationSelect}
                                 />
                             </div>
                             <div className="text-xs text-gray-500 text-right">

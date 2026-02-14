@@ -1,8 +1,6 @@
 import api from '../lib/axios';
 import type { MaterialRequest, CreateMaterialRequest, ApprovalAction, RequestStatus } from '../types/models';
 
-
-
 /**
  * Service for material request API operations.
  */
@@ -11,7 +9,7 @@ export const requestService = {
    * Create a new material request.
    */
   createRequest: async (data: CreateMaterialRequest): Promise<MaterialRequest> => {
-    const response = await api.post<MaterialRequest>('/api/requests', data);
+    const response = await api.post<MaterialRequest>('/requests', data);
     return response.data;
   },
 
@@ -23,7 +21,7 @@ export const requestService = {
     siteId?: number;
     myRequests?: boolean;
   }): Promise<MaterialRequest[]> => {
-    const response = await api.get<MaterialRequest[]>('/api/requests', { params });
+    const response = await api.get<MaterialRequest[]>('/requests', { params });
     return response.data;
   },
 
@@ -31,7 +29,7 @@ export const requestService = {
    * Get pending requests (for PM approval queue).
    */
   getPendingRequests: async (): Promise<MaterialRequest[]> => {
-    const response = await api.get<MaterialRequest[]>('/api/requests/pending');
+    const response = await api.get<MaterialRequest[]>('/requests/pending');
     return response.data;
   },
 
@@ -39,7 +37,7 @@ export const requestService = {
    * Get current user's requests.
    */
   getMyRequests: async (): Promise<MaterialRequest[]> => {
-    const response = await api.get<MaterialRequest[]>('/api/requests/my');
+    const response = await api.get<MaterialRequest[]>('/requests/my-requests');
     return response.data;
   },
 
@@ -47,7 +45,7 @@ export const requestService = {
    * Get a single request by ID.
    */
   getRequestById: async (id: number): Promise<MaterialRequest> => {
-    const response = await api.get<MaterialRequest>(`/api/requests/${id}`);
+    const response = await api.get<MaterialRequest>(`/requests/${id}`);
     return response.data;
   },
 
@@ -55,7 +53,7 @@ export const requestService = {
    * Update a rejected request (resubmit).
    */
   updateRequest: async (id: number, data: CreateMaterialRequest): Promise<MaterialRequest> => {
-    const response = await api.put<MaterialRequest>(`/api/requests/${id}`, data);
+    const response = await api.put<MaterialRequest>(`/requests/${id}`, data);
     return response.data;
   },
 
@@ -63,7 +61,7 @@ export const requestService = {
    * Approve or reject a request.
    */
   processApproval: async (id: number, action: ApprovalAction): Promise<MaterialRequest> => {
-    const response = await api.patch<MaterialRequest>(`/api/requests/${id}/status`, action);
+    const response = await api.patch<MaterialRequest>(`/requests/${id}/status`, action);
     return response.data;
   },
 
