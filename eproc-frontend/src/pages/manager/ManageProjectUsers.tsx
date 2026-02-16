@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus, Search, User, Trash2, Building, ChevronDown, ChevronUp, Edit, UserX } from 'lucide-react';
-import { projectService } from '@/services/projectService';
-import type { Project } from '@/types/models';
+import { useProjects } from '@/hooks/queries/useProjects';
+import {
+  useMyProjectUsers,
+  useCreateProjectUser,
+  useAssignUserToProject,
+  useRemoveUserFromProject,
+  useUpdateUser,
+  useDeleteUser
+} from '@/hooks/queries/useProjectUsers';
 
 interface ProjectUser {
   id: number;
@@ -33,10 +40,33 @@ interface ProjectUser {
 }
 
 const ManageProjectUsers = () => {
-  const [users, setUsers] = useState<ProjectUser[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Queries
+  const {
+    data: usersData = [],
+    isLoading: usersLoading,
+    error: usersError
+  } = useMyProjectUsers();
+
+  const users = usersData as ProjectUser[];
+
+  const {
+    data: projects = [],
+    isLoading: projectsLoading,
+    error: projectsError
+  } = useProjects();
+
+  const loading = usersLoading || projectsLoading;
+  const error = (usersError as Error)?.message || (projectsError as Error)?.message || null;
+
+  const { handleError } = useErrorHandler();
+
+  // Mutations
+  const createUserMutation = useCreateProjectUser();
+  const assignUserMutation = useAssignUserToProject();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+  const removeUserFromProjectMutation = useRemoveUserFromProject();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -71,37 +101,6 @@ const ManageProjectUsers = () => {
 
   // Delete from project confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ userId: number; projectId: number; userName: string; projectName: string } | null>(null);
-
-  const { handleError } = useErrorHandler();
-
-  const loadData = useCallback(async () => {
-    setError(null);
-    try {
-      const [usersData, projectsData] = await Promise.all([
-        projectService.getMyProjectUsers(),
-        projectService.getAllProjects()
-      ]);
-      setUsers(usersData);
-      setProjects(projectsData);
-    } catch (err: any) {
-      console.error('Failed to load data:', err);
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setError('Connection failed. Please check your internet connection and try again.');
-      } else if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setError('Server error. Please try again later.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to load users. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -143,71 +142,63 @@ const ManageProjectUsers = () => {
       return;
     }
 
-    try {
-      await projectService.createProjectUser({
-        name: newUserName.trim(),
-        email: newUserEmail.trim(),
-        role: newUserRole,
-        projectId: parseInt(newUserProject),
-        phoneNumber: newUserPhone?.trim() || undefined,
-        startDate: newUserStartDate,
-        responsibilityLevel: newUserResponsibility
-      });
+    createUserMutation.mutate({
+      name: newUserName.trim(),
+      email: newUserEmail.trim(),
+      role: newUserRole,
+      projectId: parseInt(newUserProject),
+      phoneNumber: newUserPhone?.trim() || undefined,
+      startDate: newUserStartDate,
+      responsibilityLevel: newUserResponsibility
+    }, {
+      onSuccess: () => {
+        setCreateSuccess(true);
+        // Reset form
+        setNewUserName('');
+        setNewUserEmail('');
+        setNewUserRole('');
+        setNewUserProject('');
+        setNewUserPhone('');
+        setNewUserStartDate('');
+        setNewUserResponsibility('FULL');
 
-      setCreateSuccess(true);
-      // Reset form
-      setNewUserName('');
-      setNewUserEmail('');
-      setNewUserRole('');
-      setNewUserProject('');
-      setNewUserPhone('');
-      setNewUserStartDate('');
-      setNewUserResponsibility('FULL');
-
-      // Reload data
-      loadData();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setCreateSuccess(false), 3000);
-      setTimeout(() => setCreateSuccess(false), 3000);
-    } catch (err: any) {
-      handleError(err, 'Failed to create user');
-    }
+        // Clear success message after 3 seconds
+        setTimeout(() => setCreateSuccess(false), 3000);
+      }
+    });
   };
 
-  const handleAssignUser = async () => {
+  const handleAssignUser = () => {
     if (!selectedUserId || !assignProjectId || !assignRole || !assignStartDate) {
       handleError(new Error('Please fill in all required fields'), 'Validation Error');
       return;
     }
 
-    try {
-      await projectService.assignUserToProject(
-        selectedUserId,
-        parseInt(assignProjectId),
-        assignRole,
-        assignStartDate,
-        assignResponsibility
-      );
-
-      setIsAssignOpen(false);
-      resetAssignForm();
-      loadData();
-    } catch (err: any) {
-      handleError(err, 'Failed to assign user');
-    }
+    assignUserMutation.mutate({
+      userId: selectedUserId,
+      projectId: parseInt(assignProjectId),
+      role: assignRole,
+      startDate: assignStartDate,
+      responsibilityLevel: assignResponsibility
+    }, {
+      onSuccess: () => {
+        setIsAssignOpen(false);
+        resetAssignForm();
+      }
+    });
   };
 
-  const handleRemoveFromProject = async () => {
+  const handleRemoveFromProject = () => {
     if (!deleteConfirm) return;
 
-    try {
-      await projectService.removeUserFromProject(deleteConfirm.userId, deleteConfirm.projectId);
-      setDeleteConfirm(null);
-      loadData();
-    } catch (err: any) {
-      handleError(err, 'Failed to remove user from project');
-    }
+    removeUserFromProjectMutation.mutate({
+      userId: deleteConfirm.userId,
+      projectId: deleteConfirm.projectId
+    }, {
+      onSuccess: () => {
+        setDeleteConfirm(null);
+      }
+    });
   };
 
   const openAssignDialog = (userId: number) => {
@@ -258,31 +249,29 @@ const ManageProjectUsers = () => {
       return;
     }
 
-    try {
-      await projectService.updateUser(editUserId, {
+    updateUserMutation.mutate({
+      userId: editUserId,
+      data: {
         name: editUserName.trim(),
         email: editUserEmail.trim(),
         phoneNumber: editUserPhone?.trim() || undefined
-      });
-
-      setIsEditOpen(false);
-      resetEditForm();
-      loadData();
-    } catch (err: any) {
-      handleError(err, 'Failed to update user');
-    }
+      }
+    }, {
+      onSuccess: () => {
+        setIsEditOpen(false);
+        resetEditForm();
+      }
+    });
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = () => {
     if (!deleteUserConfirm) return;
 
-    try {
-      await projectService.deleteUser(deleteUserConfirm.userId);
-      setDeleteUserConfirm(null);
-      loadData();
-    } catch (err: any) {
-      handleError(err, 'Failed to delete user');
-    }
+    deleteUserMutation.mutate(deleteUserConfirm.userId, {
+      onSuccess: () => {
+        setDeleteUserConfirm(null);
+      }
+    });
   };
 
   return (
@@ -292,9 +281,9 @@ const ManageProjectUsers = () => {
           <div className="flex items-center gap-2">
             <span className="font-medium">Error:</span> {error}
           </div>
-          <Button variant="ghost" size="sm" onClick={loadData} className="text-red-700 hover:bg-red-100 h-8 text-xs">
-            Retry
-          </Button>
+          {/* Retry button could be added here if needed, but react-query handles retries. 
+              If we want manual retry, we'd need refetch functions from hooks. 
+              For now, simplifying. */}
         </div>
       )}
 

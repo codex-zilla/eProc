@@ -1,8 +1,9 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { projectService } from '@/services/projectService';
-import type { Project, Site } from '@/types/models';
+import { useProject, useUpdateProjectStatus } from '@/hooks/queries/useProjects';
+import { useSites } from '@/hooks/queries/useSites';
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,49 +17,32 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const ProjectDetails = () => {
     const { id } = useParams<{ id: string }>();
-    const [project, setProject] = useState<Project | null>(null);
-    const [sites, setSites] = useState<Site[]>([]);
+    const projectId = id ? parseInt(id) : 0;
 
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data: project, isLoading: loadingProject, error: projectError } = useProject(projectId);
+    const { data: sites = [] } = useSites(projectId);
+
+    // Status update mutation
+    const updateStatusMutation = useUpdateProjectStatus();
+
+    // Local UI state for success message (optional, or rely on toast)
     const [success, setSuccess] = useState<string | null>(null);
 
-    // Load Data
-    const loadData = useCallback(async () => {
-        if (!id) return;
-        try {
-            const data = await projectService.getProjectById(parseInt(id));
-            setProject(data);
+    const loading = loadingProject;
+    const error = projectError ? (projectError as Error).message : null;
 
-            // Fetch Sites
-            try {
-                const sitesData = await projectService.getSitesByProject(parseInt(id));
-                setSites(sitesData);
-            } catch (siteErr) {
-                console.warn('Failed to load sites', siteErr);
-            }
-        } catch (err) {
-            console.error('Failed to load project:', err);
-            setError('Failed to load project details');
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
-
-    const handleUpdateStatus = async (newStatus: string) => {
+    const handleUpdateStatus = (newStatus: string) => {
         if (!project) return;
-        setError(null);
-        try {
-            await projectService.updateProjectStatus(project.id, newStatus);
-            setSuccess(`Project marked as ${newStatus}`);
-            loadData();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to update status');
-        }
+        setSuccess(null);
+
+        updateStatusMutation.mutate(
+            { id: project.id, status: newStatus },
+            {
+                onSuccess: () => {
+                    setSuccess(`Project marked as ${newStatus}`);
+                }
+            }
+        );
     };
 
     if (loading) return (
@@ -68,10 +52,7 @@ const ProjectDetails = () => {
     );
     if (!project) return <div className="text-center py-6 sm:py-8 text-red-500 text-sm sm:text-base">Project not found</div>;
 
-
-
     // Calculate progress based on milestones (mock for now, or use project count fields)
-
 
     return (
         <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto pb-6 sm:pb-10">

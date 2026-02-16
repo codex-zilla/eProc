@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ShoppingCart,
@@ -10,105 +9,21 @@ import {
     ArrowRight,
     DollarSign
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
 import { StatCard } from '@/components/common/StatCard';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-
-// Mock data - replace with actual API calls when backend is ready
-interface DashboardStats {
-    approvedCount: number;
-    orderedCount: number;
-    partiallyDeliveredCount: number;
-    fullyDeliveredCount: number;
-    totalOrderedValue: number;
-    underOrderedCount: number;
-    overDeliveredCount: number;
-    damagedDeliveriesCount: number;
-}
-
-interface RecentPO {
-    id: number;
-    poNumber: string;
-    vendor: string;
-    createdAt: string;
-    amount: number;
-    status: 'Received' | 'Partial' | 'Ordered' | 'Pending';
-}
-
-interface AlertItem {
-    id: string;
-    title: string;
-    description: string;
-    type: 'danger' | 'warning' | 'info';
-    actionText?: string;
-}
-
-interface RecentDelivery {
-    id: number;
-    poNumber: string;
-    deliveredDate: string;
-    itemCount: number;
-}
+import { useAccountantDashboard } from '@/hooks/queries/useDashboard';
 
 const AccountantDashboard = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [recentPOs, setRecentPOs] = useState<RecentPO[]>([]);
-    const [recentDeliveries, setRecentDeliveries] = useState<RecentDelivery[]>([]);
-    const [alerts, setAlerts] = useState<AlertItem[]>([]);
+    const { data: dashboardData, isLoading: loading } = useAccountantDashboard();
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                setLoading(true);
-
-                // TODO: Replace with actual API calls when backend endpoints are available
-                // For now, using mock data
-                setTimeout(() => {
-                    setStats({
-                        approvedCount: 24,
-                        orderedCount: 18,
-                        partiallyDeliveredCount: 8,
-                        fullyDeliveredCount: 10,
-                        totalOrderedValue: 45500000,
-                        underOrderedCount: 3,
-                        overDeliveredCount: 1,
-                        damagedDeliveriesCount: 2
-                    });
-
-                    setRecentPOs([
-                        { id: 1, poNumber: 'PO-23-089', vendor: 'Dangote Cement', createdAt: '2026-10-24T10:30:00', amount: 12500000, status: 'Received' },
-                        { id: 2, poNumber: 'PO-23-090', vendor: 'Simba Steel', createdAt: '2026-10-23T14:15:00', amount: 4200000, status: 'Partial' },
-                        { id: 3, poNumber: 'PO-23-091', vendor: 'Tanzania Electric', createdAt: '2026-10-22T09:45:00', amount: 850000, status: 'Ordered' },
-                        { id: 4, poNumber: 'PO-23-092', vendor: 'Kiboko Paints', createdAt: '2026-10-21T16:00:00', amount: 1200000, status: 'Pending' },
-                    ]);
-
-                    setAlerts([
-                        { id: '1', title: 'Over-delivered Item', description: 'PO-23-089: Received 550 bags of cement, ordered 500.', type: 'danger', actionText: 'Review Discrepancy' },
-                        { id: '2', title: 'Under-ordered Rebar', description: 'Project plan requires +200kg for Phase 2 foundation.', type: 'warning' },
-                        { id: '3', title: 'Pending Invoice Approval', description: 'Simba Steel invoice #4402 is awaiting your sign-off.', type: 'info' },
-                    ]);
-
-                    setRecentDeliveries([
-                        { id: 1, poNumber: 'PO-23-089', deliveredDate: '2026-02-10T11:00:00', itemCount: 5 },
-                        { id: 2, poNumber: 'PO-23-090', deliveredDate: '2026-02-09T16:30:00', itemCount: 3 },
-                    ]);
-
-                    setLoading(false);
-                }, 800);
-            } catch (error) {
-                console.error('Failed to fetch dashboard data:', error);
-                toast.error('Failed to load dashboard data');
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, []);
-
-
+    const {
+        stats,
+        recentPOs = [],
+        recentDeliveries = [],
+        alerts = []
+    } = dashboardData || {};
 
     if (loading) {
         return (

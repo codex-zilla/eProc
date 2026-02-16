@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import api from '../../lib/axios';
+import { useRequest, useRequestHistory, useUpdateMaterial } from '@/hooks/queries/useRequests';
+import type { RequestItem } from '@/types/models';
+import { MaterialUnit } from '@/types/models';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,91 +25,30 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-interface MaterialItem {
-  id: number;
-  name: string;
-  quantity: number;
-  measurementUnit: string;
-  rateEstimate: number;
-  resourceType: 'MATERIAL' | 'LABOUR';
-  status?: string;
-  workDescription?: string;
-  totalEstimate?: number;
-  rateType?: string;
-  rejectionComment?: string;
-  comment?: string;
-  isDuplicate?: boolean;
-}
-
-interface BatchDetails {
-  id: number;
-  title: string;
-  additionalDetails?: string;
-  status: string;
-  projectId: number;
-  projectName?: string;
-  createdById: number;
-  createdByName?: string;
-  createdByEmail?: string;
-  createdAt: string;
-  updatedAt?: string;
-  materials: MaterialItem[];
-  totalValue: number;
-  plannedStartDate?: string;
-  plannedEndDate?: string;
-  priority?: string;
-  siteName?: string;
-  boqReferenceCode?: string;
-}
-
-const MEASUREMENT_UNITS = [
-  { value: 'm³', label: 'm³ - Cubic Meter' },
-  { value: 'm²', label: 'm² - Square Meter' },
-  { value: 'm', label: 'm - Linear Meter' },
-  { value: 'kg', label: 'kg - Kilogram' },
-  { value: 'ton', label: 'ton - Metric Ton' },
-  { value: 'No', label: 'No - Number (count)' },
-  { value: 'LS', label: 'LS - Lump Sum' },
-  { value: 'bag', label: 'bag - Bag (cement, aggregates)' },
-  { value: 'bundle', label: 'bundle - Bundle (reinforcement)' },
-  { value: 'trip', label: 'trip - Trip (lorry deliveries)' },
-  { value: 'drum', label: 'drum - Drum (bitumen/asphalt)' },
-  { value: 'pcs', label: 'pcs - Pieces' },
-  { value: 'Days', label: 'Days - Labour duration' },
-];
-
-interface AuditEntry {
-  id: number;
-  action: string;
-  statusSnapshot?: string;
-  comment?: string;
-  timestamp: string;
-  actorName: string;
-  actorEmail: string;
-  actorRole: string;
-}
-
-import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { toast } from 'sonner';
 import { formatDate, formatCurrency, formatNumber, formatDateTime } from '../../lib/formatters';
 
-// ... imports
+const MEASUREMENT_UNITS = Object.values(MaterialUnit).map(unit => ({ value: unit, label: unit }));
 
 /**
  * Request Details page - view complete BOQ batch with material/labour breakdown.
  */
 const RequestDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const [batch, setBatch] = useState<BatchDetails | null>(null);
-  const [history, setHistory] = useState<AuditEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialItem | null>(null);
-  const [editValues, setEditValues] = useState<Partial<MaterialItem>>({});
+  const requestId = id ? parseInt(id) : 0;
 
-  const [updating, setUpdating] = useState(false);
-  const { handleError } = useErrorHandler();
+  const { data: batch, isLoading: loadingBatch, error: batchError } = useRequest(requestId);
+  const { data: history = [] } = useRequestHistory(requestId);
+  const updateMaterialMutation = useUpdateMaterial();
+
+  const [selectedMaterial, setSelectedMaterial] = useState<RequestItem | null>(null);
+  const [editValues, setEditValues] = useState<Partial<RequestItem>>({});
+
+
+
+  const loading = loadingBatch;
+  // Use batchError message if available, otherwise generic message if error exists
+  const error = batchError ? (batchError instanceof Error ? batchError.message : 'Failed to load request details') : null;
 
   useEffect(() => {
     if (selectedMaterial && selectedMaterial.status === 'REJECTED') {
@@ -125,48 +66,23 @@ const RequestDetails = () => {
   const handleUpdateMaterial = async () => {
     if (!selectedMaterial || !batch) return;
 
-    setUpdating(true);
-    // setError(null); // No longer using local error for mutations
     try {
-      await api.patch(`/requests/${batch.id}/materials/${selectedMaterial.id}`, {
-        quantity: editValues.quantity,
-        measurementUnit: editValues.measurementUnit,
-        rateEstimate: editValues.rateEstimate,
-        rateType: editValues.rateType
+      await updateMaterialMutation.mutateAsync({
+        requestId: batch.id,
+        materialId: selectedMaterial.id,
+        data: {
+          quantity: editValues.quantity,
+          measurementUnit: editValues.measurementUnit,
+          rateEstimate: editValues.rateEstimate,
+          rateType: editValues.rateType
+        }
       });
-
       toast.success('Material updated successfully');
-      await loadData();
       setSelectedMaterial(null);
     } catch (err) {
-      handleError(err, 'Failed to update material details');
-    } finally {
-      setUpdating(false);
+      // Error handled by hook
     }
   };
-
-
-
-
-  const loadData = useCallback(async () => {
-    try {
-      const [batchRes, historyRes] = await Promise.all([
-        api.get<BatchDetails>(`/requests/${id}`),
-        api.get<AuditEntry[]>(`/requests/${id}/history`).catch(() => ({ data: [] }))
-      ]);
-      setBatch(batchRes.data);
-      setHistory(historyRes.data);
-    } catch (err) {
-      console.error('Failed to load batch:', err);
-      setError('Failed to load request details');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   // Helper to render duplicate indicator
   const renderDuplicateIndicator = (isDuplicate?: boolean) => {
@@ -200,7 +116,7 @@ const RequestDetails = () => {
 
 
 
-  const calculateTotal = (items: MaterialItem[], type: 'MATERIAL' | 'LABOUR') => {
+  const calculateTotal = (items: RequestItem[], type: 'MATERIAL' | 'LABOUR') => {
     return items
       .filter(item => item.resourceType === type)
       .reduce((sum, item) => sum + (item.quantity * item.rateEstimate), 0);
@@ -238,27 +154,17 @@ const RequestDetails = () => {
   const labour = batch.materials.filter(item => item.resourceType === 'LABOUR');
   const materialTotal = calculateTotal(batch.materials, 'MATERIAL');
   const labourTotal = calculateTotal(batch.materials, 'LABOUR');
-  // const grandTotal = materialTotal + labourTotal;
   const pendingCount = (batch.materials || []).filter(m => m.status === 'PENDING').length;
 
   return (
     <TooltipProvider>
       <div className="space-y-6 max-w-7xl mx-auto">
-
-
         {/* Error Alert */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-700 hover:text-red-900 font-bold text-lg leading-none flex-shrink-0"
-            >
-              ×
-            </button>
           </div>
         )}
 
@@ -708,9 +614,9 @@ const RequestDetails = () => {
                       <Button
                         className="flex-1 bg-[#1e293b] hover:bg-[#0f172a] text-white"
                         onClick={handleUpdateMaterial}
-                        disabled={updating}
+                        disabled={updateMaterialMutation.isPending}
                       >
-                        {updating ? 'Updating...' : 'Update Material'}
+                        {updateMaterialMutation.isPending ? 'Updating...' : 'Update Material'}
                       </Button>
                       <Button
                         variant="outline"

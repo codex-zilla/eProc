@@ -5,9 +5,11 @@ import {
   createPurchaseOrder, 
   closePurchaseOrder,
   type CreatePurchaseOrderDTO 
-} from "@/services/procurementService"; // Note: procurementService exports functions directly
+} from "@/services/procurementService"; 
+import { projectService } from "@/services/projectService";
 import { useErrorHandler } from "../useErrorHandler";
 import { queryKeys } from "./query-keys";
+import type { Project } from "@/types/models";
 
 export const usePurchaseOrders = (projectId?: number) => {
   return useQuery({
@@ -15,9 +17,36 @@ export const usePurchaseOrders = (projectId?: number) => {
     queryFn: () => 
       projectId 
         ? getProjectPurchaseOrders(projectId)
-        : Promise.reject("Fetch all POs not implemented/supported yet"), // procurementService only has getProjectPurchaseOrders
-    enabled: !!projectId,
+        : fetchAllPurchaseOrders(), 
+    enabled: true,
   });
+};
+
+// Helper function to aggregate POs from all projects
+const fetchAllPurchaseOrders = async () => {
+  try {
+    const projects: Project[] = await projectService.getAllProjects();
+    const allPOs = await Promise.all(
+      projects.map((project: Project) => 
+        getProjectPurchaseOrders(project.id)
+          .catch(err => {
+            console.error(`Failed to fetch POs for project ${project.id}:`, err);
+            return [];
+          })
+      )
+    );
+    return allPOs.flat();
+  } catch (error) {
+    console.error("Failed to fetch all purchase orders", error);
+    throw error;
+  }
+};
+
+export const useAllPurchaseOrders = () => {
+    return useQuery({
+        queryKey: queryKeys.purchaseOrders.all,
+        queryFn: fetchAllPurchaseOrders,
+    });
 };
 
 export const usePurchaseOrder = (id: number) => {

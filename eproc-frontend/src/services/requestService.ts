@@ -1,5 +1,5 @@
 import api from '../lib/axios';
-import type { MaterialRequest, CreateMaterialRequest, ApprovalAction, RequestStatus } from '../types/models';
+import type { MaterialRequest, CreateMaterialRequest, ApprovalAction, RequestStatus, RequestDetail, AuditEntry } from '../types/models';
 
 /**
  * Service for material request API operations.
@@ -20,8 +20,8 @@ export const requestService = {
     status?: RequestStatus;
     siteId?: number;
     myRequests?: boolean;
-  }): Promise<MaterialRequest[]> => {
-    const response = await api.get<MaterialRequest[]>('/requests', { params });
+  }): Promise<RequestDetail[]> => {
+    const response = await api.get<RequestDetail[]>('/requests', { params });
     return response.data;
   },
 
@@ -33,19 +33,24 @@ export const requestService = {
     return response.data;
   },
 
-  /**
-   * Get current user's requests.
-   */
   getMyRequests: async (): Promise<MaterialRequest[]> => {
     const response = await api.get<MaterialRequest[]>('/requests/my-requests');
     return response.data;
   },
 
   /**
+   * Get requests for a specific project.
+   */
+  getProjectRequests: async (projectId: number): Promise<RequestDetail[]> => {
+    const response = await api.get<RequestDetail[]>(`/requests/project/${projectId}`);
+    return response.data;
+  },
+
+  /**
    * Get a single request by ID.
    */
-  getRequestById: async (id: number): Promise<MaterialRequest> => {
-    const response = await api.get<MaterialRequest>(`/requests/${id}`);
+  getRequestById: async (id: number): Promise<RequestDetail> => {
+    const response = await api.get<RequestDetail>(`/requests/${id}`);
     return response.data;
   },
 
@@ -78,4 +83,20 @@ export const requestService = {
   rejectRequest: async (id: number, comment: string): Promise<MaterialRequest> => {
     return requestService.processApproval(id, { status: 'REJECTED', comment });
   },
+
+  /**
+   * Update a specific material within a request.
+   */
+  updateMaterial: async (requestId: number, materialId: number, data: any): Promise<void> => {
+    await api.patch(`/requests/${requestId}/materials/${materialId}`, data);
+  },
+
+  /**
+   * Get request history/audit logs.
+   */
+  getRequestHistory: async (id: number): Promise<AuditEntry[]> => {
+    const response = await api.get<AuditEntry[]>(`/requests/${id}/history`);
+    return response.data;
+  },
 };
+

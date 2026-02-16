@@ -91,11 +91,6 @@ interface AuditEntry {
  */
 const RequestDetailsManager = () => {
   const { id } = useParams<{ id: string }>();
-  // ... (rest of component) ...
-  // Since I need to replace logic deeper in the file, I will split this into multiple replace calls or one large one surrounding the interfaces if possible.
-  // The tool only supports one block. 
-  // I will update the interfaces first.
-
   const [request, setRequest] = useState<RequestDetails | null>(null);
   const [history, setHistory] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +162,6 @@ const RequestDetailsManager = () => {
       setProcessingMaterialId(null);
     }
   };
-
 
   const getActionIcon = (action: string) => {
     switch (action) {

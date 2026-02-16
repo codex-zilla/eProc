@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ShoppingCart,
@@ -11,10 +11,11 @@ import {
     Square,
     Package
 } from 'lucide-react';
-import { createPurchaseOrder, type CreatePurchaseOrderDTO } from '../../services/procurementService';
-import api from '../../lib/axios';
+import { type CreatePurchaseOrderDTO } from '../../services/procurementService';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/formatters';
+import { useProjectRequests } from '@/hooks/queries/useRequests';
+import { useCreatePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
 
 interface MaterialItem {
     id: number;
@@ -28,90 +29,59 @@ interface MaterialItem {
     siteName: string;
 }
 
-interface RequestResponse {
-    id: number;
-    title: string;
-    status: string;
-    siteName: string;
-    siteId: number;
-    materials?: {
-        id: number;
-        name: string;
-        quantity: number;
-        measurementUnit: string;
-        rateEstimate: number;
-        status: string;
-    }[];
-}
-
 const CreatePurchaseOrder: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const projectId = searchParams.get('projectId');
+    const projectIdParam = searchParams.get('projectId');
+    const projectId = projectIdParam ? parseInt(projectIdParam) : undefined;
 
     // Determine base path based on user role
     const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { data: requests = [], isLoading: loadingRequests, error: requestsError } = useProjectRequests(projectId || 0);
+    const createPOMutation = useCreatePurchaseOrder();
 
-    const [materials, setMaterials] = useState<MaterialItem[]>([]);
     const [selectedItems, setSelectedItems] = useState<Map<number, { qty: number; unitPrice: number }>>(new Map());
     const [vendorName, setVendorName] = useState('');
     const [notes, setNotes] = useState('');
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!projectId) {
-            setError('Project ID is required');
-            setLoading(false);
-            return;
-        }
-        fetchApprovedRequests();
-    }, [projectId]);
+    // Derived state: Extract approved materials
+    const materials: MaterialItem[] = React.useMemo(() => {
+        if (!requests) return [];
+        const approvedMaterials: MaterialItem[] = [];
 
-    const fetchApprovedRequests = async () => {
-        try {
-            setLoading(true);
-            const response = await api.get<RequestResponse[]>(`/requests/project/${projectId}`);
-
-            // Extract materials from approved/ordered requests
-            const approvedMaterials: MaterialItem[] = [];
-
-            for (const request of response.data) {
-                // Only include requests that can have POs created
-                if (request.status === 'APPROVED' || request.status === 'ORDERED' || request.status === 'PARTIALLY_DELIVERED') {
-                    // Safely iterate over materials (may be null/undefined)
-                    const requestMaterials = request.materials || [];
-                    for (const material of requestMaterials) {
-                        // Only include approved materials
-                        if (material.status === 'APPROVED') {
-                            approvedMaterials.push({
-                                id: material.id,
-                                requestId: request.id,
-                                requestTitle: request.title,
-                                materialName: material.name,
-                                quantity: material.quantity,
-                                unit: material.measurementUnit || 'PCS',
-                                rateEstimate: material.rateEstimate || 0,
-                                status: material.status,
-                                siteName: request.siteName
-                            });
-                        }
+        for (const request of requests) {
+            // Only include requests that can have POs created
+            if (request.status === 'APPROVED' || request.status === 'ORDERED' || request.status === 'PARTIALLY_DELIVERED') {
+                const requestMaterials = request.materials || [];
+                for (const material of requestMaterials) {
+                    // Check if material is APPROVED (or has no status, assuming approved if request is approved? Logic in original was specific)
+                    // Original: if (material.status === 'APPROVED')
+                    // NOTE: Check if RequestItem has status field. Models say 'status?: string'.
+                    if (material.status === 'APPROVED') {
+                        approvedMaterials.push({
+                            id: material.id,
+                            requestId: request.id,
+                            requestTitle: request.title,
+                            materialName: material.name,
+                            quantity: material.quantity,
+                            unit: material.measurementUnit || 'PCS',
+                            rateEstimate: material.rateEstimate || 0,
+                            status: material.status,
+                            siteName: request.siteName || ''
+                        });
                     }
                 }
             }
-
-            setMaterials(approvedMaterials);
-            setError(null);
-        } catch (err: any) {
-            console.error('Failed to fetch requests:', err);
-            setError(err.response?.data?.message || 'Failed to load approved requests');
-        } finally {
-            setLoading(false);
         }
-    };
+        return approvedMaterials;
+    }, [requests]);
+
+    const loading = loadingRequests;
+    const error = (requestsError as Error)?.message || null;
+
 
     const toggleItem = (material: MaterialItem) => {
         const newSelected = new Map(selectedItems);
@@ -172,13 +142,12 @@ const CreatePurchaseOrder: React.FC = () => {
 
     const handleSubmit = async () => {
         if (selectedItems.size === 0) {
-            setError('Please select at least one item');
+            setSubmitError('Please select at least one item');
             return;
         }
 
         try {
-            setSubmitting(true);
-            setError(null);
+            setSubmitError(null);
 
             const items = Array.from(selectedItems.entries()).map(([materialId, item]) => {
                 const material = materials.find(m => m.id === materialId)!;
@@ -198,13 +167,12 @@ const CreatePurchaseOrder: React.FC = () => {
                 items
             };
 
-            await createPurchaseOrder(dto);
+            await createPOMutation.mutateAsync(dto);
             navigate(`${basePath}/procurement?projectId=${projectId}`);
         } catch (err: any) {
             console.error('Failed to create PO:', err);
-            setError(err.response?.data?.message || 'Failed to create purchase order');
-        } finally {
-            setSubmitting(false);
+            // Error is handled by the hook's onError, but we can setsSubmitError here if needed
+            setSubmitError(err.message || 'Failed to create purchase order');
         }
     };
 
@@ -410,8 +378,16 @@ const CreatePurchaseOrder: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {error && (
+                                {submitError && (
                                     <div className="rounded-md bg-red-50 p-3">
+                                        <div className="flex items-start gap-2">
+                                            <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                                            <p className="text-sm text-red-700">{submitError}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {error && (
+                                    <div className="rounded-md bg-red-50 p-3 mt-2">
                                         <div className="flex items-start gap-2">
                                             <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
                                             <p className="text-sm text-red-700">{error}</p>
@@ -421,10 +397,10 @@ const CreatePurchaseOrder: React.FC = () => {
 
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={submitting || selectedItems.size === 0}
+                                    disabled={createPOMutation.isPending || selectedItems.size === 0}
                                     className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    {submitting ? (
+                                    {createPOMutation.isPending ? (
                                         <span className="flex items-center justify-center gap-2">
                                             <Loader2 className="h-4 w-4 animate-spin" />
                                             Creating...

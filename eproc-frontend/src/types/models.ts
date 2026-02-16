@@ -236,19 +236,11 @@ export interface Material {
   isActive: boolean;
 }
 
-export type MaterialSelectionMode = 'catalog' | 'manual';
-
-export interface MaterialSelection {
-  mode: MaterialSelectionMode;
-  material?: Material; // if mode is catalog
-  manualName?: string;
-  manualUnit?: string;
-  manualPrice?: number;
-}
-
 export const RequestStatus = {
   PENDING: 'PENDING',
+  SUBMITTED: 'SUBMITTED',
   APPROVED: 'APPROVED',
+  PARTIALLY_APPROVED: 'PARTIALLY_APPROVED',
   REJECTED: 'REJECTED',
   ORDERED: 'ORDERED',
   PARTIALLY_DELIVERED: 'PARTIALLY_DELIVERED',
@@ -324,4 +316,51 @@ export interface UserSummary {
     email: string;
     role: string;
     erbNumber?: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  action: string;
+  comment?: string;
+  timestamp: string;
+  actorName: string;
+  actorEmail: string;
+  actorRole: string;
+}
+
+export interface RequestItem {
+  id: number;
+  name: string;
+  quantity: number;
+  measurementUnit: string;
+  rateEstimate: number;
+  resourceType: 'MATERIAL' | 'LABOUR';
+  status?: string;
+  workDescription?: string;
+  totalEstimate?: number;
+  rateType?: string;
+  rejectionComment?: string;
+  comment?: string;
+  isDuplicate?: boolean;
+}
+
+export interface RequestDetail {
+  id: number;
+  title: string;
+  additionalDetails?: string;
+  status: string;
+  projectId: number;
+  projectName?: string;
+  createdById: number;
+  createdByName?: string;
+  createdByEmail?: string;
+  createdAt: string;
+  updatedAt?: string;
+  materials: RequestItem[];
+  totalValue: number;
+  plannedStartDate?: string;
+  plannedEndDate?: string;
+  priority?: string;
+  siteName?: string;
+  boqReferenceCode?: string;
 }

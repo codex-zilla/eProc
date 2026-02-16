@@ -11,10 +11,28 @@ export const useRequests = (projectId?: number) => {
   });
 };
 
+
+
+export const useProjectRequests = (projectId: number) => {
+  return useQuery({
+    queryKey: queryKeys.requests.byProject(projectId),
+    queryFn: () => requestService.getProjectRequests(projectId),
+    enabled: !!projectId,
+  });
+};
+
 export const useRequest = (id: number) => {
   return useQuery({
     queryKey: queryKeys.requests.byId(id),
     queryFn: () => requestService.getRequestById(id),
+    enabled: !!id,
+  });
+};
+
+export const useRequestHistory = (id: number) => {
+  return useQuery({
+    queryKey: ['request-history', id],
+    queryFn: () => requestService.getRequestHistory(id),
     enabled: !!id,
   });
 };
@@ -59,5 +77,19 @@ export const useProcessApproval = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.byId(variables.id) });
     },
     onError: (error) => handleError(error, "Failed to process request approval"),
+  });
+};
+
+export const useUpdateMaterial = () => {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: ({ requestId, materialId, data }: { requestId: number; materialId: number; data: any }) =>
+      requestService.updateMaterial(requestId, materialId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.byId(variables.requestId) });
+    },
+    onError: (error) => handleError(error, "Failed to update material"),
   });
 };

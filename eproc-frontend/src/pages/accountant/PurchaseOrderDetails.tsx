@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     FileText,
@@ -21,7 +21,6 @@ import {
     Check
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPurchaseOrder, closePurchaseOrder, type PurchaseOrderResponse } from '../../services/procurementService';
 import { formatDate, formatCurrency, formatNumber } from '../../lib/formatters';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,33 +29,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-import { useErrorHandler } from '@/hooks/useErrorHandler';
-
-// ... imports
+import { usePurchaseOrder, useClosePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
 
 const PurchaseOrderDetails = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [po, setPo] = useState<PurchaseOrderResponse | null>(null);
+    const poId = Number(id);
+
+    // Hooks
+    const { data: po, isLoading: loading, error } = usePurchaseOrder(poId);
+    const closeOrderMutation = useClosePurchaseOrder();
+
+    // Local state for UI interactions
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [showFilter, setShowFilter] = useState(false);
 
-    const { handleError } = useErrorHandler();
-
     const handleCloseOrder = async () => {
-        if (!po) return;
+        if (!poId) return;
         try {
-            setLoading(true);
-            const updatedPo = await closePurchaseOrder(po.id);
-            setPo(updatedPo);
+            await closeOrderMutation.mutateAsync(poId);
             toast.success('Purchase order closed successfully');
         } catch (error) {
-            handleError(error, 'Failed to close purchase order');
-            setLoading(false);
+            // Error handled by hook's onError
         }
     };
 
@@ -68,26 +65,6 @@ const PurchaseOrderDetails = () => {
         setSortConfig({ key, direction });
     };
 
-    useEffect(() => {
-        if (id) {
-            fetchPurchaseOrderDetails();
-        }
-    }, [id]);
-
-    const fetchPurchaseOrderDetails = async () => {
-        try {
-            setLoading(true);
-            const poData = await getPurchaseOrder(Number(id));
-            setPo(poData);
-            setLoading(false);
-        } catch (error) {
-            handleError(error, 'Failed to load purchase order details');
-            setLoading(false);
-        }
-    };
-
-
-
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -96,7 +73,7 @@ const PurchaseOrderDetails = () => {
         );
     }
 
-    if (!po) {
+    if (!po || error) {
         return (
             <div className="text-center py-12">
                 <FileText className="h-16 w-16 mx-auto text-slate-300 mb-4" />
@@ -159,8 +136,6 @@ const PurchaseOrderDetails = () => {
     };
 
     const isOrderOpen = po.status === 'OPEN';
-    // Show complete button if order is open AND (all requested items ordered OR manually closed logic? User said "if the order is still open... add button to close")
-    // Requirement: "add a conditional render a button to complete the order if the order is still open"
     const showCloseButton = isOrderOpen;
 
     return (
@@ -200,10 +175,11 @@ const PurchaseOrderDetails = () => {
                                 {showCloseButton && (
                                     <Button
                                         onClick={handleCloseOrder}
+                                        disabled={closeOrderMutation.isPending}
                                         size="sm"
                                         className="flex-1 lg:flex-none gap-2 px-3 bg-[#2a3455] border-slate-200 text-white hover:bg-[#1e253e] hover:text-white"
                                     >
-                                        <Check className="h-3.5 w-3.5" />
+                                        {closeOrderMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                                         Complete Order
                                     </Button>
                                 )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText,
@@ -10,29 +10,30 @@ import {
     Filter,
     X
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDate, formatCurrency } from '../../lib/formatters';
 import { FilterSelect, DateRangePicker, type DatePreset, getPresetRange, PRESET_LABELS } from '../../components/common';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import type { PurchaseOrderResponse } from '../../services/procurementService';
-import { getProjectPurchaseOrders } from '../../services/procurementService';
-import { projectService } from '../../services/projectService';
-import type { Project } from '../../types/models';
+import { useProjects } from '@/hooks/queries/useProjects';
+import { useAllPurchaseOrders } from '@/hooks/queries/usePurchaseOrders';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-
-
-
-
-// ══════════════════════════════════════════════════════════════════════
-// Main Component
-// ══════════════════════════════════════════════════════════════════════
 const PurchaseOrders = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderResponse[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
+
+    // Data Fetching with Hooks
+    const {
+        data: projects = [],
+        isLoading: isLoadingProjects
+    } = useProjects();
+
+    const {
+        data: purchaseOrders = [],
+        isLoading: isLoadingPOs
+    } = useAllPurchaseOrders();
+
+    const loading = isLoadingProjects || isLoadingPOs;
 
     // Filters
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
@@ -41,34 +42,6 @@ const PurchaseOrders = () => {
     const [dateRange, setDateRange] = useState<{ start: string; end: string }>(getPresetRange('LAST_30'));
     const [datePreset, setDatePreset] = useState<DatePreset>('LAST_30');
     const [showMobileFilters, setShowMobileFilters] = useState(false);
-
-    const fetchData = useCallback(async () => {
-        try {
-            setLoading(true);
-            const projectsData = await projectService.getAllProjects();
-            setProjects(projectsData);
-
-            const allPOs: PurchaseOrderResponse[] = [];
-            for (const project of projectsData) {
-                try {
-                    const pos = await getProjectPurchaseOrders(project.id);
-                    allPOs.push(...pos);
-                } catch (error) {
-                    console.error(`Failed to fetch POs for project ${project.id}:`, error);
-                }
-            }
-            setPurchaseOrders(allPOs);
-        } catch (error) {
-            console.error('Failed to fetch data:', error);
-            toast.error('Failed to load purchase orders');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
 
     // Filtered orders
     const filteredOrders = useMemo(() => {
@@ -113,10 +86,7 @@ const PurchaseOrders = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
-                <div className="flex flex-col items-center gap-2 sm:gap-3">
-                    <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
-                    <p className="text-sm sm:text-base text-slate-500 font-medium animate-pulse">Loading purchase orders...</p>
-                </div>
+                <LoadingSpinner size="lg" text="Loading purchase orders..." />
             </div>
         );
     }

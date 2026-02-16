@@ -106,13 +106,13 @@ public class DashboardService {
                 List<User> availableEngineers = userRepository.findByRoleAndActiveTrue(Role.ENGINEER);
 
                 // Get pending requests from my projects
-                List<Request> pendingFromMyProjects = requestRepository.findByProjectIdIn(
+                List<Request> pendingFromMyProjects = requestRepository.findByProjectIdInOrderByCreatedAtDesc(
                                 myProjects.stream().map(Project::getId).toList()).stream()
                                 .filter(r -> r.getStatus() == RequestStatus.PENDING)
                                 .toList();
 
                 // Get all requests from my projects for stats
-                List<Request> allFromMyProjects = requestRepository.findByProjectIdIn(
+                List<Request> allFromMyProjects = requestRepository.findByProjectIdInOrderByCreatedAtDesc(
                                 myProjects.stream().map(Project::getId).toList());
 
                 int approved = (int) allFromMyProjects.stream()

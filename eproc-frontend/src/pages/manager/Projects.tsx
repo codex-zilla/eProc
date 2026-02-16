@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../../lib/axios';
+import { useProjects } from '@/hooks/queries/useProjects';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import type { Project } from '@/types/models';
+
 import { formatNumber } from '@/lib/formatters';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -14,41 +14,14 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 
 const MyProjects = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: projects = [], isLoading: loading, error: queryError, refetch } = useProjects();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const loadProjects = useCallback(async () => {
-    setError(null);
-    try {
-      const response = await api.get<Project[]>('/projects');
-      setProjects(response.data);
-    } catch (err: any) {
-      console.error('Failed to load projects:', err);
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setError('Connection failed. Please check your internet connection and try again.');
-      } else if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else if (err.response?.status >= 500) {
-        setError('Server error. Please try again later.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to load projects. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+  const error = queryError ? (queryError as Error).message : null;
 
   const filteredProjects = projects.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-
 
   const handleRowClick = (projectId: number) => {
     navigate(`/manager/projects/${projectId}`);
@@ -61,7 +34,7 @@ const MyProjects = () => {
           <div className="flex items-center gap-2 text-sm">
             <span className="font-medium">Error:</span> {error}
           </div>
-          <Button variant="ghost" size="sm" onClick={loadProjects} className="text-red-700 hover:bg-red-100 text-xs sm:text-sm">
+          <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-red-700 hover:bg-red-100 text-xs sm:text-sm">
             Retry
           </Button>
         </div>

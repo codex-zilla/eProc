@@ -33,6 +33,7 @@ public class RequestService {
         private final MaterialRepository materialRepository;
         private final DuplicateDetectionService duplicateDetectionService;
         private final ProjectSecurityService projectSecurityService;
+        private final ProjectAssignmentRepository projectAssignmentRepository;
 
         /**
          * Create multiple requests at once.
@@ -207,13 +208,12 @@ public class RequestService {
 
                 boolean isProjectOwner = request.getProject().getOwner() != null
                                 && request.getProject().getOwner().getId().equals(requester.getId());
-                boolean isCreator = request.getCreatedBy().getId().equals(requester.getId());
 
                 // Use ProjectSecurityService for assignment check to avoid NPE
                 boolean hasActiveAssignment = projectSecurityService.hasProjectAccess(userEmail,
                                 request.getProject().getId());
 
-                if (!isProjectOwner && !(isCreator && hasActiveAssignment)) {
+                if (!isProjectOwner && !hasActiveAssignment) {
                         throw new ForbiddenException("You do not have permission to view this request");
                 }
 
@@ -284,15 +284,28 @@ public class RequestService {
          */
         @Transactional(readOnly = true)
         public List<RequestResponseDTO> getAllManagerRequests(String userEmail) {
-                User owner = userRepository.findByEmail(userEmail)
+                User user = userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-                // Only project owners can view all requests
-                if (owner.getRole() != Role.OWNER) {
-                        throw new ForbiddenException("Only project owners can view requests");
-                }
+                List<Request> requests;
 
-                List<Request> requests = requestRepository.findByProjectOwnerIdOrderByCreatedAtDesc(owner.getId());
+                if (user.getRole() == Role.OWNER) {
+                        requests = requestRepository.findByProjectOwnerIdOrderByCreatedAtDesc(user.getId());
+                } else {
+                        // For non-owners (Managers, Engineers, Accountants), get requests for assigned
+                        // projects
+                        List<ProjectAssignment> assignments = projectAssignmentRepository
+                                        .findByUserIdAndIsActiveTrue(user.getId());
+
+                        if (assignments.isEmpty()) {
+                                requests = new ArrayList<>();
+                        } else {
+                                List<Long> projectIds = assignments.stream()
+                                                .map(pa -> pa.getProject().getId())
+                                                .collect(Collectors.toList());
+                                requests = requestRepository.findByProjectIdInOrderByCreatedAtDesc(projectIds);
+                        }
+                }
 
                 return requests.stream()
                                 .map(r -> mapToResponseDTO(r, true))
