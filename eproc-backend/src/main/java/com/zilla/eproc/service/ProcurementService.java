@@ -193,7 +193,7 @@ public class ProcurementService {
          */
         @Transactional(readOnly = true)
         public PurchaseOrderResponseDTO getPurchaseOrderById(Long id, String userEmail) {
-                PurchaseOrder po = purchaseOrderRepository.findById(id)
+                PurchaseOrder po = purchaseOrderRepository.findByIdWithDetails(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found"));
 
                 User user = userRepository.findByEmail(userEmail)

@@ -11,6 +11,8 @@ export { FilterSelect } from './FilterSelect';
 export { SearchInput } from './SearchInput';
 export { PaginationControls } from './PaginationControls';
 export { ItemMobileCard } from './ItemMobileCard';
+export { PurchaseOrderMobileCard } from './PurchaseOrderMobileCard';
+export { ActiveFilters, type FilterChip } from './ActiveFilters';
 export { DateRangePicker, type DatePreset, PRESET_LABELS, getPresetRange } from './DateRangePicker';
 export { DataTable, type ColumnDef } from './DataTable';
 export { ErrorDisplay } from './ErrorDisplay';

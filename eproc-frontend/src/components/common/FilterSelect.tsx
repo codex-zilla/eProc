@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface FilterSelectProps<T = any> {
     value: T;
@@ -8,6 +9,8 @@ interface FilterSelectProps<T = any> {
     label: string;
     icon?: React.ElementType;
     displayValueFn?: (val: T) => string;
+    className?: string;
+    minimal?: boolean;
 }
 
 /**
@@ -30,7 +33,9 @@ export function FilterSelect<T = any>({
     options,
     label,
     icon: Icon,
-    displayValueFn
+    displayValueFn,
+    className,
+    minimal = false
 }: FilterSelectProps<T>) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
@@ -51,21 +56,27 @@ export function FilterSelect<T = any>({
     }, [value, options, label, displayValueFn]);
 
     return (
-        <div className="relative min-w-[140px]" ref={ref}>
+        <div className={cn("relative", !minimal && "min-w-[140px]", className)} ref={ref}>
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="w-full flex items-center justify-between px-3 h-9 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors text-left"
+                className={cn(
+                    "flex items-center justify-between text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors",
+                    minimal ? "p-2 h-8 w-8 justify-center" : "w-full px-3 h-9 text-left"
+                )}
             >
-                <div className="flex items-center gap-2 truncate">
-                    {Icon && <Icon className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />}
-                    <span className="truncate text-slate-700">{selectedLabel}</span>
+                <div className={cn("flex items-center gap-2", !minimal && "truncate")}>
+                    {Icon && <Icon className={cn("text-slate-400 flex-shrink-0", minimal ? "h-4 w-4" : "h-3.5 w-3.5")} />}
+                    {!minimal && <span className="truncate text-slate-700">{selectedLabel}</span>}
                 </div>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 ml-1" />
+                {!minimal && <ChevronDown className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 ml-1" />}
             </button>
 
             {open && (
-                <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 w-full min-w-[180px] max-h-[300px] overflow-y-auto">
+                <div className={cn(
+                    "absolute top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 overflow-y-auto",
+                    minimal ? "right-0 w-48 max-h-[300px]" : "left-0 w-full min-w-[150px] max-h-[300px]"
+                )}>
                     <div className="p-1">
                         {options.map(opt => (
                             <button

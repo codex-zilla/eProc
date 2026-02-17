@@ -12,7 +12,8 @@ import {
     PieChart,
     Package,
     Check,
-    Search
+    Search,
+    X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate, formatCurrency, formatNumber } from '../../lib/formatters';
@@ -124,8 +125,8 @@ const PurchaseOrderDetails = () => {
             sortKey: 'materialDisplayName',
             cell: (item) => (
                 <div className="flex items-start gap-2">
-                    <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400">
-                        <Package className="h-5 w-5" />
+                    <div className="h-8 w-8 lg:h-10 lg:w-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-400">
+                        <Package className="h-4 w-4 lg:h-5 lg:w-5" />
                     </div>
                     <div className="min-w-0">
                         <p className="font-semibold text-slate-900 text-sm">{item.materialDisplayName}</p>
@@ -143,8 +144,8 @@ const PurchaseOrderDetails = () => {
             cell: (item) => (
                 <span className="font-semibold text-slate-700 font-mono tracking-tight">{formatCurrency(item.unitPrice)}</span>
             ),
-            headerClassName: 'pr-0',
-            className: 'pr-0',
+            headerClassName: 'pr-0 hidden lg:table-cell',
+            className: 'pr-0 hidden lg:table-cell',
         },
         {
             id: 'requestedQty',
@@ -169,7 +170,7 @@ const PurchaseOrderDetails = () => {
                 const percent = item.requestedQty > 0
                     ? Math.round((item.totalDelivered / item.requestedQty) * 100) : 0;
                 return (
-                    <div className="flex flex-col gap-1.5 max-w-[200px]">
+                    <div className="flex flex-col gap-1.5 max-w-[110px] lg:max-w-[200px]">
                         <div className="flex justify-between text-xs">
                             <span className={`font-semibold ${percent === 100 ? 'text-green-600' : 'text-slate-700'}`}>
                                 {item.totalDelivered} ({percent}%)
@@ -195,8 +196,8 @@ const PurchaseOrderDetails = () => {
                     </span>
                 );
             },
-            headerClassName: 'text-center',
-            className: 'text-center',
+            headerClassName: 'text-center pr-0 hidden lg:table-cell',
+            className: 'text-center pr-0 hidden lg:table-cell',
         },
         {
             id: 'orderedDate',
@@ -212,7 +213,7 @@ const PurchaseOrderDetails = () => {
             id: 'totalPrice',
             header: 'Total',
             cell: (item) => (
-                <span className="font-semibold text-slate-700 font-mono tracking-tight">{formatCurrency(item.totalPrice)}</span>
+                <span className="font-semibold text-slate-700 font-mono tracking-tighte">{formatCurrency(item.totalPrice)}</span>
             ),
             headerClassName: 'pr-0',
             className: 'pr-0',
@@ -269,7 +270,7 @@ const PurchaseOrderDetails = () => {
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">
                         <div className="min-w-0">
                             <div className="flex items-center gap-3 mb-1">
-                                <h1 className="text-base lg:text-2xl font-bold text-[#2a3455] truncate">Purchase Order: {po.poNumber}</h1>
+                                <h1 className="text-base lg:text-2xl font-bold text-[#2a3455] truncate"><span className='hidden sm:inline'>Purchase Order:</span> {po.poNumber}</h1>
                                 <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${po.status === 'OPEN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'
                                     }`}>
                                     {po.status}
@@ -335,7 +336,7 @@ const PurchaseOrderDetails = () => {
                         <div className="flex-1">
                             <Progress value={stats!.deliveryPercentage} className="h-1.5 bg-slate-100" indicatorClassName={getProgressColor(stats!.deliveryPercentage)} />
                         </div>
-                        <span className="text-[10px] sm:text-xs font-medium text-slate-600 whitespace-nowrap">{stats!.deliveryPercentage}% Complete</span>
+                        <span className="text-[10px] sm:text-xs font-medium text-slate-600 whitespace-nowrap">{stats!.deliveryPercentage}%</span>
                     </div>
                 </StatCard>
                 <StatCard
@@ -352,8 +353,6 @@ const PurchaseOrderDetails = () => {
                     label="Total Expenses"
                     value={formatCurrency(po.totalValue)}
                     color="blue"
-                    subtitle="Total Cost"
-                    subtitleClassName="text-blue-500"
                     className="min-w-[200px] sm:min-w-0 snap-center shrink-0"
                 />
             </div>
@@ -375,21 +374,31 @@ const PurchaseOrderDetails = () => {
                                         options={statusFilterOptions}
                                         label="Filter"
                                         icon={Filter}
+                                        minimal={true}
                                     />
                                 </div>
                             </div>
                             <div
                                 ref={searchContainerRef}
-                                className={`absolute inset-0 z-20 flex items-center bg-white sm:hidden transition-all duration-300 origin-right ${isSearchOpen ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 pointer-events-none'}`}
+                                className={`absolute inset-0 z-20 flex items-center gap-1 bg-white sm:hidden transition-all duration-300 origin-right ${isSearchOpen ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 pointer-events-none'}`}
                             >
                                 <SearchInput
                                     value={filters.search}
                                     onChange={(v) => setFilter('search', v)}
                                     placeholder="Search Material or Site..."
-                                    className="w-full"
-                                    inputClassName="bg-slate-50 border-b"
+                                    className="flex-1 border-none"
+                                    inputClassName="bg-slate-50 shadow-none focus-visible:ring-0"
                                     autoFocus={isSearchOpen}
                                 />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 shrink-0 text-slate-500 hover:bg-slate-50 mr-1"
+                                    onClick={() => setIsSearchOpen(false)}
+                                >
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">Close search</span>
+                                </Button>
                             </div>
                             <div className="hidden sm:flex w-full sm:w-auto flex-col sm:flex-row gap-3">
                                 <SearchInput
