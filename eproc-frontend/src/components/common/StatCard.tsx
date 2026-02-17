@@ -18,6 +18,14 @@ interface StatCardProps {
         value: number;
         isPositive: boolean;
     };
+    /** Override icon background with a custom className (e.g. "bg-green-50") */
+    iconBgClassName?: string;
+    /** Subtitle text rendered below the value */
+    subtitle?: string;
+    /** Custom className for the subtitle */
+    subtitleClassName?: string;
+    /** Slot for custom content below the value (e.g. progress bars) */
+    children?: React.ReactNode;
     className?: string;
 }
 
@@ -36,12 +44,16 @@ export const StatCard: React.FC<StatCardProps> = ({
     icon: Icon,
     color = 'blue',
     trend,
+    iconBgClassName,
+    subtitle,
+    subtitleClassName,
+    children,
     className,
 }) => {
     return (
         <div className={cn('bg-white rounded-lg shadow-sm p-6', className)}>
             <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-600">{label}</p>
                     <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
                     {trend && (
@@ -54,11 +66,17 @@ export const StatCard: React.FC<StatCardProps> = ({
                             {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
                         </p>
                     )}
+                    {subtitle && (
+                        <p className={cn('text-xs font-medium mt-1', subtitleClassName)}>
+                            {subtitle}
+                        </p>
+                    )}
+                    {children && <div className="mt-2">{children}</div>}
                 </div>
                 <div
                     className={cn(
-                        'p-3 rounded-full',
-                        colorClasses[color]
+                        'p-3 rounded-full shrink-0',
+                        iconBgClassName || colorClasses[color]
                     )}
                 >
                     <Icon className="h-6 w-6" />

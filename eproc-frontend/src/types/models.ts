@@ -379,3 +379,37 @@ export interface RequestDetail {
   duplicateOfRequestTitle?: string;
   duplicateDetails?: DuplicateDetail[];
 }
+
+export interface PurchaseOrderItem {
+  id: number;
+  requestId: number;
+  requestTitle: string;
+  materialDisplayName: string;
+  orderedQty: number;
+  requestedQty: number;
+  unit: string;
+  unitPrice: number;
+  totalPrice: number;
+  totalDelivered: number;
+  fullyDelivered: boolean;
+  siteName: string;
+  orderedDate: string;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  poNumber: string;
+  projectId: number;
+  projectName: string;
+  siteId?: number;
+  siteName?: string;
+  status: 'OPEN' | 'CLOSED';
+  vendorName?: string;
+  notes?: string;
+  totalValue: number;
+  createdAt: string;
+  updatedAt: string;
+  createdByName: string;
+  createdById: number;
+  items: PurchaseOrderItem[];
+}

@@ -18,39 +18,13 @@ export interface CreatePurchaseOrderDTO {
   items: CreatePurchaseOrderItemDTO[];
 }
 
-export interface PurchaseOrderItemResponse {
-  id: number;
-  requestId: number;
-  requestTitle: string;
-  materialDisplayName: string;
-  orderedQty: number;
-  requestedQty: number;
-  unit: string;
-  unitPrice: number;
-  totalPrice: number;
-  totalDelivered: number;
-  fullyDelivered: boolean;
-  siteName: string;
-  orderedDate: string;
-}
+import type { PurchaseOrder, PurchaseOrderItem } from '@/types/models';
 
-export interface PurchaseOrderResponse {
-  id: number;
-  poNumber: string;
-  projectId: number;
-  projectName: string;
-  siteId?: number;
-  siteName?: string;
-  status: 'OPEN' | 'CLOSED';
-  vendorName?: string;
-  notes?: string;
-  totalValue: number;
-  createdAt: string;
-  updatedAt: string;
-  createdByName: string;
-  createdById: number;
-  items: PurchaseOrderItemResponse[];
-}
+export type PurchaseOrderItemResponse = PurchaseOrderItem;
+
+
+export type PurchaseOrderResponse = PurchaseOrder;
+
 
 export interface DeliveryItemDTO {
   purchaseOrderItemId: number;

@@ -4,7 +4,7 @@
  */
 
 import { renderHook } from '@testing-library/react';
-import { useErrorHandler } from './useErrorHandler';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { describe, it, expect, vi, beforeEach } from 'vitest';

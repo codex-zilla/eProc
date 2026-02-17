@@ -34,14 +34,14 @@ const AccountantDashboard = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
                     <p className="text-sm text-slate-500 mt-1">Procurement and delivery overview</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3 flex-shrink-0">
                     <button
                         onClick={() => navigate('/accountant/procurement')}
                         className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2"

@@ -7,6 +7,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ColumnDef<T> {
@@ -16,6 +17,13 @@ export interface ColumnDef<T> {
     cell?: (item: T) => React.ReactNode;
     className?: string;
     headerClassName?: string;
+    /** When set, this column header becomes clickable and triggers onSort(sortKey) */
+    sortKey?: string;
+}
+
+interface SortConfig {
+    key: string;
+    direction: 'asc' | 'desc';
 }
 
 interface DataTableProps<T> {
@@ -25,6 +33,23 @@ interface DataTableProps<T> {
     keyExtractor: (item: T) => string | number;
     emptyMessage?: string;
     className?: string;
+    /** Current sort configuration — pass from useSort hook */
+    sortConfig?: SortConfig | null;
+    /** Called when a sortable header is clicked — pass handleSort from useSort */
+    onSort?: (key: string) => void;
+    /** Footer content rendered below the table body */
+    footer?: React.ReactNode;
+    /** Override the default header row className */
+    headerClassName?: string;
+}
+
+function SortIcon({ sortKey, sortConfig }: { sortKey: string; sortConfig?: SortConfig | null }) {
+    if (!sortConfig || sortConfig.key !== sortKey) {
+        return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    }
+    return sortConfig.direction === 'asc'
+        ? <ArrowUp className="h-3 w-3" />
+        : <ArrowDown className="h-3 w-3" />;
 }
 
 export function DataTable<T>({
@@ -34,23 +59,40 @@ export function DataTable<T>({
     keyExtractor,
     emptyMessage = 'No data available',
     className,
+    sortConfig,
+    onSort,
+    footer,
+    headerClassName,
 }: DataTableProps<T>) {
     return (
         <div className={cn("rounded-md border border-slate-200 overflow-hidden", className)}>
             <Table>
-                <TableHeader className="bg-[#2a3455]">
-                    <TableRow className="hover:bg-[#2a3455] border-b-0">
-                        {columns.map((col, index) => (
-                            <TableHead
-                                key={col.id ?? (col.accessorKey as string) ?? index}
-                                className={cn(
-                                    "text-white text-xs lg:text-sm font-semibold uppercase p-3 h-auto",
-                                    col.headerClassName
-                                )}
-                            >
-                                {col.header}
-                            </TableHead>
-                        ))}
+                <TableHeader className={headerClassName ?? "bg-[#2a3455]"}>
+                    <TableRow className={cn("border-b-0", headerClassName ? "hover:bg-transparent" : "hover:bg-[#2a3455]")}>
+                        {columns.map((col, index) => {
+                            const isSortable = !!col.sortKey && !!onSort;
+                            return (
+                                <TableHead
+                                    key={col.id ?? (col.accessorKey as string) ?? index}
+                                    className={cn(
+                                        "text-xs lg:text-sm font-semibold uppercase p-3 h-auto",
+                                        !headerClassName && "text-white",
+                                        isSortable && "cursor-pointer select-none hover:bg-white/10 transition-colors",
+                                        col.headerClassName
+                                    )}
+                                    onClick={isSortable ? () => onSort(col.sortKey!) : undefined}
+                                >
+                                    {isSortable ? (
+                                        <div className="flex items-center gap-1">
+                                            {col.header}
+                                            <SortIcon sortKey={col.sortKey!} sortConfig={sortConfig} />
+                                        </div>
+                                    ) : (
+                                        col.header
+                                    )}
+                                </TableHead>
+                            );
+                        })}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -90,6 +132,8 @@ export function DataTable<T>({
                     )}
                 </TableBody>
             </Table>
+            {footer && footer}
         </div>
     );
 }
+
