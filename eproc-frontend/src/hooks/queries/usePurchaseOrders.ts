@@ -11,14 +11,14 @@ import { useErrorHandler } from "../useErrorHandler";
 import { queryKeys } from "./query-keys";
 import type { Project } from "@/types/models";
 
-export const usePurchaseOrders = (projectId?: number) => {
+export const usePurchaseOrders = (projectId?: number, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: projectId ? queryKeys.purchaseOrders.byProject(projectId) : queryKeys.purchaseOrders.all,
     queryFn: () => 
       projectId 
         ? getProjectPurchaseOrders(projectId)
         : fetchAllPurchaseOrders(), 
-    enabled: true,
+    enabled: options?.enabled !== undefined ? options.enabled : true,
   });
 };
 

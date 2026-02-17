@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useState, Fragment } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
-import api from '../../lib/axios';
+import { useRequest, useRequestHistory, useUpdateMaterial } from '@/hooks/queries/useRequests';
+import type { RequestItem, DuplicateDetail } from '@/types/models';
 import { formatDate, formatCurrency } from '../../lib/formatters';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,65 +25,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-interface DuplicateDetail {
-  materialName: string;
-  originalQuantity: number;
-  originalStartDate: string;
-  originalEndDate: string;
-  currentQuantity: number;
-  currentStartDate: string;
-  currentEndDate: string;
-}
-
-interface MaterialItem {
-  id: number;
-  name: string;
-  quantity: number;
-  measurementUnit: string;
-  rateEstimate: number;
-  resourceType: 'MATERIAL' | 'LABOUR';
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  totalEstimate: number;
-  comment?: string;
-  isDuplicate?: boolean;
-}
-
-interface RequestDetails {
-  id: number;
-  projectId: number;
-  projectName: string;
-  siteId: number;
-  siteName: string;
-  title: string;
-  additionalDetails?: string;
-  plannedStartDate?: string;
-  plannedEndDate?: string;
-  priority?: string;
-  status: string;
-  boqReferenceCode?: string;
-  createdById: number;
-  createdByName: string;
-  createdAt: string;
-  totalValue: number;
-  isDuplicateFlagged?: boolean;
-  duplicateExplanation?: string;
-  duplicateOfRequestId?: number;
-  duplicateOfRequestTitle?: string;
-  duplicateDetails?: DuplicateDetail[];
-  materials: MaterialItem[];
-}
-
-interface AuditEntry {
-  id: number;
-  action: string;
-  statusSnapshot?: string;
-  comment?: string;
-  timestamp: string;
-  actorName: string;
-  actorEmail: string;
-  actorRole: string;
-}
+import { toast } from 'sonner';
 
 /**
  * Request Details page for Project Owner - view full BOQ request, review/approve/reject materials.
@@ -91,76 +33,75 @@ interface AuditEntry {
  */
 const RequestDetailsManager = () => {
   const { id } = useParams<{ id: string }>();
-  const [request, setRequest] = useState<RequestDetails | null>(null);
-  const [history, setHistory] = useState<AuditEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Parse ID securely
+  const requestId = id ? parseInt(id, 10) : 0;
+
+  // React Query Hooks
+  const {
+    data: request,
+    isLoading: loadingRequest,
+    error: requestError
+  } = useRequest(requestId);
+
+  const {
+    data: history = [],
+    isLoading: loadingHistory
+  } = useRequestHistory(requestId);
+
+  const updateMaterialMutation = useUpdateMaterial();
+
+
   const [success, setSuccess] = useState<string | null>(null);
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialItem | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [rejectingMaterialId, setRejectingMaterialId] = useState<number | null>(null);
   const [processingMaterialId, setProcessingMaterialId] = useState<number | null>(null);
 
-  const { handleError } = useErrorHandler();
+  const [selectedMaterial, setSelectedMaterial] = useState<RequestItem | null>(null);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [reqRes, histRes] = await Promise.all([
-        api.get<RequestDetails>(`/requests/${id}`),
-        api.get<AuditEntry[]>(`/requests/${id}/history`).catch(() => ({ data: [] })),
-      ]);
-      setRequest(reqRes.data);
-      setHistory(histRes.data);
-    } catch (err) {
-      console.error('Failed to load request:', err);
-      setError('Failed to load request details');
-    } finally {
-      setLoading(false);
+  // Derived state
+  const loading = loadingRequest || loadingHistory;
+  const error = requestError ? (requestError instanceof Error ? requestError.message : 'Failed to load request details') : null;
+
+  const handleMaterialAction = async (materialId: number, status: string, comment?: string) => {
+    if (!request) {
+      return;
     }
-  }, [id]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    setProcessingMaterialId(materialId);
+    try {
+      await updateMaterialMutation.mutateAsync({
+        requestId: request.id,
+        materialId,
+        data: { status, comment }
+      });
+      
+      // Close rejection input if successful
+      if (status === 'REJECTED') {
+        setRejectingMaterialId(null);
+        setRejectComment('');
+      }
+      toast.success(`Item ${status.toLowerCase()} successfully`);
+    } catch (err) {
+      // Error handled by hook
+    } finally {
+      setProcessingMaterialId(null);
+    }
+  };
 
-  // Helper to render duplicate indicator
   const renderDuplicateIndicator = (isDuplicate?: boolean) => {
     if (!isDuplicate) return null;
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex ml-2 align-middle cursor-help">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <span className="inline-flex items-center justify-center ml-1 text-orange-500 cursor-help">
+            <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs">Duplicate Material</p>
+          <p>Potential Duplicate</p>
         </TooltipContent>
       </Tooltip>
     );
-  };
-
-  const handleMaterialAction = async (materialId: number, status: 'APPROVED' | 'REJECTED', comment?: string) => {
-    setProcessingMaterialId(materialId);
-    setError(null);
-    setSuccess(null);
-    try {
-      await api.patch(
-        `/requests/${id}/materials/${materialId}/status`,
-        { status, comment },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      setSuccess(`Material ${status.toLowerCase()} successfully!`);
-      setTimeout(() => setSuccess(null), 3000);
-      setRejectingMaterialId(null);
-      setRejectComment('');
-      loadData();
-      loadData();
-    } catch (err: any) {
-      handleError(err, `Failed to ${status.toLowerCase()} material`);
-    } finally {
-      setProcessingMaterialId(null);
-    }
   };
 
   const getActionIcon = (action: string) => {
@@ -224,7 +165,6 @@ const RequestDetailsManager = () => {
               <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5 sm:mt-0" />
               <span className="text-xs sm:text-sm">{error}</span>
             </div>
-            <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900 font-bold text-lg leading-none flex-shrink-0">×</button>
           </div>
         )}
 
@@ -302,7 +242,7 @@ const RequestDetailsManager = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {request.duplicateDetails.map((detail, idx) => (
+                                {request.duplicateDetails.map((detail: DuplicateDetail, idx: number) => (
                                   <tr key={idx} className="border-b border-orange-100 last:border-0 hover:bg-orange-100/20">
                                     <td className="py-1.5 px-2 text-orange-900 font-medium">{detail.materialName}</td>
                                     <td className="py-1.5 px-2 text-orange-800">
@@ -433,7 +373,11 @@ const RequestDetailsManager = () => {
                         <TableBody>
                           {materials.map((item) => (
                             <Fragment key={item.id}>
-                              <TableRow className="hover:bg-slate-50 transition-colors cursor-pointer">
+                              <TableRow
+                                key={item.id}
+                                onClick={() => setSelectedMaterial(item)}
+                                className="hover:bg-slate-50 transition-colors cursor-pointer"
+                              >
                                 <TableCell className="px-2 py-2.5 font-medium text-slate-700 text-sm tracking-tighter">
                                   {item.name}
                                   {renderDuplicateIndicator(item.isDuplicate)}
@@ -451,14 +395,17 @@ const RequestDetailsManager = () => {
                                   {formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate, false)}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
-                                  <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5" />
+                                  <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5" />
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
                                   {item.status === 'PENDING' && (
                                     <div className="flex items-center justify-center gap-1">
                                       <Button
                                         size="sm"
-                                        onClick={() => handleMaterialAction(item.id, 'APPROVED')}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMaterialAction(item.id, 'APPROVED');
+                                        }}
                                         disabled={processingMaterialId === item.id}
                                         className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white text-[10px]"
                                       >
@@ -467,7 +414,10 @@ const RequestDetailsManager = () => {
                                       <Button
                                         size="sm"
                                         variant="destructive"
-                                        onClick={() => setRejectingMaterialId(item.id)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setRejectingMaterialId(item.id);
+                                        }}
                                         disabled={processingMaterialId === item.id}
                                         className="h-7 px-2 text-[10px]"
                                       >
@@ -480,20 +430,22 @@ const RequestDetailsManager = () => {
                               {rejectingMaterialId === item.id && (
                                 <TableRow className="bg-slate-50">
                                   <TableCell colSpan={7} className="p-0 border-b border-slate-200">
-                                    <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                                       <Textarea
                                         placeholder="Please provide a reason for rejecting this item..."
                                         value={rejectComment}
                                         onChange={(e) => setRejectComment(e.target.value)}
                                         className="w-full resize-none h-24 text-sm rounded-none p-2"
                                         autoFocus
+                                        onClick={(e) => e.stopPropagation()}
                                       />
                                       <div className="flex justify-end gap-3 px-3 pb-2 pt-0">
                                         <Button
                                           variant="outline"
                                           size="sm"
                                           className='bg-slate-300'
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             setRejectingMaterialId(null);
                                             setRejectComment('');
                                           }}
@@ -502,7 +454,10 @@ const RequestDetailsManager = () => {
                                         </Button>
                                         <Button
                                           size="sm"
-                                          onClick={() => handleMaterialAction(item.id, 'REJECTED', rejectComment)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMaterialAction(item.id, 'REJECTED', rejectComment);
+                                          }}
                                           disabled={!rejectComment.trim() || processingMaterialId === item.id}
                                           className="bg-red-600 hover:bg-red-700 text-white"
                                         >
@@ -522,7 +477,11 @@ const RequestDetailsManager = () => {
                     {/* Mobile Cards - Improved Design */}
                     <div className="md:hidden space-y-3">
                       {materials.map((item) => (
-                        <div key={item.id} className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200">
+                        <div
+                          key={item.id}
+                          onClick={() => setSelectedMaterial(item)}
+                          className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
+                        >
                           {/* Material Name and Quantity */}
                           <div className="space-y-1">
                             <p className="text-xs text-slate-600 mb-0">
@@ -551,12 +510,12 @@ const RequestDetailsManager = () => {
                           {/* Status */}
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-600">Status:</p>
-                            <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
+                            <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
                           </div>
 
                           {/* Action Buttons */}
                           {item.status === 'PENDING' && (
-                            <div className="flex gap-2 pt-2">
+                            <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 size="sm"
                                 onClick={() => handleMaterialAction(item.id, 'APPROVED')}
@@ -582,7 +541,7 @@ const RequestDetailsManager = () => {
 
                           {/* Rejection Comment Input - Shows below buttons */}
                           {rejectingMaterialId === item.id && (
-                            <div className="space-y-2 pt-2">
+                            <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
                               <Textarea
                                 placeholder="Reason for rejection"
                                 value={rejectComment}
@@ -649,7 +608,11 @@ const RequestDetailsManager = () => {
                         <TableBody>
                           {labour.map((item) => (
                             <Fragment key={item.id}>
-                              <TableRow className="hover:bg-slate-50 transition-colors cursor-pointer">
+                              <TableRow
+                                key={item.id}
+                                onClick={() => setSelectedMaterial(item)}
+                                className="hover:bg-slate-50 transition-colors cursor-pointer"
+                              >
                                 <TableCell className="px-2 py-2.5 font-medium text-slate-700 text-sm tracking-tighter">
                                   {item.name}
                                   {renderDuplicateIndicator(item.isDuplicate)}
@@ -667,11 +630,11 @@ const RequestDetailsManager = () => {
                                   {formatCurrency(item.totalEstimate || item.quantity * item.rateEstimate, false)}
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
-                                  <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5" />
+                                  <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5" />
                                 </TableCell>
                                 <TableCell className="px-2 py-2.5 text-center tracking-tighter">
                                   {item.status === 'PENDING' && (
-                                    <div className="flex items-center justify-center gap-1">
+                                    <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                                       <Button
                                         size="sm"
                                         onClick={() => handleMaterialAction(item.id, 'APPROVED')}
@@ -696,7 +659,7 @@ const RequestDetailsManager = () => {
                               {rejectingMaterialId === item.id && (
                                 <TableRow className="bg-slate-50">
                                   <TableCell colSpan={7} className="p-0 border-b border-slate-200">
-                                    <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                                       <Textarea
                                         placeholder="Please provide a reason for rejecting this item..."
                                         value={rejectComment}
@@ -738,7 +701,11 @@ const RequestDetailsManager = () => {
                     {/* Mobile Cards - Improved Design */}
                     <div className="md:hidden space-y-3">
                       {labour.map((item) => (
-                        <div key={item.id} className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200">
+                        <div
+                          key={item.id}
+                          onClick={() => setSelectedMaterial(item)}
+                          className="bg-slate-50 p-3 ps-4 space-y-2 border-b border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors"
+                        >
                           {/* Labour Name */}
                           <div className="space-y-1">
                             <p className="text-xs text-slate-600 mb-0">
@@ -767,12 +734,12 @@ const RequestDetailsManager = () => {
                           {/* Status */}
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-600">Status:</p>
-                            <StatusBadge status={item.status} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
+                            <StatusBadge status={item.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5 uppercase font-bold" />
                           </div>
 
                           {/* Action Buttons */}
                           {item.status === 'PENDING' && (
-                            <div className="flex gap-2 pt-2">
+                            <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 size="sm"
                                 onClick={() => handleMaterialAction(item.id, 'APPROVED')}
@@ -798,7 +765,7 @@ const RequestDetailsManager = () => {
 
                           {/* Rejection Comment Input - Shows below buttons */}
                           {rejectingMaterialId === item.id && (
-                            <div className="space-y-2 pt-2">
+                            <div className="space-y-2 pt-2" onClick={(e) => e.stopPropagation()}>
                               <Textarea
                                 placeholder="Reason for rejection"
                                 value={rejectComment}
@@ -930,7 +897,7 @@ const RequestDetailsManager = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Status</p>
-                  <StatusBadge status={selectedMaterial.status} type="request" className="text-[10px] px-2 py-0.5" />
+                  <StatusBadge status={selectedMaterial.status || 'PENDING'} type="request" className="text-[10px] px-2 py-0.5" />
                 </div>
 
                 {selectedMaterial.status === 'PENDING' && (
@@ -971,7 +938,7 @@ const RequestDetailsManager = () => {
           </div>
         )}
       </div>
-    </TooltipProvider>
+    </TooltipProvider >
   );
 };
 

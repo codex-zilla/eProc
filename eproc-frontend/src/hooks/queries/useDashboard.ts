@@ -3,7 +3,7 @@ import api from "@/lib/axios"; // ManagerDashboard uses api directly
 import { queryKeys } from "./query-keys";
 
 // Types from ManagerDashboard.tsx
-interface ManagerDashboardData {
+export interface ManagerDashboardData {
   activeProjects: number;
   completedProjects: number;
   totalProjects: number;
@@ -23,6 +23,30 @@ export const useManagerDashboard = () => {
   return useQuery({
     queryKey: queryKeys.dashboard.manager,
     queryFn: getManagerDashboard,
+  });
+};
+
+export interface EngineerDashboardData {
+  assignedProjectId: number | null;
+  assignedProjectName: string | null;
+  projectStatus: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  pendingRequests: number;
+  approvedRequests: number;
+  rejectedRequests: number;
+  totalRequests: number;
+}
+
+const getEngineerDashboard = async (): Promise<EngineerDashboardData> => {
+  const response = await api.get<EngineerDashboardData>('/dashboard/engineer');
+  return response.data;
+};
+
+export const useEngineerDashboard = () => {
+  return useQuery({
+    queryKey: queryKeys.dashboard.engineer, // Note: Need to ensure queryKeys.dashboard.engineer exists
+    queryFn: getEngineerDashboard,
   });
 };
 

@@ -1,53 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Users, ArrowRight, Briefcase, FileText } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
-
-interface ManagerDashboardData {
-  activeProjects: number;
-  completedProjects: number;
-  totalProjects: number;
-  pendingRequests: number;
-  approvedRequests: number;
-  rejectedRequests: number;
-  assignedEngineers: number;
-  availableEngineers: number;
-}
+import { useAuth } from '../../context/AuthContext';
+import { useManagerDashboard } from '@/hooks/queries/useDashboard';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 const ManagerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [dashboard, setDashboard] = useState<ManagerDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: dashboard, isLoading: loading, error: queryError } = useManagerDashboard();
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const response = await api.get<ManagerDashboardData>('/dashboard/manager');
-        setDashboard(response.data);
-      } catch (err) {
-        console.error('Failed to load dashboard:', err);
-        setError('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDashboard();
-  }, []);
+  const error = queryError ? (queryError as Error).message || 'Failed to load dashboard data' : null;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-2 sm:gap-3">
-          <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
-          <p className="text-sm sm:text-base text-slate-500 font-medium animate-pulse">Loading dashboard...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading dashboard..." />
       </div>
     );
   }
@@ -225,15 +196,15 @@ const ManagerDashboard = () => {
                     width={45}
                   />
                   <Tooltip
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      border: 'none', 
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                       fontSize: '12px'
                     }}
                   />
-                  <Legend 
-                    verticalAlign="top" 
+                  <Legend
+                    verticalAlign="top"
                     height={36}
                     wrapperStyle={{ fontSize: '11px' }}
                   />

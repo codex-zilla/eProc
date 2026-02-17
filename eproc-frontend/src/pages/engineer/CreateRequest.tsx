@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../lib/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,13 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import { DuplicateWarningModal } from '@/components/DuplicateWarningModal';
 import { formatCurrency } from '../../lib/formatters';
+import { useSites } from '@/hooks/queries/useSites';
+import { useCreateBatchRequests } from '@/hooks/queries/useRequests';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-interface Site {
-  id: number;
-  name: string;
-  location: string;
-  projectId: number;
-}
 
 interface MaterialItem {
   tempId: string;
@@ -87,10 +83,9 @@ const MEASUREMENT_UNITS = [
  */
 const CreateBatch = () => {
   const navigate = useNavigate();
+  const { data: sites = [], isLoading: loadingSites } = useSites();
+  const createBatchRequests = useCreateBatchRequests();
 
-  const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Duplicate detection state
@@ -130,26 +125,13 @@ const CreateBatch = () => {
     },
   ]);
 
-  // Load sites on mount
+  // Auto-select site if only one available
   useState(() => {
-    const loadSites = async () => {
-      try {
-        const res = await api.get<Site[]>('/sites');
-        setSites(res.data);
-        if (res.data.length === 1) {
-          // Auto-select if only one site
-          setBoqEntries(prev => prev.map((entry, idx) =>
-            idx === 0 ? { ...entry, siteId: res.data[0].id.toString() } : entry
-          ));
-        }
-      } catch (err) {
-        console.error('Failed to load sites:', err);
-        setError('Failed to load sites');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadSites();
+    if (sites.length === 1 && boqEntries[0].siteId === '') {
+      setBoqEntries(prev => prev.map((entry, idx) =>
+        idx === 0 ? { ...entry, siteId: sites[0].id.toString() } : entry
+      ));
+    }
   });
 
   const addBOQEntry = () => {
@@ -356,7 +338,7 @@ const CreateBatch = () => {
       }
     }
 
-    setSubmitting(true);
+
 
     // Create request payload - array of requests (declared outside try block for access in catch)
     const requestsPayload = boqEntries.map((entry) => ({
@@ -390,7 +372,7 @@ const CreateBatch = () => {
 
     try {
       // Create requests
-      await api.post('/requests', requestsPayload);
+      await createBatchRequests.mutateAsync(requestsPayload);
 
       navigate('/engineer/batches');
     } catch (err: any) {
@@ -405,7 +387,6 @@ const CreateBatch = () => {
         setPendingSubmission(requestsPayload);
         setDuplicateWarnings(duplicates);
         setShowDuplicateModal(true);
-        setSubmitting(false);
         return;
       }
 
@@ -424,17 +405,13 @@ const CreateBatch = () => {
 
       // Scroll to top to show error
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } finally {
-      setSubmitting(false);
     }
   };
 
-  // Handle duplicate confirmation with explanation
   const handleDuplicateConfirm = async (explanation: string) => {
     if (!pendingSubmission) return;
 
     setShowDuplicateModal(false);
-    setSubmitting(true);
     setError(null);
 
     try {
@@ -445,7 +422,7 @@ const CreateBatch = () => {
       }));
 
       // Resubmit with explanation
-      await api.post('/requests', requestsWithExplanation);
+      await createBatchRequests.mutateAsync(requestsWithExplanation);
 
       navigate('/engineer/batches');
     } catch (err: any) {
@@ -464,7 +441,6 @@ const CreateBatch = () => {
       setError(errorMessage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
-      setSubmitting(false);
       setPendingSubmission(null);
       setDuplicateWarnings([]);
       setDuplicateExplanation('');
@@ -477,17 +453,13 @@ const CreateBatch = () => {
     setPendingSubmission(null);
     setDuplicateWarnings([]);
     setDuplicateExplanation('');
-    setSubmitting(false);
   };
 
 
-  if (loading) {
+  if (loadingSites) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex flex-col items-center gap-2 sm:gap-3">
-          <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
-          <p className="text-sm sm:text-base text-slate-500 font-medium animate-pulse">Loading form...</p>
-        </div>
+        <LoadingSpinner text="Loading form..." />
       </div>
     );
   }
@@ -923,9 +895,9 @@ const CreateBatch = () => {
           <Button
             type="submit"
             className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm"
-            disabled={submitting}
+            disabled={createBatchRequests.isPending}
           >
-            {submitting ? 'Submitting...' : 'Submit All BOQs'}
+            {createBatchRequests.isPending ? 'Submitting...' : 'Submit All BOQs'}
           </Button>
         </div>
       </form>

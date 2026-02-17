@@ -1,17 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ShoppingCart, Plus, AlertCircle, Building, ArrowRight, Clock, CheckCircle, DollarSign } from 'lucide-react';
-import {
-    getProjectPurchaseOrders,
-    type PurchaseOrderResponse,
-} from '../../services/procurementService';
-import { projectService } from '../../services/projectService';
-import type { Project } from '../../types/models';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate, formatCurrency } from '../../lib/formatters';
 import { StatCard } from '@/components/common/StatCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { useProjects } from '@/hooks/queries/useProjects';
+import { usePurchaseOrders } from '@/hooks/queries/usePurchaseOrders';
 
 /**
  * Procurement Dashboard - Shared by Project Owner and Accountant.
@@ -26,62 +22,29 @@ const ProcurementDashboard: React.FC = () => {
     // Determine base path based on user role
     const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
-    const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderResponse[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useProjects();
+    const {
+        data: purchaseOrders = [],
+        isLoading: posLoading,
+        error: posError
+    } = usePurchaseOrders(
+        projectId ? Number(projectId) : undefined,
+        { enabled: !!projectId }
+    );
 
-    // Project selection state
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [showProjectSelection, setShowProjectSelection] = useState(false);
+    const loading = projectId ? posLoading : projectsLoading;
+    const error = (projectsError as Error)?.message || (posError as Error)?.message || null;
+
+    // Show project selection if no project ID is in URL
+    const showProjectSelection = !projectId;
 
     useEffect(() => {
-        if (!projectId) {
-            fetchProjects();
-        } else {
-            loadPurchaseOrders();
+        if (!projectId && !projectsLoading && projects.length === 1) {
+            // Auto-redirect if only one project
+            navigate(`${basePath}/procurement?projectId=${projects[0].id}`, { replace: true });
         }
-    }, [projectId]);
+    }, [projectId, projects, projectsLoading, navigate, basePath]);
 
-    const fetchProjects = async () => {
-        try {
-            setLoading(true);
-            const data = await projectService.getAllProjects();
-
-            if (data.length === 0) {
-                setError('No active projects found.');
-                setLoading(false);
-            } else if (data.length === 1) {
-                // Auto-redirect if only one project
-                navigate(`${basePath}/procurement?projectId=${data[0].id}`, { replace: true });
-            } else {
-                // Show selection options
-                setProjects(data);
-                setShowProjectSelection(true);
-                setLoading(false);
-            }
-        } catch (err) {
-            console.error('Failed to fetch projects:', err);
-            setError((err as any).response?.data?.message || 'Failed to load projects. Please try again.');
-            setLoading(false);
-        }
-    };
-
-    const loadPurchaseOrders = async () => {
-        if (!projectId) return;
-
-        try {
-            setLoading(true);
-            setShowProjectSelection(false);
-            const data = await getProjectPurchaseOrders(Number(projectId));
-            setPurchaseOrders(data);
-            setError(null);
-        } catch (err: any) {
-            console.error('Failed to load POs:', err);
-            setError(err.response?.data?.message || 'Failed to load purchase orders.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleProjectSelect = (id: number) => {
         navigate(`${basePath}/procurement?projectId=${id}`);

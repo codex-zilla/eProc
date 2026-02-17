@@ -344,6 +344,16 @@ export interface RequestItem {
   isDuplicate?: boolean;
 }
 
+export interface DuplicateDetail {
+  materialName: string;
+  originalQuantity: number;
+  originalStartDate: string;
+  originalEndDate: string;
+  currentQuantity: number;
+  currentStartDate: string;
+  currentEndDate: string;
+}
+
 export interface RequestDetail {
   id: number;
   title: string;
@@ -363,4 +373,9 @@ export interface RequestDetail {
   priority?: string;
   siteName?: string;
   boqReferenceCode?: string;
+  isDuplicateFlagged?: boolean;
+  duplicateExplanation?: string;
+  duplicateOfRequestId?: number;
+  duplicateOfRequestTitle?: string;
+  duplicateDetails?: DuplicateDetail[];
 }

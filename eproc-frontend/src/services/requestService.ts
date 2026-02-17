@@ -14,6 +14,14 @@ export const requestService = {
   },
 
   /**
+   * Create multiple material requests (batch).
+   */
+  createBatchRequests: async (data: CreateMaterialRequest[]): Promise<MaterialRequest[]> => {
+    const response = await api.post<MaterialRequest[]>('/requests', data);
+    return response.data;
+  },
+
+  /**
    * Get all requests with optional filters.
    */
   getRequests: async (params?: {
@@ -85,7 +93,14 @@ export const requestService = {
   },
 
   /**
-   * Update a specific material within a request.
+   * Update material status (approve/reject).
+   */
+  updateMaterialStatus: async (requestId: number, materialId: number, status: string, comment?: string): Promise<void> => {
+    await api.patch(`/requests/${requestId}/materials/${materialId}/status`, { status, comment });
+  },
+
+  /**
+   * Update a specific material details within a request.
    */
   updateMaterial: async (requestId: number, materialId: number, data: any): Promise<void> => {
     await api.patch(`/requests/${requestId}/materials/${materialId}`, data);

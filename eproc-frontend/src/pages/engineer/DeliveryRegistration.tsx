@@ -2,21 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     Package,
-    Loader2,
     AlertCircle,
     ArrowLeft,
     CheckCircle,
     Truck,
     ClipboardCheck
 } from 'lucide-react';
+import { usePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
 import {
-    getPurchaseOrder,
-    recordDelivery,
-    getDeliveriesForPO,
-    type PurchaseOrderResponse,
-    type DeliveryResponse,
-    type CreateDeliveryDTO
-} from '../../services/procurementService';
+    useDeliveries,
+    useRecordDelivery
+} from '@/hooks/queries/useDeliveries';
+import { type CreateDeliveryDTO } from '../../services/procurementService';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatDate, formatCurrency } from '../../lib/formatters';
 
 interface DeliveryItemInput {
@@ -37,38 +35,29 @@ const DeliveryRegistration: React.FC = () => {
     const navigate = useNavigate();
     const projectId = searchParams.get('projectId');
 
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrderResponse | null>(null);
-    const [deliveryHistory, setDeliveryHistory] = useState<DeliveryResponse[]>([]);
+    // Queries
+    const {
+        data: purchaseOrder,
+        isLoading: poLoading,
+    } = usePurchaseOrder(Number(poId));
+
+    const {
+        data: deliveryHistory = [],
+        isLoading: historyLoading
+    } = useDeliveries(Number(poId));
+
+    const recordDeliveryMutation = useRecordDelivery();
+
     const [deliveryItems, setDeliveryItems] = useState<DeliveryItemInput[]>([]);
     const [deliveryNotes, setDeliveryNotes] = useState('');
 
+    // Initialize items when PO is loaded
     useEffect(() => {
-        if (!poId) {
-            setError('Purchase Order ID is required');
-            setLoading(false);
-            return;
-        }
-        fetchPurchaseOrder();
-    }, [poId]);
-
-    const fetchPurchaseOrder = async () => {
-        try {
-            setLoading(true);
-            const [po, deliveries] = await Promise.all([
-                getPurchaseOrder(Number(poId)),
-                getDeliveriesForPO(Number(poId))
-            ]);
-
-            setPurchaseOrder(po);
-            setDeliveryHistory(deliveries);
-
-            // Initialize delivery items
-            const items: DeliveryItemInput[] = po.items.map(item => ({
+        if (purchaseOrder && deliveryItems.length === 0) {
+            const items: DeliveryItemInput[] = purchaseOrder.items.map(item => ({
                 purchaseOrderItemId: item.id,
                 materialName: item.materialDisplayName,
                 orderedQty: item.orderedQty,
@@ -79,16 +68,11 @@ const DeliveryRegistration: React.FC = () => {
                 condition: 'GOOD',
                 notes: ''
             }));
-
             setDeliveryItems(items);
-            setError(null);
-        } catch (err: any) {
-            console.error('Failed to fetch PO:', err);
-            setError(err.response?.data?.message || 'Failed to load purchase order');
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [purchaseOrder]);
+
+    const isLoading = poLoading || historyLoading;
 
     const updateItemQuantity = (index: number, qty: number) => {
         const newItems = [...deliveryItems];
@@ -131,7 +115,6 @@ const DeliveryRegistration: React.FC = () => {
         }
 
         try {
-            setSubmitting(true);
             setError(null);
 
             const dto: CreateDeliveryDTO = {
@@ -145,7 +128,7 @@ const DeliveryRegistration: React.FC = () => {
                 }))
             };
 
-            await recordDelivery(dto);
+            await recordDeliveryMutation.mutateAsync(dto);
             setSuccess(true);
 
             // Redirect after brief delay to show success
@@ -155,15 +138,13 @@ const DeliveryRegistration: React.FC = () => {
         } catch (err: any) {
             console.error('Failed to record delivery:', err);
             setError(err.response?.data?.message || 'Failed to record delivery');
-        } finally {
-            setSubmitting(false);
         }
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <LoadingSpinner size="lg" text="Loading delivery details..." />
             </div>
         );
     }
@@ -380,12 +361,12 @@ const DeliveryRegistration: React.FC = () => {
 
                             <button
                                 onClick={handleSubmit}
-                                disabled={submitting || !hasItemsToReceive}
+                                disabled={recordDeliveryMutation.isPending || !hasItemsToReceive}
                                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                             >
-                                {submitting ? (
+                                {recordDeliveryMutation.isPending ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <LoadingSpinner size="sm" text="" />
                                         Recording...
                                     </>
                                 ) : (
