@@ -27,6 +27,7 @@ export const requestService = {
   getRequests: async (params?: {
     status?: RequestStatus;
     siteId?: number;
+    projectId?: number;
     myRequests?: boolean;
   }): Promise<RequestDetail[]> => {
     const response = await api.get<RequestDetail[]>('/requests', { params });

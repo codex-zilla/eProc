@@ -20,7 +20,7 @@ import {
     LoadingSpinner,
     StatCard,
     SearchInput,
-    PurchaseOrderMobileCard,
+    MobileListCard,
     ActiveFilters,
     type FilterChip
 } from '../../components/common';
@@ -283,17 +283,21 @@ const PurchaseOrders = () => {
                             data={filteredOrders}
                             columns={columns}
                             keyExtractor={(po) => po.id}
-                            onRowClick={(po) => navigate(`/accountant/purchase-orders/${po.id}`)}
+                            onRowClick={(po) => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}
                         />
                     </div>
 
                     {/* Mobile Card View */}
                     <div className="space-y-3 md:hidden">
                         {filteredOrders.map(po => (
-                            <PurchaseOrderMobileCard
+                            <MobileListCard
                                 key={po.id}
-                                po={po}
-                                onClick={() => navigate(`/accountant/purchase-orders/${po.id}`)}
+                                title={po.poNumber}
+                                subtitle={po.projectName}
+                                status={<StatusBadge status={po.status} type="po" className="text-[10px] lg:text-xs" />}
+                                date={po.createdAt}
+                                amount={po.totalValue}
+                                onClick={() => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}
                             />
                         ))}
                     </div>

@@ -18,7 +18,8 @@ import {
   ShoppingCart,
   Package,
   FileText,
-  BarChart3
+  BarChart3,
+  CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -37,6 +38,7 @@ interface SidebarItem {
   path: string;
   icon: React.ElementType;
   badge?: number;
+  children?: SidebarItem[];
 }
 
 const AppLayout = () => {
@@ -46,6 +48,7 @@ const AppLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['/accountant/procurement']); // Default expand for demo
 
   // Handle responsive behavior
   useEffect(() => {
@@ -118,8 +121,15 @@ const AppLayout = () => {
     if (user?.role === 'ACCOUNTANT') {
       return [
         { label: 'Dashboard', path: '/accountant/dashboard', icon: LayoutDashboard },
-        { label: 'Procurement', path: '/accountant/procurement', icon: ShoppingCart },
-        { label: 'Purchase Orders', path: '/accountant/purchase-orders', icon: FileText },
+        {
+          label: 'Procurement',
+          path: '/accountant/procurement',
+          icon: ShoppingCart,
+          children: [
+            { label: 'Approved Requests', path: '/accountant/procurement/approved-requests', icon: CheckSquare },
+            { label: 'Purchase Orders', path: '/accountant/procurement/purchase-orders', icon: FileText },
+          ]
+        },
         { label: 'Deliveries', path: '/accountant/deliveries', icon: Package },
         { label: 'Reports', path: '/accountant/reports', icon: BarChart3 },
       ];
@@ -144,16 +154,31 @@ const AppLayout = () => {
       active: true
     });
   } else {
-    // Find key root section
-    const activeNavItem = navItems.find(i => location.pathname.startsWith(i.path));
+    // Find key root section - handles nested items check
+    let activeNavItem = navItems.find(i => location.pathname.startsWith(i.path));
+
+    // Check children if not found or to find specific child
+    let activeChildItem: SidebarItem | undefined;
+    if (activeNavItem?.children) {
+      activeChildItem = activeNavItem.children.find(c => location.pathname.startsWith(c.path));
+    }
 
     if (activeNavItem) {
       // Level 1: Sidebar Item
       breadcrumbs.push({
         label: activeNavItem.label,
-        path: activeNavItem.path,
+        path: activeNavItem.children ? undefined : activeNavItem.path, // Don't link if it's a parent with children (accordion)
         active: location.pathname === activeNavItem.path
       });
+
+      // Level 1.5: Child Sidebar Item
+      if (activeChildItem) {
+        breadcrumbs.push({
+          label: activeChildItem.label,
+          path: activeChildItem.path,
+          active: location.pathname === activeChildItem.path
+        });
+      }
 
       // Level 2: Sub-pages
       // Hardcoded logic for now as requested, can be made recursive later
@@ -171,6 +196,15 @@ const AppLayout = () => {
         });
       } else if (location.pathname === '/manager/users') {
         // No sub-breadcrumb needed, already handled by activeNavItem
+      }
+
+      // Accountant Details
+      if (/^\/accountant\/procurement\/purchase-orders\/\d+$/.test(location.pathname)) {
+        if (breadcrumbs.length > 1) breadcrumbs[1].active = false; // Make PO list inactive
+        breadcrumbs.push({
+          label: 'PO Details',
+          active: true
+        })
       }
 
       // Engineer Routes Logic
@@ -252,39 +286,84 @@ const AppLayout = () => {
       <div className="flex-1 py-4 px-2 sm:px-3 overflow-y-auto overflow-x-hidden">
         <nav className="space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+            const isExpanded = expandedMenus.includes(item.path);
+            const hasChildren = item.children && item.children.length > 0;
             const Icon = item.icon;
+
+            const handleExpand = (e: React.MouseEvent) => {
+              if (hasChildren) {
+                e.preventDefault();
+                setExpandedMenus(prev =>
+                  prev.includes(item.path)
+                    ? prev.filter(p => p !== item.path)
+                    : [...prev, item.path]
+                );
+              }
+            };
+
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                title={isSidebarCollapsed && !isMobileMenuOpen ? item.label : undefined}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-all duration-200 group relative",
-                  isActive
-                    ? "bg-[#2a3455] text-white hover:bg-[#1e253e]"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
-                  isSidebarCollapsed && !isMobileMenuOpen && "justify-center px-2"
-                )}
-              >
-                <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-slate-white" : "text-slate-400 group-hover:text-slate-600")} />
+              <div key={item.path} className="mb-1">
+                <Link
+                  to={hasChildren ? '#' : item.path}
+                  onClick={handleExpand}
+                  title={isSidebarCollapsed && !isMobileMenuOpen ? item.label : undefined}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-all duration-200 group relative select-none",
+                    isActive && !hasChildren
+                      ? "bg-[#2a3455] text-white hover:bg-[#1e253e]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                    isSidebarCollapsed && !isMobileMenuOpen && "justify-center px-2"
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && !hasChildren ? "text-slate-white" : "text-slate-400 group-hover:text-slate-600")} />
 
-                {(!isSidebarCollapsed || isMobileMenuOpen) && (
-                  <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
-                )}
+                  {(!isSidebarCollapsed || isMobileMenuOpen) && (
+                    <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis flex items-center justify-between">
+                      {item.label}
+                      {hasChildren && (
+                        <ChevronLeft className={cn("h-4 w-4 transition-transform duration-200", isExpanded ? "-rotate-90" : "rotate-0")} />
+                      )}
+                    </span>
+                  )}
 
-                {/* Badge */}
-                {item.badge !== undefined && item.badge > 0 && (
-                  <div className={cn(
-                    "flex items-center justify-center bg-red-500 text-white rounded-full  font-bold shadow-sm",
-                    isSidebarCollapsed && !isMobileMenuOpen
-                      ? "absolute top-1 right-1 h-2.5 w-2.5 p-0"
-                      : "ml-auto px-1.5 py-0.5 h-5 min-w-[1.25rem] text-[10px]"
-                  )}>
-                    {(!isSidebarCollapsed || isMobileMenuOpen) && item.badge}
+                  {/* Badge */}
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <div className={cn(
+                      "flex items-center justify-center bg-red-500 text-white rounded-full  font-bold shadow-sm",
+                      isSidebarCollapsed && !isMobileMenuOpen
+                        ? "absolute top-1 right-1 h-2.5 w-2.5 p-0"
+                        : "ml-auto px-1.5 py-0.5 h-5 min-w-[1.25rem] text-[10px]"
+                    )}>
+                      {(!isSidebarCollapsed || isMobileMenuOpen) && item.badge}
+                    </div>
+                  )}
+                </Link>
+
+                {/* Children Submenu */}
+                {hasChildren && isExpanded && (!isSidebarCollapsed || isMobileMenuOpen) && (
+                  <div className="ml-9 mt-1 space-y-1 relative before:absolute before:left-[-1.1rem] before:top-0 before:bottom-0 before:w-px before:bg-slate-200">
+                    {item.children!.map(child => {
+                      const isChildActive = location.pathname === child.path || location.pathname.startsWith(child.path + '/');
+                      return (
+                        <Link
+                          key={child.path}
+                          to={child.path}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-all duration-200 group relative",
+                            isChildActive
+                              ? "text-indigo-600 font-medium bg-indigo-50"
+                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                          )}
+                        >
+                          {/* <ChildIcon className="h-4 w-4" /> */}
+                          <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{child.label}</span>
+                        </Link>
+                      )
+                    })}
                   </div>
                 )}
-              </Link>
+              </div>
             );
           })}
         </nav>

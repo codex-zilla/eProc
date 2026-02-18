@@ -44,10 +44,14 @@ public class RequestController {
      */
     @GetMapping
     public ResponseEntity<List<RequestResponseDTO>> getAllRequests(
+            @RequestParam(required = false) com.zilla.eproc.model.RequestStatus status,
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long siteId,
             @AuthenticationPrincipal UserDetails userDetails) {
         // This endpoint returns all requests for a Project Owner across all their
-        // projects
-        List<RequestResponseDTO> response = requestService.getAllManagerRequests(userDetails.getUsername());
+        // projects, optionally filtered
+        List<RequestResponseDTO> response = requestService.getAllManagerRequests(userDetails.getUsername(), status,
+                projectId, siteId);
         return ResponseEntity.ok(response);
     }
 

@@ -57,7 +57,7 @@ export const formatCurrency = (amount: number, compact = false): string => {
  * formatDate('2026-02-13T10:30:00', 'iso') // "2026-02-13"
  */
 export const formatDate = (
-  dateString: string,
+  dateString: string | Date,
   format: 'short' | 'long' | 'iso' = 'short'
 ): string => {
   const date = new Date(dateString);

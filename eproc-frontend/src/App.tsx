@@ -41,6 +41,7 @@ import ManagerDeliveries from './pages/manager/Deliveries'; // Renamed from Mana
 
 // Accountant pages
 import AccountantDashboard from './pages/accountant/AccountantDashboard';
+import ApprovedRequests from './pages/accountant/ApprovedRequests';
 import PurchaseOrders from './pages/accountant/PurchaseOrders';
 import PurchaseOrderDetails from './pages/accountant/PurchaseOrderDetails';
 import AccountantReports from './pages/accountant/AccountantReports';
@@ -95,10 +96,18 @@ function App() {
               {/* Accountant Routes (ACCOUNTANT) */}
               <Route element={<ProtectedRoute allowedRoles={['ACCOUNTANT']} />}>
                 <Route path="/accountant/dashboard" element={<AccountantDashboard />} />
-                <Route path="/accountant/procurement" element={<ProcurementDashboard />} />
+
+                {/* Procurement Section */}
+                <Route path="/accountant/procurement" element={<Navigate to="/accountant/procurement/approved-requests" replace />} />
+                <Route path="/accountant/procurement/approved-requests" element={<ApprovedRequests />} />
                 <Route path="/accountant/procurement/create" element={<CreatePurchaseOrder />} />
-                <Route path="/accountant/purchase-orders" element={<PurchaseOrders />} />
-                <Route path="/accountant/purchase-orders/:id" element={<PurchaseOrderDetails />} />
+                <Route path="/accountant/procurement/purchase-orders" element={<PurchaseOrders />} />
+                <Route path="/accountant/procurement/purchase-orders/:id" element={<PurchaseOrderDetails />} />
+
+                {/* Legacy Redirects */}
+                <Route path="/accountant/purchase-orders" element={<Navigate to="/accountant/procurement/purchase-orders" replace />} />
+                <Route path="/accountant/purchase-orders/:id" element={<Navigate to="/accountant/procurement/purchase-orders/:id" replace />} />
+
                 <Route path="/accountant/deliveries" element={<ManagerDeliveries />} />
                 <Route path="/accountant/reports" element={<AccountantReports />} />
               </Route>

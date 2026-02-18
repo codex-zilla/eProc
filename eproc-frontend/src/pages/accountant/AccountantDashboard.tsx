@@ -116,7 +116,7 @@ const AccountantDashboard = () => {
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center">
                             <h2 className="text-lg font-semibold text-slate-900">Recent PO Activity</h2>
                             <button
-                                onClick={() => navigate('/accountant/purchase-orders')}
+                                onClick={() => navigate('/accountant/procurement/purchase-orders')}
                                 className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
                             >
                                 View All
@@ -136,7 +136,7 @@ const AccountantDashboard = () => {
                                 <tbody className="divide-y divide-slate-100">
                                     {recentPOs.length > 0 ? (
                                         recentPOs.map((po) => (
-                                            <tr key={po.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => navigate(`/accountant/purchase-orders/${po.id}`)}>
+                                            <tr key={po.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}>
                                                 <td className="px-5 py-4 font-medium text-slate-900">{po.poNumber}</td>
                                                 <td className="px-5 py-4 text-slate-600">{po.vendor}</td>
                                                 <td className="px-5 py-4 text-slate-500 whitespace-nowrap">{formatDate(po.createdAt)}</td>

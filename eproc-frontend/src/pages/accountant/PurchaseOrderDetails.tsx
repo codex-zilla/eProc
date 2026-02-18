@@ -234,7 +234,7 @@ const PurchaseOrderDetails = () => {
                 error={error as Error}
                 title="Failed to load purchase order"
                 onRetry={refetch}
-                onBack={() => navigate('/accountant/purchase-orders')}
+                onBack={() => navigate('/accountant/procurement/purchase-orders')}
                 backLabel="Back to Purchase Orders"
             />
         );
@@ -249,7 +249,7 @@ const PurchaseOrderDetails = () => {
                 action={
                     <Button
                         variant="link"
-                        onClick={() => navigate('/accountant/purchase-orders')}
+                        onClick={() => navigate('/accountant/procurement/purchase-orders')}
                         className="mt-2 text-[#2a3455] hover:text-[#1e253e] font-medium"
                     >
                         Back to Purchase Orders

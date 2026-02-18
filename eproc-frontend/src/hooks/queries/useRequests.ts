@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { requestService } from "@/services/requestService";
 import { useErrorHandler } from "../useErrorHandler";
 import { queryKeys } from "./query-keys";
+import type { RequestStatus } from "@/types/models";
 
-export const useRequests = (projectId?: number) => {
+export const useRequests = (filters?: { status?: RequestStatus; projectId?: number; siteId?: number }) => {
   return useQuery({
-    queryKey: projectId ? ["requests", projectId] : ["requests"],
-    queryFn: () => requestService.getRequests(),
-    select: (data) => projectId ? data.filter(r => r.projectId === projectId) : data,
+    queryKey: ['requests', filters],
+    queryFn: () => requestService.getRequests(filters),
   });
 };
 

@@ -283,7 +283,8 @@ public class RequestService {
          * Get all requests for projects owned by the current user.
          */
         @Transactional(readOnly = true)
-        public List<RequestResponseDTO> getAllManagerRequests(String userEmail) {
+        public List<RequestResponseDTO> getAllManagerRequests(String userEmail, RequestStatus status, Long projectId,
+                        Long siteId) {
                 User user = userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -308,6 +309,9 @@ public class RequestService {
                 }
 
                 return requests.stream()
+                                .filter(r -> status == null || r.getStatus() == status)
+                                .filter(r -> projectId == null || r.getProject().getId().equals(projectId))
+                                .filter(r -> siteId == null || r.getSite().getId().equals(siteId))
                                 .map(r -> mapToResponseDTO(r, true))
                                 .collect(Collectors.toList());
         }

@@ -37,7 +37,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <div className="bg-slate-100 p-4 rounded-full mb-4">
                 <Icon className="h-8 w-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">{title}</h3>
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-1">{title}</h3>
             {description && (
                 <p className="text-sm text-gray-500 mb-6 max-w-sm">{description}</p>
             )}
