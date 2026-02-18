@@ -371,6 +371,7 @@ export interface RequestDetail {
   plannedStartDate?: string;
   plannedEndDate?: string;
   priority?: string;
+  siteId?: number;
   siteName?: string;
   boqReferenceCode?: string;
   isDuplicateFlagged?: boolean;

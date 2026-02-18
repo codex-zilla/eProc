@@ -98,8 +98,8 @@ const PurchaseOrders = () => {
         status: 'ALL',
         project: 'ALL',
         search: '',
-        dateRange: getPresetRange('LAST_30'),
-        datePreset: 'LAST_30',
+        dateRange: { start: '', end: '' },
+        datePreset: 'ALL',
     });
 
     const debouncedSearch = useDebounce(filters.search, 300);

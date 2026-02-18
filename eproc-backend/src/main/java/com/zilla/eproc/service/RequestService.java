@@ -246,9 +246,12 @@ public class RequestService {
                 Project project = projectRepository.findById(projectId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
-                // Authorization: Only project owner can view all requests
-                if (project.getOwner() == null || !project.getOwner().getId().equals(requester.getId())) {
-                        throw new ForbiddenException("Only project owner can view all requests");
+                // Authorization: Project owner OR assigned project member
+                boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(requester.getId());
+                boolean hasAccess = projectSecurityService.hasProjectAccess(userEmail, projectId);
+
+                if (!isOwner && !hasAccess) {
+                        throw new ForbiddenException("You do not have permission to view requests for this project");
                 }
 
                 List<Request> requests = requestRepository.findByProjectIdOrderByCreatedAtDesc(projectId);

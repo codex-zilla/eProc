@@ -65,6 +65,7 @@ export const useCreatePurchaseOrder = () => {
     mutationFn: (data: CreatePurchaseOrderDTO) => createPurchaseOrder(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.byProject(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.all });
     },
     onError: (error) => handleError(error, "Failed to create purchase order"),
   });
@@ -78,6 +79,7 @@ export const useClosePurchaseOrder = () => {
     mutationFn: (id: number) => closePurchaseOrder(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.byId(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.all });
       // Also invalidate project list? Maybe.
     },
     onError: (error) => handleError(error, "Failed to close purchase order"),

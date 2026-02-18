@@ -81,6 +81,7 @@ public class ProcurementService {
                 po.setPoNumber(poNumber);
 
                 // Create items
+                BigDecimal poTotalValue = BigDecimal.ZERO;
                 for (CreatePurchaseOrderDTO.PurchaseOrderItemDTO itemDto : dto.getItems()) {
                         Request request = requestRepository.findById(itemDto.getRequestId())
                                         .orElseThrow(() -> new ResourceNotFoundException(
@@ -96,6 +97,7 @@ public class ProcurementService {
 
                         // Calculate total price
                         BigDecimal totalPrice = itemDto.getOrderedQty().multiply(itemDto.getUnitPrice());
+                        poTotalValue = poTotalValue.add(totalPrice);
 
                         // Find original material to get requested quantity
                         BigDecimal requestedQty = request.getMaterials().stream()
@@ -124,6 +126,7 @@ public class ProcurementService {
                 }
 
                 // Save PO
+                po.setTotalValue(poTotalValue);
                 po = purchaseOrderRepository.save(po);
 
                 log.info("Created purchase order {} with {} items", po.getPoNumber(), po.getItems().size());

@@ -419,7 +419,6 @@ const PurchaseOrderDetails = () => {
                         </div>
                     </div>
 
-                    {/* Desktop Table using DataTable */}
                     <div className="hidden md:block overflow-x-auto">
                         {paginatedItems.length === 0 ? (
                             <EmptyState

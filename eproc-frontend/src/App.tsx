@@ -35,7 +35,7 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 import EditProject from './pages/manager/EditProject';
 import ManageSites from './pages/manager/ManageSites';
 import ProcurementDashboard from './pages/manager/ProcurementDashboard';
-import CreatePurchaseOrder from './pages/manager/CreatePurchaseOrder';
+import CreatePurchaseOrder from './pages/accountant/CreatePurchaseOrder';
 import DeliveryRegistration from './pages/engineer/DeliveryRegistration';
 import ManagerDeliveries from './pages/manager/Deliveries'; // Renamed from ManagerDeliveries
 

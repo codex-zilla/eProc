@@ -78,12 +78,8 @@ public class PurchaseOrder {
     private List<Delivery> deliveries = new ArrayList<>();
 
     /**
-     * Compute total value of all items on this PO.
+     * Total value of the purchase order.
      */
-    @Transient
-    public BigDecimal getTotalValue() {
-        return items.stream()
-                .map(PurchaseOrderItem::getTotalPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+    @Column(name = "total_value", precision = 19, scale = 2)
+    private BigDecimal totalValue;
 }
