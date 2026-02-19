@@ -18,6 +18,7 @@ import java.util.List;
 public class CreatePurchaseOrderDTO {
 
     private Long projectId;
+    private Long requestId; // Added
     private Long siteId;
     private String vendorName;
     private String notes;
@@ -28,7 +29,7 @@ public class CreatePurchaseOrderDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PurchaseOrderItemDTO {
-        private Long requestId;
+        // private Long requestId; // Removed
         private String materialDisplayName;
         private BigDecimal orderedQty;
         private String unit;

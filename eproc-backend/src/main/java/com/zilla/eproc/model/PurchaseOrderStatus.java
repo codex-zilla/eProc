@@ -5,5 +5,7 @@ package com.zilla.eproc.model;
  */
 public enum PurchaseOrderStatus {
     OPEN, // PO created, deliveries pending
+    PARTIALLY_DELIVERED,
+    DELIVERED,
     CLOSED // All items fully delivered
 }

@@ -20,11 +20,12 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
     /**
      * Find all items linked to a request.
      */
-    List<PurchaseOrderItem> findByRequestId(Long requestId);
+    @Query("SELECT poi FROM PurchaseOrderItem poi WHERE poi.purchaseOrder.request.id = :requestId")
+    List<PurchaseOrderItem> findByRequestId(@Param("requestId") Long requestId);
 
     /**
      * Calculate total ordered quantity for a request.
      */
-    @Query("SELECT COALESCE(SUM(poi.orderedQty), 0) FROM PurchaseOrderItem poi WHERE poi.request.id = :requestId")
+    @Query("SELECT COALESCE(SUM(poi.orderedQty), 0) FROM PurchaseOrderItem poi WHERE poi.purchaseOrder.request.id = :requestId")
     BigDecimal sumOrderedQtyByRequestId(@Param("requestId") Long requestId);
 }

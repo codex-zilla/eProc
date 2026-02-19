@@ -259,8 +259,18 @@ const PurchaseOrderDetails = () => {
         );
     }
 
-    const isOrderOpen = po.status === 'OPEN';
-    const showCloseButton = isOrderOpen;
+    const isOrderClosed = po.status === 'CLOSED';
+    const showCloseButton = !isOrderClosed;
+
+    const getStatusBadgeVariant = (status: string) => {
+        switch (status) {
+            case 'OPEN': return 'bg-blue-50 text-blue-700 border-blue-200';
+            case 'PARTIALLY_DELIVERED': return 'bg-amber-50 text-amber-700 border-amber-200';
+            case 'DELIVERED': return 'bg-green-50 text-green-700 border-green-200';
+            case 'CLOSED': return 'bg-slate-100 text-slate-700 border-slate-200';
+            default: return 'bg-slate-50 text-slate-700 border-slate-200';
+        }
+    };
 
     return (
         <div className="space-y-4 min-w-0 pb-10">
@@ -271,9 +281,8 @@ const PurchaseOrderDetails = () => {
                         <div className="min-w-0">
                             <div className="flex items-center gap-3 mb-1">
                                 <h1 className="text-base lg:text-2xl font-bold text-[#2a3455] truncate"><span className='hidden sm:inline'>Purchase Order:</span> {po.poNumber}</h1>
-                                <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${po.status === 'OPEN' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'
-                                    }`}>
-                                    {po.status}
+                                <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border shrink-0 ${getStatusBadgeVariant(po.status)}`}>
+                                    {po.status.replace('_', ' ')}
                                 </Badge>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">

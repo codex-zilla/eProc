@@ -32,6 +32,6 @@ public interface DeliveryItemRepository extends JpaRepository<DeliveryItem, Long
      * Calculate total delivered quantity for a request across all PO items.
      */
     @Query("SELECT COALESCE(SUM(di.quantityDelivered), 0) FROM DeliveryItem di " +
-            "WHERE di.purchaseOrderItem.request.id = :requestId")
+            "WHERE di.purchaseOrderItem.purchaseOrder.request.id = :requestId")
     BigDecimal sumDeliveredQtyByRequestId(@Param("requestId") Long requestId);
 }

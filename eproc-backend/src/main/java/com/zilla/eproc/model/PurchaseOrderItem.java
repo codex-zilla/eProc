@@ -33,9 +33,8 @@ public class PurchaseOrderItem {
     @JoinColumn(name = "purchase_order_id", nullable = false)
     private PurchaseOrder purchaseOrder;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "request_id", nullable = false)
-    private Request request;
+    // Request is now linked to PurchaseOrder, not PurchaseOrderItem directly.
+    // Access via purchaseOrder.getRequest()
 
     @Column(name = "material_display_name", nullable = false, length = 255)
     private String materialDisplayName;

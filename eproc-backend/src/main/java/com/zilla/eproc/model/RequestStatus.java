@@ -8,8 +8,5 @@ public enum RequestStatus {
     SUBMITTED,
     PARTIALLY_APPROVED,
     APPROVED,
-    REJECTED,
-    ORDERED,
-    PARTIALLY_DELIVERED,
-    DELIVERED
+    REJECTED
 }

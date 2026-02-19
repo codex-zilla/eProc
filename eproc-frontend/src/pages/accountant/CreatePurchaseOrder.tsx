@@ -17,6 +17,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/utils';
 import { isRequired } from '@/lib/validators';
 import { LoadingSpinner, ErrorDisplay, EmptyState, DataTable, SearchInput, CreatePOItemMobileCard } from '@/components/common';
+import type { RequestMaterial, RequestDetail } from '@/types/models';
 
 interface OrderItem {
     id: number; // materialId
@@ -57,7 +58,6 @@ const CreatePurchaseOrder = () => {
     const [notes, setNotes] = useState('');
     const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
     const [itemsMap, setItemsMap] = useState<Record<number, { orderedQty: number; unitPrice: number }>>({});
-    const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [search, setSearch] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -76,7 +76,6 @@ const CreatePurchaseOrder = () => {
             setNotes(draft.notes || '');
             setDeliveryDate(draft.deliveryDate || new Date().toISOString().split('T')[0]);
             setItemsMap(draft.items || {});
-            if (draft.lastSaved) setLastSaved(new Date(draft.lastSaved));
             toast.info('Draft loaded successfully');
         }
         loadedDraftKeyRef.current = draftKey;
@@ -100,24 +99,23 @@ const CreatePurchaseOrder = () => {
         };
 
         saveDraft(draftKey, draft);
-        setLastSaved(new Date());
     }, [debouncedVendor, debouncedNotes, debouncedDeliveryDate, debouncedItems, draftKey, projectId]);
 
     // Derived Data
-    const targetRequest = useMemo(() => {
+    const targetRequest = useMemo<RequestDetail | null>(() => {
         if (!requests || !requestId) return null;
-        return requests.find(r => r.id === requestId);
+        return requests.find((r: RequestDetail) => r.id === requestId) || null;
     }, [requests, requestId]);
 
     const availableMaterials = useMemo(() => {
         if (!targetRequest) return [];
         // Filter for APPROVED materials only
-        return (targetRequest.materials || []).filter(m => m.status === 'APPROVED');
+        return (targetRequest.materials || []).filter((m: RequestMaterial) => m.status === 'APPROVED');
     }, [targetRequest]);
 
     // Compute Table Data
     const orderItems: OrderItem[] = useMemo(() => {
-        return availableMaterials.map(material => {
+        return availableMaterials.map((material: RequestMaterial) => {
             const state = itemsMap[material.id] || {
                 orderedQty: 0, // Default to 0
                 unitPrice: material.rateEstimate || 0 // Default to estimated rate
@@ -154,7 +152,7 @@ const CreatePurchaseOrder = () => {
         setItemsMap(prev => {
             const currentItem = prev[id] || {
                 orderedQty: 0,
-                unitPrice: availableMaterials.find(m => m.id === id)?.rateEstimate || 0
+                unitPrice: availableMaterials.find((m: RequestMaterial) => m.id === id)?.rateEstimate || 0
             };
 
             return {
@@ -191,11 +189,11 @@ const CreatePurchaseOrder = () => {
         try {
             const dto = {
                 projectId,
+                requestId,
                 siteId: targetRequest.siteId,
                 vendorName,
                 notes,
                 items: validItems.map(item => ({
-                    requestId: requestId,
                     materialDisplayName: item.materialName,
                     orderedQty: item.orderedQty,
                     unit: item.unit,

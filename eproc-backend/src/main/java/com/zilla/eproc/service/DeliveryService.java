@@ -26,10 +26,8 @@ import java.util.stream.Collectors;
 public class DeliveryService extends BaseProjectService {
 
         private final DeliveryRepository deliveryRepository;
-        private final DeliveryItemRepository deliveryItemRepository;
         private final PurchaseOrderRepository purchaseOrderRepository;
         private final PurchaseOrderItemRepository purchaseOrderItemRepository;
-        private final RequestRepository requestRepository;
         private final UserRepository userRepository;
         // private final MaterialRepository materialRepository; // Reserved for future
         // use
@@ -91,9 +89,6 @@ public class DeliveryService extends BaseProjectService {
                 // Save delivery
                 delivery = deliveryRepository.save(delivery);
 
-                // Update request statuses for all affected requests
-                updateRequestStatuses(po);
-
                 // Check if PO is fully delivered
                 updatePurchaseOrderStatus(po);
 
@@ -103,87 +98,33 @@ public class DeliveryService extends BaseProjectService {
         }
 
         /**
-         * Update request statuses based on delivery progress.
-         * 
-         * Status logic:
-         * - ORDERED: delivered == 0 && ordered > 0
-         * - PARTIALLY_DELIVERED: (delivered > 0 && delivered < ordered) OR (delivered
-         * >= ordered && ordered < requested)
-         * - DELIVERED: delivered >= ordered && ordered >= requested
-         */
-        private void updateRequestStatuses(PurchaseOrder po) {
-                // Get all unique requests from this PO
-                List<Request> requests = po.getItems().stream()
-                                .map(PurchaseOrderItem::getRequest)
-                                .distinct()
-                                .collect(Collectors.toList());
-
-                for (Request request : requests) {
-                        updateRequestStatus(request);
-                }
-        }
-
-        /**
-         * Update a single request's status based on ordered and delivered quantities.
-         */
-        private void updateRequestStatus(Request request) {
-                // Calculate requested quantity (sum of all material quantities in request)
-                BigDecimal requestedQty = request.getMaterials().stream()
-                                .map(Material::getQuantity)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                // Calculate total ordered quantity for this request
-                BigDecimal orderedQty = purchaseOrderItemRepository.sumOrderedQtyByRequestId(request.getId());
-
-                // Calculate total delivered quantity for this request
-                BigDecimal deliveredQty = deliveryItemRepository.sumDeliveredQtyByRequestId(request.getId());
-
-                log.debug("Request {}: Requested={}, Ordered={}, Delivered={}",
-                                request.getId(), requestedQty, orderedQty, deliveredQty);
-
-                RequestStatus newStatus;
-
-                if (deliveredQty.compareTo(BigDecimal.ZERO) == 0 && orderedQty.compareTo(BigDecimal.ZERO) > 0) {
-                        // No deliveries yet, but order placed
-                        newStatus = RequestStatus.ORDERED;
-                } else if (deliveredQty.compareTo(BigDecimal.ZERO) > 0
-                                && deliveredQty.compareTo(orderedQty) < 0) {
-                        // Some delivered, but less than ordered
-                        newStatus = RequestStatus.PARTIALLY_DELIVERED;
-                } else if (deliveredQty.compareTo(orderedQty) >= 0
-                                && orderedQty.compareTo(requestedQty) < 0) {
-                        // Delivered all that was ordered, but under-ordered (ordered < requested)
-                        newStatus = RequestStatus.PARTIALLY_DELIVERED;
-                        log.warn("Request {} under-ordered: Requested={}, Ordered={}",
-                                        request.getId(), requestedQty, orderedQty);
-                } else if (deliveredQty.compareTo(orderedQty) >= 0
-                                && orderedQty.compareTo(requestedQty) >= 0) {
-                        // Fully delivered: delivered >= ordered >= requested
-                        newStatus = RequestStatus.DELIVERED;
-                } else {
-                        // Default to current status if logic doesn't match
-                        newStatus = request.getStatus();
-                }
-
-                if (request.getStatus() != newStatus) {
-                        log.info("Updating request {} status from {} to {}",
-                                        request.getId(), request.getStatus(), newStatus);
-                        request.setStatus(newStatus);
-                        requestRepository.save(request);
-                }
-        }
-
-        /**
-         * Update PO status to CLOSED if all items are fully delivered.
+         * Update PO status based on delivery progress.
          */
         private void updatePurchaseOrderStatus(PurchaseOrder po) {
-                boolean allItemsDelivered = po.getItems().stream()
+                if (po.getStatus() == PurchaseOrderStatus.CLOSED) {
+                        return; // Do not reopen closed POs automatically
+                }
+
+                boolean anyDelivered = po.getItems().stream()
+                                .anyMatch(item -> item.getTotalDelivered().compareTo(BigDecimal.ZERO) > 0);
+
+                boolean allFullyDelivered = po.getItems().stream()
                                 .allMatch(PurchaseOrderItem::isFullyDelivered);
 
-                if (allItemsDelivered && po.getStatus() == PurchaseOrderStatus.OPEN) {
-                        po.setStatus(PurchaseOrderStatus.CLOSED);
+                PurchaseOrderStatus newStatus = po.getStatus();
+
+                if (allFullyDelivered) {
+                        newStatus = PurchaseOrderStatus.DELIVERED;
+                } else if (anyDelivered) {
+                        newStatus = PurchaseOrderStatus.PARTIALLY_DELIVERED;
+                } else {
+                        newStatus = PurchaseOrderStatus.OPEN;
+                }
+
+                if (po.getStatus() != newStatus) {
+                        po.setStatus(newStatus);
                         purchaseOrderRepository.save(po);
-                        log.info("Purchase order {} marked as CLOSED", po.getPoNumber());
+                        log.info("Purchase order {} status updated to {}", po.getPoNumber(), newStatus);
                 }
         }
 

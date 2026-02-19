@@ -241,161 +241,12 @@ export const RequestStatus = {
   SUBMITTED: 'SUBMITTED',
   APPROVED: 'APPROVED',
   PARTIALLY_APPROVED: 'PARTIALLY_APPROVED',
-  REJECTED: 'REJECTED',
-  ORDERED: 'ORDERED',
-  PARTIALLY_DELIVERED: 'PARTIALLY_DELIVERED',
-  DELIVERED: 'DELIVERED'
+  REJECTED: 'REJECTED'
 } as const;
 
 export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus];
 
-export interface MaterialRequest {
-  id: number;
-  siteId: number;
-  siteName: string;
-  projectId?: number; // Added for list view context
-  projectName?: string; // Added for list view context
-  workPackageId?: number;
-  workPackageName?: string;
-  materialId?: number;
-  materialName?: string;
-  manualMaterialName?: string;
-  manualUnit?: string;
-  manualEstimatedPrice?: number;
-  quantity: number;
-  status: RequestStatus;
-  rejectionComment?: string;
-  emergencyFlag: boolean;
-  plannedUsageStart: string;
-  plannedUsageEnd: string;
-  requestedById: number;
-  requestedByName: string;
-  requestedByEmail: string;
-  
-  // BOQ (Bill of Quantities) fields - Phase 1
-  boqReferenceCode?: string;
-  workDescription?: string;
-  measurementUnit?: string;
-  rateEstimate?: number;
-  rateType?: string; // 'ENGINEER_ESTIMATE' | 'MARKET_RATE' | 'TENDER_RATE'
-  revisionNumber?: number;
-  totalEstimate?: number; // Computed: quantity × rateEstimate
-  
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateMaterialRequest {
-  siteId: number;
-  workPackageId?: number;
-  materialId?: number;
-  manualMaterialName?: string;
-  manualUnit?: string;
-  manualEstimatedPrice?: number;
-  quantity: number;
-  plannedUsageStart: string;
-  plannedUsageEnd: string;
-  emergencyFlag?: boolean;
-  
-  // BOQ (Bill of Quantities) fields - Phase 1
-  boqReferenceCode?: string; // Pattern: BOQ-XX-XXXX-XXX
-  workDescription?: string; // Min 10 chars if boqReferenceCode is set
-  measurementUnit?: string; // Constrained vocabulary
-  rateEstimate?: number;
-  rateType?: string;
-}
-
-export interface ApprovalAction {
-  status: 'APPROVED' | 'REJECTED';
-  comment?: string;
-}
-
-export interface UserSummary {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-    erbNumber?: string;
-}
-
-export interface AuditEntry {
-  id: number;
-  action: string;
-  comment?: string;
-  timestamp: string;
-  actorName: string;
-  actorEmail: string;
-  actorRole: string;
-}
-
-export interface RequestItem {
-  id: number;
-  name: string;
-  quantity: number;
-  measurementUnit: string;
-  rateEstimate: number;
-  resourceType: 'MATERIAL' | 'LABOUR';
-  status?: string;
-  workDescription?: string;
-  totalEstimate?: number;
-  rateType?: string;
-  rejectionComment?: string;
-  comment?: string;
-  isDuplicate?: boolean;
-}
-
-export interface DuplicateDetail {
-  materialName: string;
-  originalQuantity: number;
-  originalStartDate: string;
-  originalEndDate: string;
-  currentQuantity: number;
-  currentStartDate: string;
-  currentEndDate: string;
-}
-
-export interface RequestDetail {
-  id: number;
-  title: string;
-  additionalDetails?: string;
-  status: string;
-  projectId: number;
-  projectName?: string;
-  createdById: number;
-  createdByName?: string;
-  createdByEmail?: string;
-  createdAt: string;
-  updatedAt?: string;
-  materials: RequestItem[];
-  totalValue: number;
-  plannedStartDate?: string;
-  plannedEndDate?: string;
-  priority?: string;
-  siteId?: number;
-  siteName?: string;
-  boqReferenceCode?: string;
-  isDuplicateFlagged?: boolean;
-  duplicateExplanation?: string;
-  duplicateOfRequestId?: number;
-  duplicateOfRequestTitle?: string;
-  duplicateDetails?: DuplicateDetail[];
-}
-
-export interface PurchaseOrderItem {
-  id: number;
-  requestId: number;
-  requestTitle: string;
-  materialDisplayName: string;
-  orderedQty: number;
-  requestedQty: number;
-  unit: string;
-  unitPrice: number;
-  totalPrice: number;
-  totalDelivered: number;
-  fullyDelivered: boolean;
-  siteName: string;
-  orderedDate: string;
-}
+// ... (skipping unchanged interfaces) ...
 
 export interface PurchaseOrder {
   id: number;
@@ -404,7 +255,7 @@ export interface PurchaseOrder {
   projectName: string;
   siteId?: number;
   siteName?: string;
-  status: 'OPEN' | 'CLOSED';
+  status: 'OPEN' | 'PARTIALLY_DELIVERED' | 'DELIVERED' | 'CLOSED';
   vendorName?: string;
   notes?: string;
   totalValue: number;
@@ -413,4 +264,130 @@ export interface PurchaseOrder {
   createdByName: string;
   createdById: number;
   items: PurchaseOrderItem[];
+}
+
+// Additional Interfaces for Build Fixes
+export interface UserSummary {
+  id: number;
+  name: string;
+  email: string;
+  role: SystemRole;
+  status: 'ACTIVE' | 'INACTIVE';
+  lastActive?: string;
+  erbNumber?: string; // Added
+}
+
+export interface PurchaseOrderItem {
+  id: number;
+  purchaseOrderId: number;
+  materialId?: number;
+  materialName: string;
+  materialDisplayName: string; // Alias for compatibility
+  orderedQty: number;
+  unitPrice: number;
+  unit: string;
+  totalPrice: number;
+  quantityDelivered: number; // Was optional
+  totalDelivered: number; // Alias or computed
+  requestedQty: number;
+  siteName?: string;
+}
+
+export interface DuplicateDetail {
+    requestId: number;
+    requestTitle: string;
+    similarityScore: number;
+    // Added fields
+    materialName?: string;
+    currentQuantity?: number;
+    currentStartDate?: string;
+    currentEndDate?: string;
+    originalQuantity?: number;
+    originalStartDate?: string;
+    originalEndDate?: string;
+}
+
+export interface RequestDetail {
+    id: number;
+    title: string;
+    projectId: number;
+    projectName: string;
+    siteId: number;
+    siteName: string;
+    createdById: number;
+    createdByName: string;
+    createdAt: string;
+    plannedStartDate?: string;
+    plannedEndDate?: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH';
+    status: RequestStatus;
+    totalValue: number;
+    materials: RequestMaterial[];
+    
+    // BOQ & Duplication
+    boqReferenceCode?: string;
+    additionalDetails?: string;
+    isDuplicateFlagged?: boolean;
+    duplicateOfRequestId?: number;
+    duplicateOfRequestTitle?: string;
+    duplicateExplanation?: string;
+    duplicateDetails?: DuplicateDetail[];
+}
+
+export interface RequestMaterial {
+    id: number;
+    name: string;
+    quantity: number;
+    measurementUnit: string;
+    rateEstimate: number;
+    totalEstimate?: number;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    resourceType?: string;
+    isDuplicate?: boolean;
+    // Added fields
+    rateType?: string;
+    rejectionComment?: string;
+    comment?: string;
+    workDescription?: string;
+}
+
+// Aliases
+export type RequestItem = RequestMaterial;
+
+// API DTOs
+export interface MaterialRequest {
+  materialId?: number; // if existing material
+  name: string;        // if new material
+  quantity: number;
+  unit: string;
+  category: MaterialCategory;
+}
+
+export interface CreateMaterialRequest {
+  projectId: number;
+  siteId: number;
+  title: string;
+  description?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  plannedStartDate?: string;
+  items: MaterialRequest[];
+}
+
+export interface ApprovalAction {
+  status: 'APPROVED' | 'REJECTED' | 'MODIFY';
+  comment?: string;
+  items?: { id: number; status: 'APPROVED' | 'REJECTED'; quantity?: number }[];
+  // Legacy/Optional fields if needed
+  requestId?: number;
+  action?: 'APPROVE' | 'REJECT' | 'MODIFY';
+  comments?: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  actorName: string;
+  timestamp: string;
+  details: string;
+  comment?: string; // Added
 }

@@ -3,7 +3,7 @@ import api from '../lib/axios';
 // ================== DTOs ==================
 
 export interface CreatePurchaseOrderItemDTO {
-  requestId: number;
+  // requestId: number; // Removed
   materialDisplayName: string;
   orderedQty: number;
   unit: string;
@@ -12,6 +12,7 @@ export interface CreatePurchaseOrderItemDTO {
 
 export interface CreatePurchaseOrderDTO {
   projectId: number;
+  requestId: number; // Added
   siteId?: number;
   vendorName?: string;
   notes?: string;

@@ -74,7 +74,7 @@ const RequestDetailsManager = () => {
         materialId,
         data: { status, comment }
       });
-      
+
       // Close rejection input if successful
       if (status === 'REJECTED') {
         setRejectingMaterialId(null);
@@ -248,13 +248,13 @@ const RequestDetailsManager = () => {
                                     <td className="py-1.5 px-2 text-orange-800">
                                       Qty: {detail.currentQuantity}<br />
                                       <span className="opacity-75 text-[10px]">
-                                        {formatDate(detail.currentStartDate, 'short')} - {formatDate(detail.currentEndDate, 'short')}
+                                        {detail.currentStartDate ? formatDate(detail.currentStartDate, 'short') : 'N/A'} - {detail.currentEndDate ? formatDate(detail.currentEndDate, 'short') : 'N/A'}
                                       </span>
                                     </td>
                                     <td className="py-1.5 px-2 text-orange-800">
                                       Qty: {detail.originalQuantity}<br />
                                       <span className="opacity-75 text-[10px]">
-                                        {formatDate(detail.originalStartDate, 'short')} - {formatDate(detail.originalEndDate, 'short')}
+                                        {detail.originalStartDate ? formatDate(detail.originalStartDate, 'short') : 'N/A'} - {detail.originalEndDate ? formatDate(detail.originalEndDate, 'short') : 'N/A'}
                                       </span>
                                     </td>
                                   </tr>

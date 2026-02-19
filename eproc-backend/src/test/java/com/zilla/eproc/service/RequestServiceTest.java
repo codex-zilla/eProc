@@ -46,6 +46,15 @@ class RequestServiceTest {
         @Mock
         private DuplicateDetectionService duplicateDetectionService;
 
+        @Mock
+        private ProjectSecurityService projectSecurityService;
+
+        @Mock
+        private MaterialRepository materialRepository;
+
+        @Mock
+        private ProjectAssignmentRepository projectAssignmentRepository;
+
         @InjectMocks
         private RequestService requestService;
 
@@ -121,6 +130,9 @@ class RequestServiceTest {
                                         return requests;
                                 });
 
+                doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
+                                any(ProjectRole[].class));
+
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
                                 List.of(testRequestDTO),
@@ -141,18 +153,22 @@ class RequestServiceTest {
         @DisplayName("Should throw ForbiddenException when assignment is inactive")
         void shouldThrowExceptionWhenAssignmentIsInactive() {
                 // Arrange
-                testProject.getTeamAssignments().get(0).setIsActive(false);
+                // Arrange
+                doThrow(new ForbiddenException("You are not assigned to this project"))
+                                .when(projectSecurityService)
+                                .validateProjectAccess(anyString(), anyLong(), any(ProjectRole[].class));
+
+                when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
 
                 when(userRepository.findByEmail(testEngineer.getEmail()))
                                 .thenReturn(Optional.of(testEngineer));
-                when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
 
                 // Act & Assert
                 assertThatThrownBy(() -> requestService.createRequests(
                                 List.of(testRequestDTO),
                                 testEngineer.getEmail()))
                                 .isInstanceOf(ForbiddenException.class)
-                                .hasMessageContaining("You are not assigned to this project");
+                                .hasMessageContaining("not assigned to this project");
         }
 
         @Test
@@ -171,6 +187,9 @@ class RequestServiceTest {
 
                 when(duplicateDetectionService.findPotentialDuplicates(any(), any(), any(), any()))
                                 .thenReturn(List.of(warning));
+
+                doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
+                                any(ProjectRole[].class));
 
                 // Act & Assert
                 assertThatThrownBy(() -> requestService.createRequests(
@@ -199,6 +218,9 @@ class RequestServiceTest {
                                 .thenReturn(List.of(warning));
 
                 when(requestRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+
+                doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
+                                any(ProjectRole[].class));
 
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
@@ -233,6 +255,9 @@ class RequestServiceTest {
                                         return requests;
                                 });
 
+                doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
+                                any(ProjectRole[].class));
+
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
                                 List.of(testRequestDTO),
@@ -246,12 +271,15 @@ class RequestServiceTest {
         @DisplayName("Should throw ForbiddenException when user not assigned to project")
         void shouldThrowExceptionWhenUserNotAssigned() {
                 // Arrange
-                testProject.setTeamAssignments(new ArrayList<>()); // Remove assignments
+                // Arrange
+                doThrow(new ForbiddenException("You are not assigned to this project"))
+                                .when(projectSecurityService)
+                                .validateProjectAccess(anyString(), anyLong(), any(ProjectRole[].class));
+
+                when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
 
                 when(userRepository.findByEmail(testEngineer.getEmail()))
                                 .thenReturn(Optional.of(testEngineer));
-                when(projectRepository.findById(1L))
-                                .thenReturn(Optional.of(testProject));
 
                 // Act & Assert
                 assertThatThrownBy(() -> requestService.createRequests(
@@ -291,6 +319,9 @@ class RequestServiceTest {
                                         return requests;
                                 });
 
+                doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
+                                any(ProjectRole[].class));
+
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
                                 List.of(testRequestDTO, request2),
@@ -326,6 +357,8 @@ class RequestServiceTest {
                                 .thenReturn(Optional.of(request));
                 when(userRepository.findByEmail(testEngineer.getEmail()))
                                 .thenReturn(Optional.of(testEngineer));
+
+                when(projectSecurityService.hasProjectAccess(anyString(), anyLong())).thenReturn(true);
 
                 // Act
                 RequestResponseDTO result = requestService.getRequestById(1L, testEngineer.getEmail());

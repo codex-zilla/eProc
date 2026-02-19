@@ -66,9 +66,28 @@ public class ProcurementService {
                                         .orElseThrow(() -> new ResourceNotFoundException("Site not found"));
                 }
 
+                // Get Request
+                Request request = requestRepository.findById(dto.getRequestId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Request not found: " + dto.getRequestId()));
+
+                // Validate request belongs to project
+                if (!request.getProject().getId().equals(project.getId())) {
+                        throw new IllegalArgumentException("Request does not belong to the specified project");
+                }
+
+                // Validate request is APPROVED
+                if (request.getStatus() != RequestStatus.APPROVED
+                                && request.getStatus() != RequestStatus.PARTIALLY_APPROVED) {
+                        throw new IllegalStateException(
+                                        "Request " + request.getId() + " is not approved for ordering");
+                }
+
+                // Create PO
                 // Create PO
                 PurchaseOrder po = PurchaseOrder.builder()
                                 .project(project)
+                                .request(request) // Set request
                                 .site(site)
                                 .createdBy(creator)
                                 .status(PurchaseOrderStatus.OPEN)
@@ -83,17 +102,8 @@ public class ProcurementService {
                 // Create items
                 BigDecimal poTotalValue = BigDecimal.ZERO;
                 for (CreatePurchaseOrderDTO.PurchaseOrderItemDTO itemDto : dto.getItems()) {
-                        Request request = requestRepository.findById(itemDto.getRequestId())
-                                        .orElseThrow(() -> new ResourceNotFoundException(
-                                                        "Request not found: " + itemDto.getRequestId()));
-
-                        // Validate request is APPROVED
-                        if (request.getStatus() != RequestStatus.APPROVED
-                                        && request.getStatus() != RequestStatus.PARTIALLY_DELIVERED
-                                        && request.getStatus() != RequestStatus.ORDERED) {
-                                throw new IllegalStateException(
-                                                "Request " + request.getId() + " is not approved for ordering");
-                        }
+                        // Request validation moved to top level
+                        // itemDto.getRequestId() is removed/ignored
 
                         // Calculate total price
                         BigDecimal totalPrice = itemDto.getOrderedQty().multiply(itemDto.getUnitPrice());
@@ -109,7 +119,7 @@ public class ProcurementService {
                         // Create PO item
                         PurchaseOrderItem poItem = PurchaseOrderItem.builder()
                                         .purchaseOrder(po)
-                                        .request(request)
+                                        // .request(request) // Removed
                                         .materialDisplayName(itemDto.getMaterialDisplayName())
                                         .orderedQty(itemDto.getOrderedQty())
                                         .requestedQty(requestedQty)
@@ -120,9 +130,6 @@ public class ProcurementService {
                                         .build();
 
                         po.getItems().add(poItem);
-
-                        // Update request status to ORDERED if not already
-                        updateRequestStatusAfterOrdering(request);
                 }
 
                 // Save PO
@@ -132,17 +139,6 @@ public class ProcurementService {
                 log.info("Created purchase order {} with {} items", po.getPoNumber(), po.getItems().size());
 
                 return mapToResponseDTO(po);
-        }
-
-        /**
-         * Update request status after creating a PO.
-         * Status becomes ORDERED if there's at least one PO item.
-         */
-        private void updateRequestStatusAfterOrdering(Request request) {
-                if (request.getStatus() == RequestStatus.APPROVED) {
-                        request.setStatus(RequestStatus.ORDERED);
-                        requestRepository.save(request);
-                }
         }
 
         /**
@@ -258,11 +254,13 @@ public class ProcurementService {
          * Map PO to response DTO.
          */
         private PurchaseOrderResponseDTO mapToResponseDTO(PurchaseOrder po) {
+                Request request = po.getRequest(); // Access request via PO
+
                 List<PurchaseOrderResponseDTO.PurchaseOrderItemResponseDTO> itemDtos = po.getItems().stream()
                                 .map(item -> PurchaseOrderResponseDTO.PurchaseOrderItemResponseDTO.builder()
                                                 .id(item.getId())
-                                                .requestId(item.getRequest().getId())
-                                                .requestTitle(item.getRequest().getTitle())
+                                                .requestId(request.getId())
+                                                .requestTitle(request.getTitle())
                                                 .materialDisplayName(item.getMaterialDisplayName())
                                                 .orderedQty(item.getOrderedQty())
                                                 .requestedQty(item.getRequestedQty())
@@ -271,11 +269,11 @@ public class ProcurementService {
                                                 .totalPrice(item.getTotalPrice())
                                                 .totalDelivered(item.getTotalDelivered())
                                                 .fullyDelivered(item.isFullyDelivered())
-                                                .siteName(item.getRequest().getSite().getName())
+                                                .siteName(request.getSite().getName())
                                                 .orderedDate(item.getUpdatedAt() != null ? item.getUpdatedAt()
                                                                 : item.getCreatedAt())
                                                 .requestedQty(item.getRequestedQty() != null ? item.getRequestedQty()
-                                                                : item.getRequest().getMaterials().stream()
+                                                                : request.getMaterials().stream()
                                                                                 .filter(m -> m.getName().equals(item
                                                                                                 .getMaterialDisplayName()))
                                                                                 .findFirst()
@@ -289,6 +287,8 @@ public class ProcurementService {
                                 .poNumber(po.getPoNumber())
                                 .projectId(po.getProject().getId())
                                 .projectName(po.getProject().getName())
+                                .requestId(request.getId()) // Added
+                                .requestTitle(request.getTitle()) // Added
                                 .siteId(po.getSite() != null ? po.getSite().getId() : null)
                                 .siteName(po.getSite() != null ? po.getSite().getName() : null)
                                 .status(po.getStatus())

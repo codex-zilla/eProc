@@ -47,9 +47,9 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             "LEFT JOIN FETCH po.project " +
             "LEFT JOIN FETCH po.site " +
             "LEFT JOIN FETCH po.createdBy " +
-            "LEFT JOIN FETCH po.items i " +
-            "LEFT JOIN FETCH i.request r " +
+            "LEFT JOIN FETCH po.request r " +
             "LEFT JOIN FETCH r.site " +
+            "LEFT JOIN FETCH po.items i " +
             "WHERE po.id = :id")
     Optional<PurchaseOrder> findByIdWithDetails(@Param("id") Long id);
 }

@@ -25,6 +25,8 @@ public class PurchaseOrderResponseDTO {
     private String projectName;
     private Long siteId;
     private String siteName;
+    private Long requestId; // Added
+    private String requestTitle; // Added
     private PurchaseOrderStatus status;
     private String vendorName;
     private String notes;
