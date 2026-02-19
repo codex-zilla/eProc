@@ -1,24 +1,9 @@
-/**
- * Pure helper functions for computing Purchase Order statistics.
- * Extracted from PurchaseOrders.tsx and PurchaseOrderDetails.tsx
- * to keep components thin and make logic testable in isolation.
- */
-
-interface PurchaseOrderBase {
-  status: string;
-  totalValue: number;
-}
-
-interface PurchaseOrderItem {
-  requestedQty: number;
-  orderedQty: number;
-  totalDelivered: number;
-}
+import type { PurchaseOrder, PurchaseOrderItem, RequestDetail, RequestMaterial } from '@/types/models';
 
 /**
  * Compute aggregate stats for the PO list page.
  */
-export function computePOListStats(purchaseOrders: PurchaseOrderBase[]) {
+export function computePOListStats(purchaseOrders: Pick<PurchaseOrder, 'status' | 'totalValue'>[]) {
   const total = purchaseOrders.length;
   const open = purchaseOrders.filter(po => po.status === 'OPEN').length;
   const closed = purchaseOrders.filter(po => po.status === 'CLOSED').length;
@@ -77,19 +62,52 @@ export function getDeliveryStatus(totalDelivered: number, orderedQty: number) {
   return { label: 'ORDERED', color: 'bg-blue-50 text-blue-600' } as const;
 }
 
-interface RequestMaterial {
-    quantity: number;
-    orderedQuantity?: number;
-}
-
-interface RequestDetail {
-    materials: RequestMaterial[];
-}
-
 /**
  * Check if a request has been fully ordered (all materials have orderedQty >= requestedQty).
  */
 export function isRequestFullyOrdered(request: RequestDetail | undefined | null): boolean {
     if (!request || !request.materials) return false;
     return request.materials.every(m => (m.orderedQuantity || 0) >= m.quantity);
+}
+
+/**
+ * Calculate assignable stats for a material item in PO form.
+ */
+export function calculateItemAssignableStats(
+    material: RequestMaterial,
+    existingPO: { items: any[] } | null | undefined,
+    isUpdateMode: boolean
+) {
+    // If UpdateMode: We need to subtract OUR existing contribution to find 'Others'
+    let totalDelivered = 0;
+
+    if (isUpdateMode && existingPO) {
+        const poItem = existingPO.items.find((i: any) => i.materialDisplayName === material.name);
+        if (poItem) {
+            if (Array.isArray(poItem.deliveryItems)) {
+                totalDelivered = poItem.deliveryItems.reduce((sum: number, d: any) => sum + d.quantityDelivered, 0);
+            } else if ('totalDelivered' in poItem) {
+                totalDelivered = poItem.totalDelivered;
+            }
+        }
+    }
+
+    // Backend Total Ordered (from Request) - My Existing Contribution = Ordered By Others
+    // If creating new: myExistingQty = 0.
+    const backendTotal = material.orderedQuantity || 0;
+
+    // Phase 2 Logic:
+    // Creation Mode: Limit = Requested Qty (Ignore others).
+    // Update Mode: Limit = Requested - Others (maxAssignable).
+    let maxAssignable = 0;
+
+    if (isUpdateMode) {
+        // The maximum I can theoretically order right now
+        maxAssignable = Math.max(0, material.quantity - backendTotal);
+    } else {
+        // Creation Mode: Limit is strictly Requested Qty (User requirement)
+        maxAssignable = material.quantity;
+    }
+
+    return { totalDelivered, maxAssignable };
 }

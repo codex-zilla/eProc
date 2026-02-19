@@ -395,3 +395,26 @@ export interface AuditEntry {
   details: string;
   comment?: string; // Added
 }
+
+export interface PurchaseOrderDraft {
+    vendorName: string;
+    notes: string;
+    deliveryDate: string;
+    items: Record<number, { orderedQty: number; unitPrice: number }>;
+    lastSaved: number;
+}
+
+export interface POFormItem {
+    id: number;
+    materialName: string;
+    unit: string;
+    requestedQty: number;
+    orderedQty: number;
+    unitPrice: number;
+    totalPrice: number;
+    code?: string;
+    siteName?: string;
+    totalDelivered?: number;
+    maxAssignable?: number;
+    remainingAfterThis?: number;
+}

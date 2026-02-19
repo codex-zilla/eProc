@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Loader2, ShoppingCart, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,34 +13,14 @@ import { useAuth } from '@/context/AuthContext';
 import { useProjectRequests } from '@/hooks/queries/useRequests';
 import { useCreatePurchaseOrder, usePurchaseOrder, useUpdatePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDraft } from '@/hooks/useDraft';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { saveDraft, loadDraft, clearDraft } from '@/lib/utils';
 import { isRequired } from '@/lib/validators';
+import { calculateItemAssignableStats } from '@/lib/po-stats';
 import { LoadingSpinner, ErrorDisplay, EmptyState, DataTable, SearchInput, POFormItemCard } from '@/components/common';
-import type { RequestMaterial, RequestDetail } from '@/types/models';
+import type { RequestMaterial, RequestDetail, POFormItem, PurchaseOrderDraft } from '@/types/models';
 
-interface OrderItem {
-    id: number;
-    materialName: string;
-    unit: string;
-    requestedQty: number;
-    orderedQty: number;
-    unitPrice: number;
-    totalPrice: number;
-    code?: string; // Mock code for display
-    siteName?: string;
-    totalDelivered?: number;
-    maxAssignable?: number;
-    remainingAfterThis?: number;
-}
 
-interface DraftState {
-    vendorName: string;
-    notes: string;
-    deliveryDate: string;
-    items: Record<number, { orderedQty: number; unitPrice: number }>;
-    lastSaved: number;
-}
 
 const PurchaseOrderForm = () => {
     const [searchParams] = useSearchParams();
@@ -128,22 +108,15 @@ const PurchaseOrderForm = () => {
     // Draft key
     const draftKey = `po_draft_${projectId}_${requestId || 'all'}`;
 
-    // Load Draft on Mount (Only for Create Mode)
-    const loadedDraftKeyRef = useRef<string | null>(null);
-
-    useEffect(() => {
-        if (isUpdateMode) return; // Don't load draft in update mode
-        if (loadedDraftKeyRef.current === draftKey) return;
-
-        const draft = loadDraft<DraftState>(draftKey);
-        if (draft) {
+    const { saveData, clearData } = useDraft<PurchaseOrderDraft>({
+        key: draftKey,
+        shouldLoad: !isUpdateMode,
+        onLoad: (draft) => {
             setVendorName(draft.vendorName || 'General Vendor');
             setNotes(draft.notes || '');
             setItemsMap(draft.items || {});
-            toast.info('Draft loaded successfully');
         }
-        loadedDraftKeyRef.current = draftKey;
-    }, [draftKey, isUpdateMode]);
+    });
 
     // Auto-Save Effect (Only for Create Mode)
     const debouncedVendor = useDebounce(vendorName, 1000);
@@ -153,16 +126,16 @@ const PurchaseOrderForm = () => {
     useEffect(() => {
         if (!projectId || isUpdateMode) return;
 
-        const draft: DraftState = {
+        const draft: PurchaseOrderDraft = {
             vendorName: debouncedVendor,
             notes: debouncedNotes,
-            deliveryDate: '', // Not used in new DTO? kept for state consistency if needed
+            deliveryDate: '',
             items: debouncedItems,
             lastSaved: Date.now()
         };
 
-        saveDraft(draftKey, draft);
-    }, [debouncedVendor, debouncedNotes, debouncedItems, draftKey, projectId, isUpdateMode]);
+        saveData(draft);
+    }, [debouncedVendor, debouncedNotes, debouncedItems, projectId, isUpdateMode, saveData]);
 
     // Derived Data
     const targetRequest = useMemo<RequestDetail | null>(() => {
@@ -176,49 +149,14 @@ const PurchaseOrderForm = () => {
     }, [targetRequest]);
 
     // Compute Table Data
-    const orderItems: OrderItem[] = useMemo(() => {
+    const orderItems: POFormItem[] = useMemo(() => {
         return availableMaterials.map((material: RequestMaterial) => {
             const state = itemsMap[material.id] || {
                 orderedQty: 0,
                 unitPrice: material.rateEstimate || 0
             };
 
-            // Calculate 'Before' stats
-            // material.orderedQuantity includes ALL POs (including this one if we are editing and backend is fresh)
-            // But usually 'requests' data might be slightly stale or inclusive.
-            // Let's assume material.orderedQuantity is the Source of Truth from backend.
-
-            // If UpdateMode: We need to subtract OUR existing contribution to find 'Others'
-            let totalDelivered = 0;
-
-            if (isUpdateMode && existingPO) {
-                const poItem = existingPO.items.find(i => i.materialDisplayName === material.name);
-                if (poItem) {
-                    if (Array.isArray((poItem as any).deliveryItems)) {
-                        totalDelivered = (poItem as any).deliveryItems.reduce((sum: number, d: any) => sum + d.quantityDelivered, 0);
-                    } else if ('totalDelivered' in poItem) {
-                        totalDelivered = (poItem as any).totalDelivered;
-                    }
-                }
-            }
-
-            // Backend Total Ordered (from Request) - My Existing Contribution = Ordered By Others
-            // If creating new: myExistingQty = 0.
-            const backendTotal = material.orderedQuantity || 0;
-
-
-            // Phase 2 Logic:
-            // Creation Mode: Limit = Requested Qty (Ignore others).
-            // Update Mode: Limit = Requested - Others (maxAssignable).
-            let maxAssignable = 0;
-
-            if (isUpdateMode) {
-                // The maximum I can theoretically order right now
-                maxAssignable = Math.max(0, material.quantity - backendTotal);
-            } else {
-                // Creation Mode: Limit is strictly Requested Qty (User requirement)
-                maxAssignable = material.quantity;
-            }
+            const { totalDelivered, maxAssignable } = calculateItemAssignableStats(material, existingPO, isUpdateMode);
 
             return {
                 id: material.id,
@@ -278,9 +216,6 @@ const PurchaseOrderForm = () => {
 
         if (!targetRequest || !projectId || !requestId) return;
 
-        // Check for invalid quantities vs delivered
-
-
         // Strict Over-ordering Check
         const overOrderedItems = orderItems.filter(item => item.orderedQty > (item.maxAssignable ?? 0));
         if (overOrderedItems.length > 0) {
@@ -303,7 +238,6 @@ const PurchaseOrderForm = () => {
         }));
 
         try {
-            // ALWAYS Create New PO (Supplemental)
             const dto = {
                 projectId,
                 requestId,
@@ -316,7 +250,7 @@ const PurchaseOrderForm = () => {
 
             // If it was "Update Mode", we are done with the "old" PO interaction, go back to list or details of NEW PO?
             // Usually we go back to list.
-            clearDraft(draftKey); // Clear draft just in case
+            clearData(); // Clear draft just in case
             toast.success(isUpdateMode ? 'Supplemental Purchase Order created successfully' : 'Purchase Order created successfully');
             navigate(`${basePath}/procurement/purchase-orders`);
         } catch (error) {
@@ -331,7 +265,7 @@ const PurchaseOrderForm = () => {
                 id: 'material',
                 header: 'Material',
                 accessorKey: 'materialName',
-                cell: (item: OrderItem) => (
+                cell: (item: POFormItem) => (
                     <div className="flex flex-col">
                         <span className="font-semibold text-slate-900 text-sm">{item.materialName}</span>
                         {item.totalDelivered && item.totalDelivered > 0 ? (
@@ -349,7 +283,7 @@ const PurchaseOrderForm = () => {
                 accessorKey: 'unit',
                 className: 'pr-0',
                 headerClassName: 'pr-0',
-                cell: (item: OrderItem) => (
+                cell: (item: POFormItem) => (
                     <span className='font-semibold text-slate-600'>{item.unit.toLocaleLowerCase()}</span>
                 )
             },
@@ -359,7 +293,7 @@ const PurchaseOrderForm = () => {
                 accessorKey: 'requestedQty',
                 className: 'font-medium text-slate-700 text-center',
                 headerClassName: 'text-center',
-                cell: (item: OrderItem) => (
+                cell: (item: POFormItem) => (
                     <span>{item.requestedQty.toLocaleString()}</span>
                 )
             },
@@ -369,7 +303,7 @@ const PurchaseOrderForm = () => {
                 header: 'Unit Cost',
                 className: ' w-[120px] pr-0',
                 headerClassName: 'pr-0',
-                cell: (item: OrderItem) => (
+                cell: (item: POFormItem) => (
                     <div className="relative">
                         <Input
                             type="number"
@@ -390,7 +324,7 @@ const PurchaseOrderForm = () => {
                 header: 'Ord. Qty',
                 className: 'w-[120px] pr-0 align-top py-3',
                 headerClassName: 'pr-0',
-                cell: (item: OrderItem) => {
+                cell: (item: POFormItem) => {
                     const maxVal = item.maxAssignable ?? item.requestedQty;
                     // In update mode, partial means less than the remaining amount (maxVal).
                     // In create mode, partial means less than the total requested amount.
@@ -432,7 +366,7 @@ const PurchaseOrderForm = () => {
                 header: 'Remaining',
                 className: 'text-center align-top py-3',
                 headerClassName: 'text-center',
-                cell: (item: OrderItem) => {
+                cell: (item: POFormItem) => {
                     const remaining = item.maxAssignable ?? 0;
                     return (
                         <span className={`font-semibold text-slate-500`}>
@@ -445,7 +379,7 @@ const PurchaseOrderForm = () => {
                 id: 'total',
                 header: 'Total',
                 className: 'pr-0 min-w-[100px]',
-                cell: (item: OrderItem) => (
+                cell: (item: POFormItem) => (
                     <span className="font-semibold text-slate-700 font-mono tracking-tighter">{formatCurrency(item.totalPrice)}</span>
                 ),
                 headerClassName: 'pr-0'

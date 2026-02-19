@@ -56,12 +56,12 @@ export const ItemMobileCard: React.FC<ItemMobileCardProps> = ({ item }) => {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Delivered</p>
                     <p className="font-bold text-slate-900 text-sm">{item.totalDelivered}</p>
                 </div>
-                <div>
+                {/* <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Remaining</p>
                     <p className={`font-bold text-sm ${remaining > 0 ? 'text-orange-500' : 'text-slate-900'}`}>
                         {remaining < 0 ? 0 : remaining}
                     </p>
-                </div>
+                </div> */}
                 <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Cost</p>
                     <p className="font-bold text-slate-900 text-sm">{formatCurrency(item.totalPrice)}</p>

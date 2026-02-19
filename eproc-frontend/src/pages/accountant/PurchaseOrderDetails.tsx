@@ -4,7 +4,6 @@ import {
     FileText,
     Loader2,
     Calendar,
-    Printer,
     Filter,
     ShoppingCart,
     Truck,
@@ -191,20 +190,20 @@ const PurchaseOrderDetails = () => {
             headerClassName: 'pr-0',
             className: 'pr-0',
         },
-        {
-            id: 'remaining',
-            header: 'Remaining',
-            cell: (item) => {
-                const remaining = item.orderedQty - item.totalDelivered;
-                return (
-                    <span className={`font-medium ${remaining < 0 ? 'text-red-600' : 'text-slate-700'}`}>
-                        {remaining}
-                    </span>
-                );
-            },
-            headerClassName: 'text-center pr-0 hidden lg:table-cell',
-            className: 'text-center pr-0 hidden lg:table-cell',
-        },
+        // {
+        //     id: 'remaining',
+        //     header: 'Remaining',
+        //     cell: (item) => {
+        //         const remaining = item.orderedQty - item.totalDelivered;
+        //         return (
+        //             <span className={`font-medium ${remaining < 0 ? 'text-red-600' : 'text-slate-700'}`}>
+        //                 {remaining}
+        //             </span>
+        //         );
+        //     },
+        //     headerClassName: 'text-center pr-0 hidden lg:table-cell',
+        //     className: 'text-center pr-0 hidden lg:table-cell',
+        // },
         {
             id: 'orderedDate',
             header: 'Date',
@@ -307,10 +306,10 @@ const PurchaseOrderDetails = () => {
 
                         <div className="flex flex-col items-end gap-3 w-full lg:w-auto shrink-0">
                             <div className="flex items-center gap-2 w-full lg:w-auto">
-                                <Button variant="outline" size="sm" className="flex-1 lg:flex-none gap-2 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+                                {/* <Button variant="outline" size="sm" className="flex-1 lg:flex-none gap-2 px-3 bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                                     <Printer className="h-3.5 w-3.5" />
                                     PDF
-                                </Button>
+                                </Button> */}
                                 {showCloseButton && (
                                     <>
                                         <Button
@@ -330,7 +329,7 @@ const PurchaseOrderDetails = () => {
                                                 className="flex-1 lg:flex-none gap-2 px-3 bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
                                             >
                                                 <Edit className="h-3.5 w-3.5" />
-                                                Create Supplemental Order
+                                                Update Order
                                             </Button>
                                         )}
                                     </>

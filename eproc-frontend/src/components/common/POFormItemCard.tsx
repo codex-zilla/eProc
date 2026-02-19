@@ -4,23 +4,10 @@ import { formatCurrency } from '@/lib/formatters';
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-interface OrderItem {
-    id: number;
-    materialName: string;
-    unit: string;
-    requestedQty: number; // This is the cap
-    orderedQty: number;   // This is the input value
-    unitPrice: number;
-    totalPrice: number;
-    code?: string;
-    siteName?: string;
-    totalDelivered?: number;
-    maxAssignable?: number;
-    remainingAfterThis?: number;
-}
+import type { POFormItem } from '@/types/models';
 
 interface POFormItemCardProps {
-    item: OrderItem;
+    item: POFormItem;
     onUpdate: (id: number, field: 'orderedQty' | 'unitPrice', value: string) => void;
     isUpdateMode: boolean; // Add prop
 }
