@@ -35,7 +35,7 @@ import ChangePasswordModal from './components/ChangePasswordModal';
 import EditProject from './pages/manager/EditProject';
 import ManageSites from './pages/manager/ManageSites';
 import ProcurementDashboard from './pages/manager/ProcurementDashboard';
-import CreatePurchaseOrder from './pages/accountant/CreatePurchaseOrder';
+import PurchaseOrderForm from './pages/accountant/PurchaseOrderForm';
 import DeliveryRegistration from './pages/engineer/DeliveryRegistration';
 import ManagerDeliveries from './pages/manager/Deliveries'; // Renamed from ManagerDeliveries
 
@@ -89,7 +89,8 @@ function App() {
                 <Route path="/manager/pending" element={<ManagerRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
                 <Route path="/manager/procurement" element={<ProcurementDashboard />} />
-                <Route path="/manager/procurement/create" element={<CreatePurchaseOrder />} />
+                <Route path="/manager/procurement/create" element={<PurchaseOrderForm />} />
+                <Route path="/manager/procurement/purchase-orders/:id/edit" element={<PurchaseOrderForm />} />
                 <Route path="/manager/deliveries" element={<ManagerDeliveries />} />
               </Route>
 
@@ -100,9 +101,10 @@ function App() {
                 {/* Procurement Section */}
                 <Route path="/accountant/procurement" element={<Navigate to="/accountant/procurement/approved-requests" replace />} />
                 <Route path="/accountant/procurement/approved-requests" element={<ApprovedRequests />} />
-                <Route path="/accountant/procurement/create" element={<CreatePurchaseOrder />} />
+                <Route path="/accountant/procurement/create" element={<PurchaseOrderForm />} />
                 <Route path="/accountant/procurement/purchase-orders" element={<PurchaseOrders />} />
                 <Route path="/accountant/procurement/purchase-orders/:id" element={<PurchaseOrderDetails />} />
+                <Route path="/accountant/procurement/purchase-orders/:id/edit" element={<PurchaseOrderForm />} />
 
                 {/* Legacy Redirects */}
                 <Route path="/accountant/purchase-orders" element={<Navigate to="/accountant/procurement/purchase-orders" replace />} />

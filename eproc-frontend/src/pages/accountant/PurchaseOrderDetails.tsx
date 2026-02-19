@@ -8,6 +8,7 @@ import {
     Filter,
     ShoppingCart,
     Truck,
+    Edit,
     Clock,
     PieChart,
     Package,
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
 import { usePurchaseOrder, useClosePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
+import { useRequest } from '@/hooks/queries/useRequests';
 import { useFilters } from '@/hooks/useFilters';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSort } from '@/hooks/useSort';
@@ -33,7 +35,7 @@ import {
     StatCard, FilterSelect, SearchInput, PaginationControls, ItemMobileCard,
 } from '@/components/common';
 import type { PurchaseOrderItem } from '@/types/models';
-import { computePODetailStats, getProgressColor } from '@/lib/po-stats';
+import { computePODetailStats, getProgressColor, isRequestFullyOrdered } from '@/lib/po-stats';
 
 interface ItemFilters {
     search: string;
@@ -69,6 +71,10 @@ const PurchaseOrderDetails = () => {
         refetch,
     } = usePurchaseOrder(poId);
     const closeOrderMutation = useClosePurchaseOrder();
+
+    // ── Fetch Request Data for "Update Order" Visibility ──
+    const { data: request } = useRequest(po?.requestId ?? 0);
+    const showUpdateOrderButton = !isRequestFullyOrdered(request);
 
 
 
@@ -306,15 +312,28 @@ const PurchaseOrderDetails = () => {
                                     PDF
                                 </Button>
                                 {showCloseButton && (
-                                    <Button
-                                        onClick={handleCloseOrder}
-                                        disabled={closeOrderMutation.isPending}
-                                        size="sm"
-                                        className="flex-1 lg:flex-none gap-2 px-3 bg-[#2a3455] border-slate-200 text-white hover:bg-[#1e253e] hover:text-white"
-                                    >
-                                        {closeOrderMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                                        Complete Order
-                                    </Button>
+                                    <>
+                                        <Button
+                                            onClick={handleCloseOrder}
+                                            disabled={closeOrderMutation.isPending}
+                                            size="sm"
+                                            className="flex-1 lg:flex-none gap-2 px-3 bg-[#2a3455] border-slate-200 text-white hover:bg-[#1e253e] hover:text-white"
+                                        >
+                                            {closeOrderMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                                            Complete Order
+                                        </Button>
+
+                                        {showUpdateOrderButton && (
+                                            <Button
+                                                onClick={() => navigate(`${location.pathname}/edit`)}
+                                                size="sm"
+                                                className="flex-1 lg:flex-none gap-2 px-3 bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+                                            >
+                                                <Edit className="h-3.5 w-3.5" />
+                                                Create Supplemental Order
+                                            </Button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -489,7 +508,7 @@ const PurchaseOrderDetails = () => {
                     )}
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 };
 

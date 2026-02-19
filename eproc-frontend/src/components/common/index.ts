@@ -5,7 +5,7 @@ export { FilterSelect } from './FilterSelect';
 export { SearchInput } from './SearchInput';
 export { PaginationControls } from './PaginationControls';
 export { ItemMobileCard } from './ItemMobileCard';
-export { CreatePOItemMobileCard } from './CreatePOItemMobileCard';
+export { POFormItemCard } from './POFormItemCard';
 export { MobileListCard } from './MobileListCard';
 export { ActiveFilters, type FilterChip } from './ActiveFilters';
 export { DateRangePicker, type DatePreset, PRESET_LABELS, getPresetRange } from './DateRangePicker';

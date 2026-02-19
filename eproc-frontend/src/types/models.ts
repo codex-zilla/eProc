@@ -253,6 +253,8 @@ export interface PurchaseOrder {
   poNumber: string;
   projectId: number;
   projectName: string;
+  requestId: number;     // Added
+  requestTitle: string;  // Added
   siteId?: number;
   siteName?: string;
   status: 'OPEN' | 'PARTIALLY_DELIVERED' | 'DELIVERED' | 'CLOSED';
@@ -287,8 +289,9 @@ export interface PurchaseOrderItem {
   unitPrice: number;
   unit: string;
   totalPrice: number;
-  quantityDelivered: number; // Was optional
-  totalDelivered: number; // Alias or computed
+
+  quantityDelivered: number; // Was optional or legacy
+  totalDelivered: number;    // From backend DTO
   requestedQty: number;
   siteName?: string;
 }
@@ -349,6 +352,7 @@ export interface RequestMaterial {
     rejectionComment?: string;
     comment?: string;
     workDescription?: string;
+    orderedQuantity?: number;
 }
 
 // Aliases

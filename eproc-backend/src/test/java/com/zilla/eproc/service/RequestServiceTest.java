@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,6 +28,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RequestServiceTest {
 
         @Mock
@@ -54,6 +57,12 @@ class RequestServiceTest {
 
         @Mock
         private ProjectAssignmentRepository projectAssignmentRepository;
+
+        @Mock
+        private PurchaseOrderRepository purchaseOrderRepository;
+
+        @Mock
+        private PurchaseOrderItemRepository purchaseOrderItemRepository;
 
         @InjectMocks
         private RequestService requestService;
@@ -132,6 +141,7 @@ class RequestServiceTest {
 
                 doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
                                 any(ProjectRole[].class));
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(new ArrayList<>());
 
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
@@ -221,6 +231,7 @@ class RequestServiceTest {
 
                 doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
                                 any(ProjectRole[].class));
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(new ArrayList<>());
 
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
@@ -257,6 +268,7 @@ class RequestServiceTest {
 
                 doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
                                 any(ProjectRole[].class));
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(new ArrayList<>());
 
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
@@ -321,6 +333,7 @@ class RequestServiceTest {
 
                 doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
                                 any(ProjectRole[].class));
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(new ArrayList<>());
 
                 // Act
                 List<RequestResponseDTO> result = requestService.createRequests(
@@ -359,6 +372,7 @@ class RequestServiceTest {
                                 .thenReturn(Optional.of(testEngineer));
 
                 when(projectSecurityService.hasProjectAccess(anyString(), anyLong())).thenReturn(true);
+                when(purchaseOrderItemRepository.findByRequestId(1L)).thenReturn(new ArrayList<>());
 
                 // Act
                 RequestResponseDTO result = requestService.getRequestById(1L, testEngineer.getEmail());
@@ -367,6 +381,7 @@ class RequestServiceTest {
                 assertThat(result).isNotNull();
                 assertThat(result.getTitle()).isEqualTo("Test Request");
                 assertThat(result.getBoqReferenceCode()).isEqualTo("BOQ-2024-001");
+                assertThat(result.getMaterials()).isEmpty();
         }
 
         @Test

@@ -29,6 +29,7 @@ export const requestService = {
     siteId?: number;
     projectId?: number;
     myRequests?: boolean;
+    excludeOrdered?: boolean;
   }): Promise<RequestDetail[]> => {
     const response = await api.get<RequestDetail[]>('/requests', { params });
     return response.data;

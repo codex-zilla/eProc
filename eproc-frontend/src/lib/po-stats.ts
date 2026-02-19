@@ -76,3 +76,20 @@ export function getDeliveryStatus(totalDelivered: number, orderedQty: number) {
     return { label: 'PARTIAL', color: 'bg-orange-50 text-orange-600' } as const;
   return { label: 'ORDERED', color: 'bg-blue-50 text-blue-600' } as const;
 }
+
+interface RequestMaterial {
+    quantity: number;
+    orderedQuantity?: number;
+}
+
+interface RequestDetail {
+    materials: RequestMaterial[];
+}
+
+/**
+ * Check if a request has been fully ordered (all materials have orderedQty >= requestedQty).
+ */
+export function isRequestFullyOrdered(request: RequestDetail | undefined | null): boolean {
+    if (!request || !request.materials) return false;
+    return request.materials.every(m => (m.orderedQuantity || 0) >= m.quantity);
+}

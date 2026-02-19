@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,6 +35,8 @@ public class RequestService {
         private final DuplicateDetectionService duplicateDetectionService;
         private final ProjectSecurityService projectSecurityService;
         private final ProjectAssignmentRepository projectAssignmentRepository;
+        private final PurchaseOrderRepository purchaseOrderRepository;
+        private final PurchaseOrderItemRepository purchaseOrderItemRepository;
 
         /**
          * Create multiple requests at once.
@@ -287,7 +290,7 @@ public class RequestService {
          */
         @Transactional(readOnly = true)
         public List<RequestResponseDTO> getAllManagerRequests(String userEmail, RequestStatus status, Long projectId,
-                        Long siteId) {
+                        Long siteId, Boolean excludeOrdered) {
                 User user = userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -311,10 +314,22 @@ public class RequestService {
                         }
                 }
 
-                return requests.stream()
+                // Filter valid requests
+                requests = requests.stream()
                                 .filter(r -> status == null || r.getStatus() == status)
                                 .filter(r -> projectId == null || r.getProject().getId().equals(projectId))
                                 .filter(r -> siteId == null || r.getSite().getId().equals(siteId))
+                                .collect(Collectors.toList());
+
+                // Exclude requests that already have a PO if requested
+                if (Boolean.TRUE.equals(excludeOrdered)) {
+                        List<Long> orderedRequestIds = purchaseOrderRepository.findAllRequestIds();
+                        requests = requests.stream()
+                                        .filter(r -> !orderedRequestIds.contains(r.getId()))
+                                        .collect(Collectors.toList());
+                }
+
+                return requests.stream()
                                 .map(r -> mapToResponseDTO(r, true))
                                 .collect(Collectors.toList());
         }
@@ -348,8 +363,22 @@ public class RequestService {
                                 .build();
 
                 if (includeMaterials) {
+                        // Fetch all PO items for this request to calculate total ordered quantities
+                        List<PurchaseOrderItem> poItems = purchaseOrderItemRepository.findByRequestId(request.getId());
+
+                        // Map material name -> total ordered qty
+                        java.util.Map<String, BigDecimal> orderedQtyMap = poItems.stream()
+                                        .filter(item -> item.getMaterialDisplayName() != null)
+                                        .collect(Collectors.groupingBy(
+                                                        item -> item.getMaterialDisplayName().toLowerCase(),
+                                                        Collectors.reducing(BigDecimal.ZERO,
+                                                                        PurchaseOrderItem::getOrderedQty,
+                                                                        BigDecimal::add)));
+
                         List<MaterialItemResponseDTO> materialDTOs = request.getMaterials().stream()
-                                        .map(this::mapMaterialToDTO)
+                                        .map(m -> mapMaterialToDTO(m,
+                                                        orderedQtyMap.getOrDefault(m.getName().toLowerCase(),
+                                                                        BigDecimal.ZERO)))
                                         .collect(Collectors.toList());
                         dto.setMaterials(materialDTOs);
 
@@ -430,6 +459,13 @@ public class RequestService {
          * Map Material entity to DTO.
          */
         private MaterialItemResponseDTO mapMaterialToDTO(Material material) {
+                return mapMaterialToDTO(material, BigDecimal.ZERO);
+        }
+
+        /**
+         * Map Material entity to DTO with ordered quantity.
+         */
+        private MaterialItemResponseDTO mapMaterialToDTO(Material material, BigDecimal orderedQty) {
                 return MaterialItemResponseDTO.builder()
                                 .id(material.getId())
                                 .name(material.getName())
@@ -443,6 +479,7 @@ public class RequestService {
                                 .revisionNumber(material.getRevisionNumber())
                                 .totalEstimate(material.getTotalEstimate())
                                 .createdAt(material.getCreatedAt())
+                                .orderedQuantity(orderedQty)
                                 .build();
         }
 

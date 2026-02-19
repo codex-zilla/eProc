@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2, ShoppingCart, Trash2, Search, X } from 'lucide-react';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { Loader2, ShoppingCart, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useAuth } from '@/context/AuthContext';
 import { useProjectRequests } from '@/hooks/queries/useRequests';
-import { useCreatePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
+import { useCreatePurchaseOrder, usePurchaseOrder, useUpdatePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { saveDraft, loadDraft, clearDraft } from '@/lib/utils';
 import { isRequired } from '@/lib/validators';
-import { LoadingSpinner, ErrorDisplay, EmptyState, DataTable, SearchInput, CreatePOItemMobileCard } from '@/components/common';
+import { LoadingSpinner, ErrorDisplay, EmptyState, DataTable, SearchInput, POFormItemCard } from '@/components/common';
 import type { RequestMaterial, RequestDetail } from '@/types/models';
 
 interface OrderItem {
-    id: number; // materialId
+    id: number;
     materialName: string;
     unit: string;
     requestedQty: number;
@@ -29,6 +29,9 @@ interface OrderItem {
     totalPrice: number;
     code?: string; // Mock code for display
     siteName?: string;
+    totalDelivered?: number;
+    maxAssignable?: number;
+    remainingAfterThis?: number;
 }
 
 interface DraftState {
@@ -39,67 +42,127 @@ interface DraftState {
     lastSaved: number;
 }
 
-const CreatePurchaseOrder = () => {
+const PurchaseOrderForm = () => {
     const [searchParams] = useSearchParams();
+    const { id } = useParams();
+    const isUpdateMode = !!id;
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const projectId = Number(searchParams.get('projectId'));
-    const requestId = Number(searchParams.get('requestId'));
+    // Query params for creation
+    const queryProjectId = searchParams.get('projectId');
+    const queryRequestId = searchParams.get('requestId');
+
+    // For Update Mode: Fetch existing PO
+    const { data: existingPO, isLoading: loadingPO, error: poError } = usePurchaseOrder(Number(id));
+
+    // Derived IDs
+    const projectId = isUpdateMode ? existingPO?.projectId : Number(queryProjectId);
+    const requestId = isUpdateMode ? existingPO?.requestId : Number(queryRequestId);
 
     // Determine base path based on user role for back navigation
     const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
     const { data: requests = [], isLoading: loadingRequests, error: requestsError } = useProjectRequests(projectId || 0);
     const createPOMutation = useCreatePurchaseOrder();
+    const updatePOMutation = useUpdatePurchaseOrder();
 
     // Form State
-    const [vendorName, setVendorName] = useState('General Vendor'); // Defaulted as requested
+    const [vendorName, setVendorName] = useState('General Vendor');
     const [notes, setNotes] = useState('');
-    const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
     const [itemsMap, setItemsMap] = useState<Record<number, { orderedQty: number; unitPrice: number }>>({});
     const [search, setSearch] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    // Initial Load - Pre-fill data
+    useEffect(() => {
+        if (isUpdateMode && existingPO && !isInitialized && requests.length > 0) {
+            // Find target request to map materials
+            const request = requests.find(r => r.id === existingPO.requestId);
+            if (request) {
+                setVendorName(existingPO.vendorName || '');
+                setNotes(existingPO.notes || '');
+
+                const newItemsMap: Record<number, { orderedQty: number; unitPrice: number }> = {};
+
+                // Map existing PO items to itemsMap
+                existingPO.items.forEach(poItem => {
+                    // Find material ID by name or some identifier.
+                    // Ideally we should use material ID, but PO items refer to Request items by name (mostly).
+                    // We need to match with `availableMaterials`.
+                    // `RequestMaterial` has `name`.
+                    const material = request.materials.find(m => m.name === poItem.materialDisplayName);
+                    if (material) {
+                        newItemsMap[material.id] = {
+                            orderedQty: 0,
+                            unitPrice: poItem.unitPrice
+                        };
+                    }
+                });
+
+                setItemsMap(newItemsMap);
+                setIsInitialized(true);
+            }
+        } else if (!isUpdateMode && !isInitialized && requests.length > 0 && requestId) {
+            // Create Mode: Pre-populate with Remaining Balance
+            const request = requests.find(r => r.id === Number(requestId));
+            if (request) {
+                const newItemsMap: Record<number, { orderedQty: number; unitPrice: number }> = {};
+                request.materials.forEach(m => {
+                    // Assume orderedQuantity is fresh from backend
+                    if (m.status === 'APPROVED') {
+                        newItemsMap[m.id] = {
+                            orderedQty: 0,
+                            unitPrice: m.rateEstimate || 0
+                        };
+                    }
+                });
+                setItemsMap(newItemsMap);
+                setIsInitialized(true);
+            }
+        }
+    }, [isUpdateMode, existingPO, isInitialized, requests]);
+
     // Draft key
     const draftKey = `po_draft_${projectId}_${requestId || 'all'}`;
 
-    // Load Draft on Mount
+    // Load Draft on Mount (Only for Create Mode)
     const loadedDraftKeyRef = useRef<string | null>(null);
 
     useEffect(() => {
+        if (isUpdateMode) return; // Don't load draft in update mode
         if (loadedDraftKeyRef.current === draftKey) return;
 
         const draft = loadDraft<DraftState>(draftKey);
         if (draft) {
             setVendorName(draft.vendorName || 'General Vendor');
             setNotes(draft.notes || '');
-            setDeliveryDate(draft.deliveryDate || new Date().toISOString().split('T')[0]);
             setItemsMap(draft.items || {});
             toast.info('Draft loaded successfully');
         }
         loadedDraftKeyRef.current = draftKey;
-    }, [draftKey]);
+    }, [draftKey, isUpdateMode]);
 
-    // Auto-Save Effect
+    // Auto-Save Effect (Only for Create Mode)
     const debouncedVendor = useDebounce(vendorName, 1000);
     const debouncedNotes = useDebounce(notes, 1000);
-    const debouncedDeliveryDate = useDebounce(deliveryDate, 1000);
     const debouncedItems = useDebounce(itemsMap, 1000);
 
     useEffect(() => {
-        if (!projectId) return;
+        if (!projectId || isUpdateMode) return;
 
         const draft: DraftState = {
             vendorName: debouncedVendor,
             notes: debouncedNotes,
-            deliveryDate: debouncedDeliveryDate,
+            deliveryDate: '', // Not used in new DTO? kept for state consistency if needed
             items: debouncedItems,
             lastSaved: Date.now()
         };
 
         saveDraft(draftKey, draft);
-    }, [debouncedVendor, debouncedNotes, debouncedDeliveryDate, debouncedItems, draftKey, projectId]);
+    }, [debouncedVendor, debouncedNotes, debouncedItems, draftKey, projectId, isUpdateMode]);
 
     // Derived Data
     const targetRequest = useMemo<RequestDetail | null>(() => {
@@ -109,7 +172,6 @@ const CreatePurchaseOrder = () => {
 
     const availableMaterials = useMemo(() => {
         if (!targetRequest) return [];
-        // Filter for APPROVED materials only
         return (targetRequest.materials || []).filter((m: RequestMaterial) => m.status === 'APPROVED');
     }, [targetRequest]);
 
@@ -117,9 +179,46 @@ const CreatePurchaseOrder = () => {
     const orderItems: OrderItem[] = useMemo(() => {
         return availableMaterials.map((material: RequestMaterial) => {
             const state = itemsMap[material.id] || {
-                orderedQty: 0, // Default to 0
-                unitPrice: material.rateEstimate || 0 // Default to estimated rate
+                orderedQty: 0,
+                unitPrice: material.rateEstimate || 0
             };
+
+            // Calculate 'Before' stats
+            // material.orderedQuantity includes ALL POs (including this one if we are editing and backend is fresh)
+            // But usually 'requests' data might be slightly stale or inclusive.
+            // Let's assume material.orderedQuantity is the Source of Truth from backend.
+
+            // If UpdateMode: We need to subtract OUR existing contribution to find 'Others'
+            let totalDelivered = 0;
+
+            if (isUpdateMode && existingPO) {
+                const poItem = existingPO.items.find(i => i.materialDisplayName === material.name);
+                if (poItem) {
+                    if (Array.isArray((poItem as any).deliveryItems)) {
+                        totalDelivered = (poItem as any).deliveryItems.reduce((sum: number, d: any) => sum + d.quantityDelivered, 0);
+                    } else if ('totalDelivered' in poItem) {
+                        totalDelivered = (poItem as any).totalDelivered;
+                    }
+                }
+            }
+
+            // Backend Total Ordered (from Request) - My Existing Contribution = Ordered By Others
+            // If creating new: myExistingQty = 0.
+            const backendTotal = material.orderedQuantity || 0;
+
+
+            // Phase 2 Logic:
+            // Creation Mode: Limit = Requested Qty (Ignore others).
+            // Update Mode: Limit = Requested - Others (maxAssignable).
+            let maxAssignable = 0;
+
+            if (isUpdateMode) {
+                // The maximum I can theoretically order right now
+                maxAssignable = Math.max(0, material.quantity - backendTotal);
+            } else {
+                // Creation Mode: Limit is strictly Requested Qty (User requirement)
+                maxAssignable = material.quantity;
+            }
 
             return {
                 id: material.id,
@@ -130,10 +229,13 @@ const CreatePurchaseOrder = () => {
                 unitPrice: state.unitPrice,
                 totalPrice: state.orderedQty * state.unitPrice,
                 code: `MAT-${material.id.toString().padStart(3, '0')}-001`,
-                siteName: targetRequest?.siteName
+                siteName: targetRequest?.siteName,
+                totalDelivered,
+                // Custom fields for logic
+                maxAssignable,
             };
         });
-    }, [availableMaterials, itemsMap, targetRequest]);
+    }, [availableMaterials, itemsMap, targetRequest, isUpdateMode, existingPO]);
 
     const filteredItems = useMemo(() => {
         return orderItems.filter(item =>
@@ -165,172 +267,207 @@ const CreatePurchaseOrder = () => {
         });
     };
 
-    const handleRemoveItem = (id: number) => {
-        handleItemChange(id, 'orderedQty', '0');
-        toast.info("Item excluded from PO");
-    };
+
 
     const handleSubmit = async () => {
         // Validation
         if (!isRequired(vendorName)) {
-            // Should not happen with default, but good to keep
             toast.error('Vendor Name is required');
             return;
         }
 
-        if (!targetRequest) return;
+        if (!targetRequest || !projectId || !requestId) return;
+
+        // Check for invalid quantities vs delivered
+
+
+        // Strict Over-ordering Check
+        const overOrderedItems = orderItems.filter(item => item.orderedQty > (item.maxAssignable ?? 0));
+        if (overOrderedItems.length > 0) {
+            toast.error(`Cannot order more than available for: ${overOrderedItems.map(i => i.materialName).join(', ')}`);
+            return;
+        }
 
         const validItems = orderItems.filter(item => item.orderedQty > 0);
+
         if (validItems.length === 0) {
             toast.error('At least one item must have a quantity greater than 0');
             return;
         }
 
+        const itemDTOs = validItems.map(item => ({
+            materialDisplayName: item.materialName,
+            orderedQty: item.orderedQty,
+            unit: item.unit,
+            unitPrice: item.unitPrice
+        }));
+
         try {
+            // ALWAYS Create New PO (Supplemental)
             const dto = {
                 projectId,
                 requestId,
                 siteId: targetRequest.siteId,
                 vendorName,
                 notes,
-                items: validItems.map(item => ({
-                    materialDisplayName: item.materialName,
-                    orderedQty: item.orderedQty,
-                    unit: item.unit,
-                    unitPrice: item.unitPrice
-                }))
+                items: itemDTOs
             };
-
             await createPOMutation.mutateAsync(dto);
 
-            clearDraft(draftKey);
-            toast.success('Purchase Order created successfully');
+            // If it was "Update Mode", we are done with the "old" PO interaction, go back to list or details of NEW PO?
+            // Usually we go back to list.
+            clearDraft(draftKey); // Clear draft just in case
+            toast.success(isUpdateMode ? 'Supplemental Purchase Order created successfully' : 'Purchase Order created successfully');
             navigate(`${basePath}/procurement/purchase-orders`);
         } catch (error) {
-            console.error('Failed to create PO:', error);
-            // Error handling is managed by the mutation hook usually, but consistent logging helps
+            console.error('Failed to save PO:', error);
         }
     };
 
     // Columns for DataTable
-    const columns: any[] = useMemo(() => [
-        {
-            id: 'material',
-            header: 'Material',
-            accessorKey: 'materialName',
-            cell: (item: OrderItem) => (
-                <span className="font-semibold text-slate-900 text-sm">{item.materialName}</span>
-            ),
-            className: 'pr-0'
-        },
-        {
-            id: 'unit',
-            header: 'Unit',
-            accessorKey: 'unit',
-            className: 'pr-0',
-            headerClassName: 'pr-0',
-            cell: (item: OrderItem) => (
-                <span className='font-semibold text-slate-600'>{item.unit.toLocaleLowerCase()}</span>
-            )
-        },
-        {
-            id: 'reqQty',
-            header: 'Req. Qty',
-            accessorKey: 'requestedQty',
-            className: 'font-medium text-slate-700 text-center',
-            headerClassName: 'text-center',
-            cell: (item: OrderItem) => (
-                <span>{item.requestedQty.toLocaleString()}</span>
-            )
-        },
-
-        {
-            id: 'unitPrice',
-            header: 'Unit Cost',
-            className: ' w-[120px] pr-0',
-            headerClassName: 'pr-0',
-            cell: (item: OrderItem) => (
-                <div className="relative">
-                    <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPrice === 0 ? '' : item.unitPrice}
-                        placeholder="0.00"
-                        onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)}
-                        className="w-full font-semibold bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm"
-                    />
-                </div>
-            )
-        },
-        {
-            id: 'orderedQty',
-            header: 'Ord. Qty',
-            className: 'w-[120px] pr-0',
-            headerClassName: 'pr-0',
-            cell: (item: OrderItem) => {
-                const isPartial = item.orderedQty > 0 && item.orderedQty < item.requestedQty;
-                return (
-                    <div className="relative">
-                        {isPartial && (
-                            <Badge variant="secondary" className="absolute -top-2.5 left-1/2 -translate-x-1/2 h-5 text-[10px] px-2 bg-amber-100 text-amber-700 hover:bg-amber-100 border-none shadow-sm z-10 whitespace-nowrap">
-                                ⚠ Partial
+    const columns: any[] = useMemo(() => {
+        const cols = [
+            {
+                id: 'material',
+                header: 'Material',
+                accessorKey: 'materialName',
+                cell: (item: OrderItem) => (
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-slate-900 text-sm">{item.materialName}</span>
+                        {item.totalDelivered && item.totalDelivered > 0 ? (
+                            <Badge variant="secondary" className="w-fit mt-1 bg-green-100 text-green-700 hover:bg-green-100 border-none px-1.5 h-5 text-[10px]">
+                                Delivered: {item.totalDelivered}
                             </Badge>
-                        )}
+                        ) : null}
+                    </div>
+                ),
+                className: 'pr-0 align-top py-3'
+            },
+            {
+                id: 'unit',
+                header: 'Unit',
+                accessorKey: 'unit',
+                className: 'pr-0',
+                headerClassName: 'pr-0',
+                cell: (item: OrderItem) => (
+                    <span className='font-semibold text-slate-600'>{item.unit.toLocaleLowerCase()}</span>
+                )
+            },
+            {
+                id: 'reqQty',
+                header: 'Req. Qty',
+                accessorKey: 'requestedQty',
+                className: 'font-medium text-slate-700 text-center',
+                headerClassName: 'text-center',
+                cell: (item: OrderItem) => (
+                    <span>{item.requestedQty.toLocaleString()}</span>
+                )
+            },
+
+            {
+                id: 'unitPrice',
+                header: 'Unit Cost',
+                className: ' w-[120px] pr-0',
+                headerClassName: 'pr-0',
+                cell: (item: OrderItem) => (
+                    <div className="relative">
                         <Input
                             type="number"
                             min="0"
-                            value={item.orderedQty === 0 && item.orderedQty !== item.requestedQty ? '' : item.orderedQty}
-                            placeholder="0"
-                            onChange={(e) => handleItemChange(item.id, 'orderedQty', e.target.value)}
-                            className="w-full font-semibold bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm"
+                            step="0.01"
+                            value={item.unitPrice === 0 ? '' : item.unitPrice}
+                            placeholder="0.00"
+                            onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)}
+
+                            disabled={isUpdateMode && (item.maxAssignable === 0)}
+                            className="w-full font-semibold bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
-                );
-            }
-        },
-        {
-            id: 'total',
-            header: 'Total',
-            className: 'pr-0 min-w-[100px]',
-            cell: (item: OrderItem) => (
-                <span className="font-semibold text-slate-700 font-mono tracking-tighter">{formatCurrency(item.totalPrice)}</span>
-            ),
-            headerClassName: 'pr-0'
-        },
-        {
-            id: 'actions',
-            header: '',
-            cell: (item: OrderItem) => (
-                <div className="flex justify-start">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                        onClick={() => handleRemoveItem(item.id)}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remove</span>
-                    </Button>
-                </div>
-            ),
-            className: 'w-[60px] align-top py-3 pr-2'
-        }
-    ], [itemsMap, availableMaterials]); // Re-create columns when data changes to update inputs
+                )
+            },
+            {
+                id: 'orderedQty',
+                header: 'Ord. Qty',
+                className: 'w-[120px] pr-0 align-top py-3',
+                headerClassName: 'pr-0',
+                cell: (item: OrderItem) => {
+                    const maxVal = item.maxAssignable ?? item.requestedQty;
+                    // In update mode, partial means less than the remaining amount (maxVal).
+                    // In create mode, partial means less than the total requested amount.
+                    const isPartial = isUpdateMode
+                        ? item.orderedQty > 0 && item.orderedQty < maxVal
+                        : item.orderedQty > 0 && item.orderedQty < item.requestedQty;
 
-    if (loadingRequests) {
+                    const isOverRequested = item.orderedQty > maxVal;
+
+                    return (
+                        <div className="relative">
+                            {isPartial && (
+                                <Badge variant="secondary" className="absolute -top-2.5 left-1/2 -translate-x-1/2 h-5 text-[10px] px-2 bg-amber-100 text-amber-700 hover:bg-amber-100 border-none shadow-sm z-10 whitespace-nowrap">
+                                    ⚠ Partial
+                                </Badge>
+                            )}
+                            <Input
+                                type="number"
+                                min="0"
+                                value={item.orderedQty === 0 && item.orderedQty !== maxVal ? '' : item.orderedQty}
+                                placeholder="0"
+                                onChange={(e) => handleItemChange(item.id, 'orderedQty', e.target.value)}
+
+                                disabled={isUpdateMode && (item.maxAssignable === 0)}
+                                className={`w-full font-semibold bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm ${isOverRequested ? 'border-red-500 bg-red-50' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
+                            />
+                            {isOverRequested && (
+                                <p className="text-[10px] text-red-600 font-medium mt-1 text-center leading-tight">
+                                    Max: {maxVal}
+                                </p>
+                            )}
+                        </div>
+                    );
+                }
+            },
+            // Remaining column only if Update Mode
+            ...(isUpdateMode ? [{
+                id: 'remaining',
+                header: 'Remaining',
+                className: 'text-center align-top py-3',
+                headerClassName: 'text-center',
+                cell: (item: OrderItem) => {
+                    const remaining = item.maxAssignable ?? 0;
+                    return (
+                        <span className={`font-semibold text-slate-500`}>
+                            {remaining}
+                        </span>
+                    );
+                }
+            }] : []),
+            {
+                id: 'total',
+                header: 'Total',
+                className: 'pr-0 min-w-[100px]',
+                cell: (item: OrderItem) => (
+                    <span className="font-semibold text-slate-700 font-mono tracking-tighter">{formatCurrency(item.totalPrice)}</span>
+                ),
+                headerClassName: 'pr-0'
+            },
+
+        ];
+        return cols;
+    }, [itemsMap, availableMaterials, isUpdateMode, existingPO]);
+
+    if (loadingRequests || (isUpdateMode && loadingPO)) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <LoadingSpinner size="lg" text="Loading request details..." />
+                <LoadingSpinner size="lg" text={isUpdateMode ? "Loading purchase order..." : "Loading request details..."} />
             </div>
         );
     }
 
-    if (requestsError || !targetRequest) {
+    if (requestsError || (isUpdateMode && poError) || !targetRequest) {
         return (
             <ErrorDisplay
-                error={requestsError as Error || new Error('Request not found')}
-                title="Failed to load request"
+                error={(requestsError || poError) as Error || new Error('Data not found')}
+                title="Failed to load data"
                 onBack={() => navigate(`${basePath}/procurement/approved-requests`)}
                 backLabel="Back to Approved Requests"
             />
@@ -352,6 +489,8 @@ const CreatePurchaseOrder = () => {
         );
     }
 
+    const isPending = createPOMutation.isPending || updatePOMutation.isPending;
+
     return (
         <div className="space-y-4 min-w-0 pb-10">
             {/* Header */}
@@ -360,7 +499,14 @@ const CreatePurchaseOrder = () => {
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">
                         <div className="min-w-0">
                             <div className="flex items-center gap-3 mb-1">
-                                <h1 className="text-base lg:text-2xl font-bold text-[#2a3455] truncate">Create Purchase Order</h1>
+                                <h1 className="text-base lg:text-2xl font-bold text-[#2a3455] truncate">
+                                    {isUpdateMode ? 'Update Order' : 'Create Purchase Order'}
+                                </h1>
+                                {isUpdateMode && (
+                                    <Badge variant="outline" className="text-slate-500 border-slate-300">
+                                        {existingPO?.poNumber}
+                                    </Badge>
+                                )}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
                                 <div className="hidden sm:block w-1 h-1 rounded-full bg-slate-300" />
@@ -375,7 +521,6 @@ const CreatePurchaseOrder = () => {
                                 <div className="flex items-center gap-1.5">
                                     <span className='text-xs sm:text-sm'>Requested On: <span className="font-medium text-slate-700">{formatDate(targetRequest.createdAt)}</span></span>
                                 </div>
-
                             </div>
                         </div>
                     </div>
@@ -469,11 +614,11 @@ const CreatePurchaseOrder = () => {
                                 />
                             ) : (
                                 filteredItems.map(item => (
-                                    <CreatePOItemMobileCard
+                                    <POFormItemCard
                                         key={item.id}
                                         item={item}
                                         onUpdate={handleItemChange}
-                                        onRemove={handleRemoveItem}
+                                        isUpdateMode={isUpdateMode}
                                     />
                                 ))
                             )}
@@ -510,19 +655,19 @@ const CreatePurchaseOrder = () => {
                                 <Button
                                     variant="outline"
                                     className="w-full border-slate-200 mb-0 text-slate-600 bg-slate-100 hover:bg-slate-50 hover:text-slate-900"
-                                    onClick={() => navigate(`${basePath}/procurement/approved-requests`)}
+                                    onClick={() => isUpdateMode ? navigate(`${basePath}/procurement/purchase-orders/${id}`) : navigate(`${basePath}/procurement/approved-requests`)}
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     className="w-full bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-lg shadow-indigo-900/10 text-base"
                                     onClick={handleSubmit}
-                                    disabled={createPOMutation.isPending}
+                                    disabled={isPending}
                                 >
-                                    {createPOMutation.isPending ? (
+                                    {isPending ? (
                                         <Loader2 className="h-5 w-5 animate-spin mr-2" />
                                     ) : null}
-                                    Create Order
+                                    {isUpdateMode ? 'Update Order' : 'Create Order'}
                                 </Button>
                             </div>
                         </CardContent>
@@ -533,4 +678,4 @@ const CreatePurchaseOrder = () => {
     );
 };
 
-export default CreatePurchaseOrder;
+export default PurchaseOrderForm;

@@ -124,7 +124,8 @@ const ApprovedRequests = () => {
     } = useRequests({
         status: 'APPROVED',
         projectId: filters.project === 'ALL' ? undefined : Number(filters.project),
-        siteId: filters.site === 'ALL' ? undefined : Number(filters.site)
+        siteId: filters.site === 'ALL' ? undefined : Number(filters.site),
+        excludeOrdered: true
     });
 
     // Fetch Sites

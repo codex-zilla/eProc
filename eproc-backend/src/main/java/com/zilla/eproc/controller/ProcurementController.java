@@ -1,7 +1,9 @@
 package com.zilla.eproc.controller;
 
 import com.zilla.eproc.dto.CreatePurchaseOrderDTO;
+
 import com.zilla.eproc.dto.PurchaseOrderResponseDTO;
+import com.zilla.eproc.dto.UpdatePurchaseOrderDTO;
 import com.zilla.eproc.service.ProcurementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -67,6 +69,19 @@ public class ProcurementController {
             Authentication authentication) {
         String userEmail = authentication.getName();
         PurchaseOrderResponseDTO response = procurementService.closePurchaseOrder(id, userEmail);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Update an existing purchase order.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<PurchaseOrderResponseDTO> updatePurchaseOrder(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePurchaseOrderDTO dto,
+            Authentication authentication) {
+        String userEmail = authentication.getName();
+        PurchaseOrderResponseDTO response = procurementService.updatePurchaseOrder(id, dto, userEmail);
         return ResponseEntity.ok(response);
     }
 }

@@ -47,11 +47,12 @@ public class RequestController {
             @RequestParam(required = false) com.zilla.eproc.model.RequestStatus status,
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) Long siteId,
+            @RequestParam(required = false, defaultValue = "false") Boolean excludeOrdered,
             @AuthenticationPrincipal UserDetails userDetails) {
         // This endpoint returns all requests for a Project Owner across all their
         // projects, optionally filtered
         List<RequestResponseDTO> response = requestService.getAllManagerRequests(userDetails.getUsername(), status,
-                projectId, siteId);
+                projectId, siteId, excludeOrdered);
         return ResponseEntity.ok(response);
     }
 

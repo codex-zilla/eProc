@@ -52,4 +52,10 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             "LEFT JOIN FETCH po.items i " +
             "WHERE po.id = :id")
     Optional<PurchaseOrder> findByIdWithDetails(@Param("id") Long id);
+
+    /**
+     * Find all request IDs that have an associated purchase order.
+     */
+    @Query("SELECT po.request.id FROM PurchaseOrder po WHERE po.request.id IS NOT NULL")
+    List<Long> findAllRequestIds();
 }

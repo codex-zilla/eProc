@@ -3,8 +3,10 @@ import {
   getProjectPurchaseOrders, 
   getPurchaseOrder, 
   createPurchaseOrder, 
+  updatePurchaseOrder,
   closePurchaseOrder,
-  type CreatePurchaseOrderDTO 
+  type CreatePurchaseOrderDTO,
+  type UpdatePurchaseOrderDTO 
 } from "@/services/procurementService"; 
 import { projectService } from "@/services/projectService";
 import { useErrorHandler } from "../useErrorHandler";
@@ -66,6 +68,9 @@ export const useCreatePurchaseOrder = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.byProject(variables.projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.all });
+      // Invalidate requests to update 'orderedQuantity' (Global remaining balance)
+      // Since we know the project ID, we can be specific
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.byProject(variables.projectId) });
     },
     onError: (error) => handleError(error, "Failed to create purchase order"),
   });
@@ -83,5 +88,22 @@ export const useClosePurchaseOrder = () => {
       // Also invalidate project list? Maybe.
     },
     onError: (error) => handleError(error, "Failed to close purchase order"),
+  });
+};
+
+
+export const useUpdatePurchaseOrder = () => {
+  const queryClient = useQueryClient();
+  const { handleError } = useErrorHandler();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdatePurchaseOrderDTO }) => updatePurchaseOrder(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.purchaseOrders.byId(variables.id) });
+      // Invalidate requests to update 'orderedQuantity' (Global remaining balance)
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+    },
+    onError: (error) => handleError(error, "Failed to update purchase order"),
   });
 };

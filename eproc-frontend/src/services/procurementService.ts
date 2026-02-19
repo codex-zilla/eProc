@@ -19,6 +19,19 @@ export interface CreatePurchaseOrderDTO {
   items: CreatePurchaseOrderItemDTO[];
 }
 
+export interface UpdatePurchaseOrderItemDTO {
+  materialDisplayName: string;
+  orderedQty: number;
+  unitPrice: number;
+  unit: string;
+}
+
+export interface UpdatePurchaseOrderDTO {
+  vendorName?: string;
+  notes?: string;
+  items: UpdatePurchaseOrderItemDTO[];
+}
+
 import type { PurchaseOrder, PurchaseOrderItem } from '@/types/models';
 
 export type PurchaseOrderItemResponse = PurchaseOrderItem;
@@ -121,5 +134,17 @@ export const closePurchaseOrder = async (
   id: number
 ): Promise<PurchaseOrderResponse> => {
   const response = await api.post(`/purchase-orders/${id}/close`);
+  return response.data;
+};
+
+
+/**
+ * Update a purchase order
+ */
+export const updatePurchaseOrder = async (
+  id: number,
+  dto: UpdatePurchaseOrderDTO
+): Promise<PurchaseOrderResponse> => {
+  const response = await api.put(`/purchase-orders/${id}`, dto);
   return response.data;
 };

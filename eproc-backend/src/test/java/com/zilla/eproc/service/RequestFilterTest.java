@@ -6,6 +6,7 @@ import com.zilla.eproc.repository.ProjectAssignmentRepository;
 import com.zilla.eproc.repository.RequestRepository;
 import com.zilla.eproc.repository.UserRepository;
 import com.zilla.eproc.repository.ProjectRepository;
+import com.zilla.eproc.repository.PurchaseOrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class RequestFilterTest {
 
         @Mock
         private ProjectSecurityService projectSecurityService;
+
+        @Mock
+        private PurchaseOrderRepository purchaseOrderRepository;
 
         @InjectMocks
         private RequestService requestService;
@@ -127,7 +131,8 @@ class RequestFilterTest {
                                 testUser.getEmail(),
                                 RequestStatus.APPROVED,
                                 null,
-                                null);
+                                null,
+                                false);
 
                 // Assert
                 assertThat(result).hasSize(1);

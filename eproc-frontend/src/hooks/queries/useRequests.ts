@@ -4,7 +4,7 @@ import { useErrorHandler } from "../useErrorHandler";
 import { queryKeys } from "./query-keys";
 import type { RequestStatus } from "@/types/models";
 
-export const useRequests = (filters?: { status?: RequestStatus; projectId?: number; siteId?: number }) => {
+export const useRequests = (filters?: { status?: RequestStatus; projectId?: number; siteId?: number; excludeOrdered?: boolean }) => {
   return useQuery({
     queryKey: ['requests', filters],
     queryFn: () => requestService.getRequests(filters),

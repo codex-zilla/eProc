@@ -33,4 +33,5 @@ public class MaterialItemResponseDTO {
     private BigDecimal totalEstimate;
     private LocalDateTime createdAt;
     private Boolean isDuplicate;
+    private BigDecimal orderedQuantity;
 }

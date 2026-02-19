@@ -2,6 +2,8 @@ package com.zilla.eproc.service;
 
 import com.zilla.eproc.dto.CreatePurchaseOrderDTO;
 import com.zilla.eproc.dto.PurchaseOrderResponseDTO;
+import com.zilla.eproc.dto.UpdatePurchaseOrderDTO;
+import com.zilla.eproc.dto.UpdatePurchaseOrderItemDTO;
 import com.zilla.eproc.exception.ForbiddenException;
 import com.zilla.eproc.exception.ResourceNotFoundException;
 import com.zilla.eproc.model.*;
@@ -246,6 +248,120 @@ public class ProcurementService {
                 po = purchaseOrderRepository.save(po);
 
                 log.info("Closed purchase order {} by user {}", po.getPoNumber(), userEmail);
+
+                return mapToResponseDTO(po);
+        }
+
+        /**
+         * Update an existing purchase order.
+         */
+        @Transactional
+        public PurchaseOrderResponseDTO updatePurchaseOrder(Long id, UpdatePurchaseOrderDTO dto, String userEmail) {
+                PurchaseOrder po = purchaseOrderRepository.findByIdWithDetails(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found"));
+
+                User user = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                // Verify access - check if user is project owner or accountant
+                Project project = po.getProject();
+                boolean isOwner = project.getOwner() != null && project.getOwner().getId().equals(user.getId());
+                boolean isAccountant = project.getTeamAssignments().stream()
+                                .anyMatch(assignment -> Boolean.TRUE.equals(assignment.getIsActive())
+                                                && assignment.getUser() != null
+                                                && assignment.getUser().getId().equals(user.getId())
+                                                && assignment.getRole() == ProjectRole.PROJECT_ACCOUNTANT);
+
+                if (!isOwner && !isAccountant) {
+                        throw new ForbiddenException("Only project owners and accountants can update purchase orders");
+                }
+
+                // Validate Status
+                if (po.getStatus() == PurchaseOrderStatus.CLOSED || po.getStatus() == PurchaseOrderStatus.DELIVERED) {
+                        throw new IllegalStateException("Cannot update a closed or fully delivered purchase order");
+                }
+
+                // Update basic fields
+                if (dto.getVendorName() != null) {
+                        po.setVendorName(dto.getVendorName());
+                }
+                if (dto.getNotes() != null) {
+                        po.setNotes(dto.getNotes());
+                }
+
+                // Update Items
+                // Map DTO items by material name for easy lookup
+                java.util.Map<String, UpdatePurchaseOrderItemDTO> dtoItemsMap = dto.getItems().stream()
+                                .collect(Collectors.toMap(UpdatePurchaseOrderItemDTO::getMaterialDisplayName,
+                                                item -> item));
+
+                // 1. Update existing items and remove missing ones
+                java.util.Iterator<PurchaseOrderItem> iterator = po.getItems().iterator();
+                while (iterator.hasNext()) {
+                        PurchaseOrderItem item = iterator.next();
+                        if (dtoItemsMap.containsKey(item.getMaterialDisplayName())) {
+                                // Update existing
+                                UpdatePurchaseOrderItemDTO updateDto = dtoItemsMap.get(item.getMaterialDisplayName());
+
+                                // Validation: Cannot reduce below delivered qty
+                                BigDecimal delivered = item.getTotalDelivered();
+                                if (updateDto.getOrderedQty().compareTo(delivered) < 0) {
+                                        throw new IllegalArgumentException("Cannot reduce quantity for item '"
+                                                        + item.getMaterialDisplayName() + "' below delivered quantity ("
+                                                        + delivered + ")");
+                                }
+
+                                item.setOrderedQty(updateDto.getOrderedQty());
+                                item.setUnitPrice(updateDto.getUnitPrice());
+                                // Update total price
+                                item.setTotalPrice(item.getOrderedQty().multiply(item.getUnitPrice()));
+                                item.setUnit(updateDto.getUnit()); // Update unit if changed
+
+                                // Remove from map to mark as processed
+                                dtoItemsMap.remove(item.getMaterialDisplayName());
+                        } else {
+                                // Item not in DTO - Delete it
+                                // Validation: Cannot delete if delivered qty > 0
+                                if (item.getTotalDelivered().compareTo(BigDecimal.ZERO) > 0) {
+                                        throw new IllegalArgumentException("Cannot remove item '"
+                                                        + item.getMaterialDisplayName()
+                                                        + "' because it has associated deliveries");
+                                }
+                                iterator.remove();
+                        }
+                }
+
+                // 2. Add new items (remaining in map)
+                for (UpdatePurchaseOrderItemDTO newItemDto : dtoItemsMap.values()) {
+                        // Find original requested qty from Request
+                        BigDecimal requestedQty = po.getRequest().getMaterials().stream()
+                                        .filter(m -> m.getName().equals(newItemDto.getMaterialDisplayName()))
+                                        .findFirst()
+                                        .map(Material::getQuantity)
+                                        .orElse(BigDecimal.ZERO);
+
+                        PurchaseOrderItem newItem = PurchaseOrderItem.builder()
+                                        .purchaseOrder(po)
+                                        .materialDisplayName(newItemDto.getMaterialDisplayName())
+                                        .orderedQty(newItemDto.getOrderedQty())
+                                        .requestedQty(requestedQty)
+                                        .unit(newItemDto.getUnit())
+                                        .unitPrice(newItemDto.getUnitPrice())
+                                        .totalPrice(newItemDto.getOrderedQty().multiply(newItemDto.getUnitPrice()))
+                                        .build();
+
+                        po.getItems().add(newItem);
+                }
+
+                // Recalculate PO total value
+                BigDecimal totalValue = po.getItems().stream()
+                                .map(PurchaseOrderItem::getTotalPrice)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                po.setTotalValue(totalValue);
+
+                // Save
+                po = purchaseOrderRepository.save(po);
+                log.info("Updated purchase order {} by user {}", po.getPoNumber(), userEmail);
 
                 return mapToResponseDTO(po);
         }
