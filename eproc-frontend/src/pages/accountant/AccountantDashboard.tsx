@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ShoppingCart,
@@ -12,18 +13,110 @@ import {
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/formatters';
 import { StatCard } from '@/components/common/StatCard';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { DataTable } from '@/components/common/DataTable';
+import type { ColumnDef } from '@/components/common/DataTable';
+import { Badge } from '@/components/ui/badge';
+import { useAllPurchaseOrders } from '@/hooks/queries/usePurchaseOrders';
 import { useAccountantDashboard } from '@/hooks/queries/useDashboard';
+import type { PurchaseOrder } from '@/types/models';
+import { computeAccountantDashboardStats } from '@/lib/po-stats';
+
+// Column definitions use the real PurchaseOrder type
+const poColumns: ColumnDef<PurchaseOrder>[] = [
+    {
+        id: 'poNumber',
+        header: 'PO #',
+        cell: (po) => (
+            <span className="font-semibold text-[#2a3455] text-xs lg:text-sm">{po.poNumber}</span>
+        ),
+    },
+    {
+        id: 'vendor',
+        header: 'Vendor',
+        cell: (po) => (
+            <span className="text-slate-600 text-xs lg:text-sm">{po.vendorName || '—'}</span>
+        ),
+    },
+    {
+        id: 'project',
+        header: 'Project',
+        cell: (po) => (
+            <span className="text-slate-600 text-xs lg:text-sm">{po.projectName}</span>
+        ),
+    },
+    {
+        id: 'createdAt',
+        header: 'Date',
+        cell: (po) => <span className="text-slate-500 whitespace-nowrap text-xs lg:text-sm">{formatDate(po.createdAt)}</span>,
+    },
+    {
+        id: 'totalValue',
+        header: 'Amount (TZS)',
+        headerClassName: 'text-right',
+        className: 'text-right',
+        cell: (po) => (
+            <span className="whitespace-nowrap font-bold text-slate-900 font-mono text-xs lg:text-sm">
+                {formatCurrency(po.totalValue)}
+            </span>
+        ),
+    },
+    {
+        id: 'status',
+        header: 'Status',
+        headerClassName: 'text-right',
+        className: 'text-right',
+        cell: (po) => (
+            <div className="flex justify-end">
+                <StatusBadge status={po.status} type="po" className="text-[10px] lg:text-xs" />
+            </div>
+        ),
+    }
+];
 
 const AccountantDashboard = () => {
     const navigate = useNavigate();
-    const { data: dashboardData, isLoading: loading } = useAccountantDashboard();
 
+    // Real PO data
     const {
-        stats,
-        recentPOs = [],
-        recentDeliveries = [],
-        alerts = []
-    } = dashboardData || {};
+        data: purchaseOrders = [],
+        isLoading: loadingPOs,
+    } = useAllPurchaseOrders();
+
+    // Mock alerts – no real backend endpoint yet
+    const {
+        data: dashboardData,
+        isLoading: loadingDashboard,
+    } = useAccountantDashboard();
+
+    const alerts = dashboardData?.alerts ?? [];
+
+    // Compute stats from real POs
+    const stats = useMemo(
+        () => computeAccountantDashboardStats(purchaseOrders),
+        [purchaseOrders]
+    );
+
+    // 5 most recent POs (sorted newest-first)
+    const recentPOs = useMemo(
+        () =>
+            [...purchaseOrders]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 5),
+        [purchaseOrders]
+    );
+
+    // Delivered / partially-delivered POs as "recent deliveries"
+    const recentDeliveries = useMemo(
+        () =>
+            purchaseOrders
+                .filter(po => po.status === 'DELIVERED' || po.status === 'PARTIALLY_DELIVERED')
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                .slice(0, 5),
+        [purchaseOrders]
+    );
+
+    const loading = loadingPOs || loadingDashboard;
 
     if (loading) {
         return (
@@ -60,50 +153,43 @@ const AccountantDashboard = () => {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {/* Approved Requests */}
-                <StatCard
-                    label="Approved Requests"
-                    value={stats?.approvedCount || 0}
-                    icon={Clock}
-                    color="slate"
-                    className="hover:shadow-md transition-shadow"
-                />
+            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0 scrollbar-hide">
+                <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
 
-                {/* Ordered Requests */}
+                {/* Active POs (OPEN) */}
                 <StatCard
-                    label="Ordered Requests"
-                    value={stats?.orderedCount || 0}
+                    label="Active Orders"
+                    value={stats.orderedCount}
                     icon={ShoppingCart}
                     color="blue"
-                    className="hover:shadow-md transition-shadow"
+                    className="min-w-[140px] sm:min-w-0 hover:shadow-md transition-shadow"
                 />
 
                 {/* Partially Delivered */}
                 <StatCard
                     label="Partially Delivered"
-                    value={stats?.partiallyDeliveredCount || 0}
-                    icon={Package}
+                    value={stats.partialCount}
+                    icon={Clock}
                     color="amber"
-                    className="hover:shadow-md transition-shadow"
+                    className="min-w-[140px] sm:min-w-0 hover:shadow-md transition-shadow"
                 />
 
-                {/* Fully Delivered */}
+                {/* Delivered (fully delivered + closed) */}
                 <StatCard
-                    label="Fully Delivered"
-                    value={stats?.fullyDeliveredCount || 0}
+                    label="Delivered"
+                    value={stats.deliveredCount}
                     icon={CheckCircle}
                     color="green"
-                    className="hover:shadow-md transition-shadow"
+                    className="min-w-[140px] sm:min-w-0 hover:shadow-md transition-shadow"
                 />
 
                 {/* Total Ordered Value */}
                 <StatCard
                     label="Total Ordered Value"
-                    value={formatCurrency(stats?.totalOrderedValue || 0)}
+                    value={formatCurrency(stats.totalOrderedValue, true)}
                     icon={DollarSign}
                     color="slate"
-                    className="hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1"
+                    className="min-w-[140px] sm:min-w-0 hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1"
                 />
             </div>
 
@@ -117,50 +203,22 @@ const AccountantDashboard = () => {
                             <h2 className="text-lg font-semibold text-slate-900">Recent PO Activity</h2>
                             <button
                                 onClick={() => navigate('/accountant/procurement/purchase-orders')}
-                                className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+                                className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1"
                             >
                                 View All
+                                <ArrowRight className="h-4 w-4" />
                             </button>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-                                    <tr>
-                                        <th className="px-5 py-3 font-semibold uppercase text-xs tracking-wider">PO #</th>
-                                        <th className="px-5 py-3 font-semibold uppercase text-xs tracking-wider">VENDOR</th>
-                                        <th className="px-5 py-3 font-semibold uppercase text-xs tracking-wider">DATE</th>
-                                        <th className="px-5 py-3 font-semibold uppercase text-xs tracking-wider text-right">AMOUNT (TZS)</th>
-                                        <th className="px-5 py-3 font-semibold uppercase text-xs tracking-wider text-right">STATUS</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {recentPOs.length > 0 ? (
-                                        recentPOs.map((po) => (
-                                            <tr key={po.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}>
-                                                <td className="px-5 py-4 font-medium text-slate-900">{po.poNumber}</td>
-                                                <td className="px-5 py-4 text-slate-600">{po.vendor}</td>
-                                                <td className="px-5 py-4 text-slate-500 whitespace-nowrap">{formatDate(po.createdAt)}</td>
-                                                <td className="px-5 py-4 text-right text-slate-900 font-medium whitespace-nowrap">{formatCurrency(po.amount)}</td>
-                                                <td className="px-5 py-4 text-right">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${po.status === 'Received' ? 'bg-green-100 text-green-800' :
-                                                        po.status === 'Partial' ? 'bg-yellow-100 text-yellow-800' :
-                                                            po.status === 'Ordered' ? 'bg-blue-100 text-blue-800' :
-                                                                'bg-slate-100 text-slate-800'
-                                                        }`}>
-                                                        {po.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={5} className="px-5 py-8 text-center text-slate-500">
-                                                No recent purchase orders found
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="p-0">
+                            <DataTable
+                                data={recentPOs}
+                                columns={poColumns}
+                                keyExtractor={(po) => po.id}
+                                onRowClick={(po) => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}
+                                emptyMessage="No purchase orders found"
+                                className="border-0 rounded-none shadow-none"
+                                headerClassName="bg-slate-50 text-slate-500 font-medium border-b border-slate-100"
+                            />
                         </div>
                     </div>
 
@@ -178,19 +236,20 @@ const AccountantDashboard = () => {
                         </div>
                         <div className="space-y-3">
                             {recentDeliveries.length > 0 ? (
-                                recentDeliveries.map((delivery) => (
+                                recentDeliveries.map((po) => (
                                     <div
-                                        key={delivery.id}
-                                        onClick={() => navigate('/accountant/deliveries')}
+                                        key={po.id}
+                                        onClick={() => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}
                                         className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                                     >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-semibold text-slate-900">{delivery.poNumber}</p>
-                                                <p className="text-xs text-slate-600 mt-1">{delivery.itemCount} items delivered</p>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-900 truncate">{po.poNumber}</p>
+                                                <p className="text-xs text-slate-600 mt-0.5 truncate">{po.projectName}</p>
                                             </div>
-                                            <div className="text-right ml-3">
-                                                <p className="text-xs text-slate-500">{formatDateTime(delivery.deliveredDate)}</p>
+                                            <div className="text-right ml-3 flex-shrink-0">
+                                                <StatusBadge status={po.status} type="po" className="text-[10px]" />
+                                                <p className="text-xs text-slate-400 mt-1">{formatDateTime(po.updatedAt)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -198,7 +257,7 @@ const AccountantDashboard = () => {
                             ) : (
                                 <div className="text-center py-8 text-slate-500">
                                     <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                    <p className="text-sm">No recent deliveries</p>
+                                    <p className="text-sm">No deliveries recorded yet</p>
                                 </div>
                             )}
                         </div>
@@ -215,7 +274,9 @@ const AccountantDashboard = () => {
                                 <h2 className="text-lg font-semibold text-slate-900">Alerts & Flags</h2>
                             </div>
                             {alerts.length > 0 && (
-                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{alerts.length}</span>
+                                <Badge variant="destructive" className="bg-red-500 hover:bg-red-600 border-none">
+                                    {alerts.length}
+                                </Badge>
                             )}
                         </div>
                         <div className="divide-y divide-slate-100">

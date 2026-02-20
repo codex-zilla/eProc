@@ -16,6 +16,26 @@ export function computePOListStats(purchaseOrders: Pick<PurchaseOrder, 'status' 
 }
 
 /**
+ * Compute Accountant Dashboard stats from real PO data.
+ * 
+ * - `orderedCount`   : POs currently OPEN (ordered but not yet delivered)
+ * - `deliveredCount` : POs fully delivered (DELIVERED) or closed (CLOSED)
+ * - `partialCount`   : POs partially delivered (PARTIALLY_DELIVERED)
+ * - `totalOrderedValue` : Sum of all PO values
+ */
+export function computeAccountantDashboardStats(purchaseOrders: Pick<PurchaseOrder, 'status' | 'totalValue'>[]) {
+  const orderedCount = purchaseOrders.filter(po => po.status === 'OPEN').length;
+  const deliveredCount = purchaseOrders.filter(
+    po => po.status === 'DELIVERED' || po.status === 'CLOSED'
+  ).length;
+  const partialCount = purchaseOrders.filter(po => po.status === 'PARTIALLY_DELIVERED').length;
+  const totalOrderedValue = purchaseOrders.reduce((sum, po) => sum + po.totalValue, 0);
+
+  return { orderedCount, deliveredCount, partialCount, totalOrderedValue };
+}
+
+
+/**
  * Compute summary stats for a single PO details page.
  */
 export function computePODetailStats(items: PurchaseOrderItem[]) {

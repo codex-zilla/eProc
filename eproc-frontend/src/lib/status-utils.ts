@@ -22,7 +22,7 @@ export type RequestStatus =
 /**
  * Purchase Order status types
  */
-export type POStatus = 'OPEN' | 'CLOSED';
+export type POStatus = 'OPEN' | 'CLOSED' | 'ORDERED' | 'PARTIAL' | 'RECEIVED' | 'Ordered' | 'Partial' | 'Received';
 
 /**
  * Project status types
@@ -67,9 +67,18 @@ export const getRequestStatusClass = (status: RequestStatus): string => {
 export const getPOStatusClass = (status: POStatus): string => {
   switch (status) {
     case 'OPEN':
+    case 'Ordered':
       return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'CLOSED':
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'Received':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'PARTIAL':
+    case 'Partial':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'ORDERED':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'RECEIVED':
+      return 'bg-green-100 text-green-800 border-green-200';
     default:
       return 'bg-slate-100 text-slate-800 border-slate-200';
   }
