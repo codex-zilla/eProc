@@ -187,7 +187,7 @@ const ProcurementDashboard: React.FC = () => {
                                     <tr
                                         key={po.id}
                                         className="hover:bg-slate-50 cursor-pointer transition-colors"
-                                        onClick={() => navigate(`${basePath}/procurement/${po.id}?projectId=${projectId}`)}
+                                        onClick={() => navigate(`${basePath}/procurement/purchase-orders/${po.id}?projectId=${projectId}`)}
                                     >
                                         <td className="px-6 py-4 font-medium text-indigo-600">{po.poNumber}</td>
                                         <td className="px-6 py-4 text-slate-900">{po.vendorName}</td>

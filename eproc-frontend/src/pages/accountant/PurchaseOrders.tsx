@@ -1,12 +1,13 @@
-import { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useCallback } from 'react';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import {
     FileText,
     Hourglass,
     Truck,
     DollarSign,
-    Filter,
+    Plus,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { formatDate, formatCurrency } from '../../lib/formatters';
 import {
     FilterSelect,
@@ -17,11 +18,12 @@ import {
     DataTable,
     type ColumnDef,
     LoadingSpinner,
-    StatCard,
+    SummaryStatGrid,
     SearchInput,
     MobileListCard,
-    ActiveFilters,
-    type FilterChip
+    type FilterChip,
+    FilterToolbar,
+    PageHeader
 } from '../../components/common';
 import type { PurchaseOrder } from '@/types/models';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -75,7 +77,7 @@ const buildColumns = (): ColumnDef<PurchaseOrder>[] => [
 ];
 
 const PurchaseOrders = () => {
-    const navigate = useNavigate();
+    const navigateRole = useRoleNavigate();
     const {
         data: projects = [],
         isLoading: isLoadingProjects,
@@ -102,7 +104,6 @@ const PurchaseOrders = () => {
     });
 
     const debouncedSearch = useDebounce(filters.search, 300);
-    const [showMobileFilters, setShowMobileFilters] = useState(false);
 
     const stats = useMemo(() => computePOListStats(purchaseOrders), [purchaseOrders]);
     const filteredOrders = useFilteredPurchaseOrders(purchaseOrders, filters, debouncedSearch);
@@ -166,102 +167,109 @@ const PurchaseOrders = () => {
     }
 
     return (
-        <div className="space-y-3 sm:space-y-5 min-w-0">
-            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0 scrollbar-hide">
-                <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
-                <StatCard
-                    label="Total Active POs"
-                    value={stats.total}
-                    icon={FileText}
-                    color="blue"
-                    className="min-w-[140px] sm:min-w-0"
-                />
-                <StatCard
-                    label="Pending Approval"
-                    value={stats.open}
-                    icon={Hourglass}
-                    color="amber"
-                    className="min-w-[140px] sm:min-w-0"
-                />
-                <StatCard
-                    label="Delivered This Month"
-                    value={stats.closed}
-                    icon={Truck}
-                    color="green"
-                    className="min-w-[140px] sm:min-w-0"
-                />
-                <StatCard
-                    label="Total Spend (YTD)"
-                    value={formatCurrency(stats.totalValue, true)}
-                    icon={DollarSign}
-                    color="slate"
-                    className="min-w-[140px] sm:min-w-0"
-                />
-            </div>
+        <div className="space-y-4 sm:space-y-6 min-w-0">
+            <PageHeader
+                title="Purchase Orders"
+                description="Manage and track all purchase orders across projects."
+                actions={
+                    <Button
+                        variant="default"
+                        className="text-sm bg-[#2a3455] px-3 sm:px-4 hover:bg-[#1e253e] text-white w-full sm:w-auto whitespace-nowrap"
+                        onClick={() => navigateRole('/procurement/create')}
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Purchase Order
+                    </Button>
+                }
+            />
+
+            <SummaryStatGrid
+                stats={[
+                    {
+                        label: "Total Active POs",
+                        value: stats.total,
+                        icon: FileText,
+                        color: "blue",
+                        className: "min-w-[140px] sm:min-w-0"
+                    },
+                    {
+                        label: "Pending Approval",
+                        value: stats.open,
+                        icon: Hourglass,
+                        color: "amber",
+                        className: "min-w-[140px] sm:min-w-0"
+                    },
+                    {
+                        label: "Delivered This Month",
+                        value: stats.closed,
+                        icon: Truck,
+                        color: "green",
+                        className: "min-w-[140px] sm:min-w-0"
+                    },
+                    {
+                        label: "Total Spend (YTD)",
+                        value: formatCurrency(stats.totalValue, true),
+                        icon: DollarSign,
+                        color: "slate",
+                        className: "min-w-[140px] sm:min-w-0"
+                    }
+                ]}
+            />
 
             {/* Filters */}
-            <div className="space-y-2">
-                <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
-                    <div className="flex items-center gap-2 w-full lg:w-auto flex-grow lg:flex-1 min-w-0">
+            {(purchaseOrders.length > 1 || activeFilterChips.length > 0 || filters.search) && (
+                <FilterToolbar
+                    search={
                         <SearchInput
                             value={filters.search}
                             onChange={(val) => setFilter('search', val)}
                             placeholder="Search PO, Project..."
-                            className="flex-grow min-w-0"
+                            className="w-full bg-white"
                         />
-                        <button
-                            onClick={() => setShowMobileFilters(!showMobileFilters)}
-                            className="lg:hidden flex-none h-10 w-10 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-                        >
-                            <Filter className="h-5 w-5" />
-                        </button>
-                    </div>
+                    }
+                    filters={
+                        <>
+                            <div className="w-full lg:w-auto lg:min-w-[180px]">
+                                <FilterSelect
+                                    label="All Projects"
+                                    value={filters.project}
+                                    onChange={(val) => setFilter('project', val)}
+                                    options={[
+                                        { value: 'ALL', label: 'All Projects' },
+                                        ...projects.map(p => ({ value: p.id, label: p.name }))
+                                    ]}
+                                />
+                            </div>
 
-                    {/* Desktop Filters / Mobile Collapsible */}
-                    <div className={`${showMobileFilters ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-2 w-full lg:w-auto`}>
-                        <div className="w-full lg:w-auto lg:min-w-[180px]">
-                            <FilterSelect
-                                label="All Projects"
-                                value={filters.project}
-                                onChange={(val) => setFilter('project', val)}
-                                options={[
-                                    { value: 'ALL', label: 'All Projects' },
-                                    ...projects.map(p => ({ value: p.id, label: p.name }))
-                                ]}
-                            />
-                        </div>
+                            <div className="w-full lg:w-auto lg:min-w-[130px]">
+                                <FilterSelect<'ALL' | 'OPEN' | 'CLOSED'>
+                                    label="All Statuses"
+                                    value={filters.status}
+                                    onChange={(val) => setFilter('status', val)}
+                                    options={[
+                                        { value: 'ALL', label: 'All Statuses' },
+                                        { value: 'OPEN', label: 'Open' },
+                                        { value: 'CLOSED', label: 'Closed' }
+                                    ]}
+                                    icon={Hourglass}
+                                />
+                            </div>
 
-                        <div className="w-full lg:w-auto lg:min-w-[130px]">
-                            <FilterSelect<'ALL' | 'OPEN' | 'CLOSED'>
-                                label="All Statuses"
-                                value={filters.status}
-                                onChange={(val) => setFilter('status', val)}
-                                options={[
-                                    { value: 'ALL', label: 'All Statuses' },
-                                    { value: 'OPEN', label: 'Open' },
-                                    { value: 'CLOSED', label: 'Closed' }
-                                ]}
-                                icon={Hourglass}
-                            />
-                        </div>
-
-                        <div className="w-full lg:w-auto lg:min-w-[220px]">
-                            <DateRangePicker
-                                dateRange={filters.dateRange}
-                                setDateRange={(val) => setFilter('dateRange', val)}
-                                datePreset={filters.datePreset}
-                                setDatePreset={(val) => setFilter('datePreset', val)}
-                                formatDisplayDate={(d) => formatDate(d, 'short')}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <ActiveFilters
-                    chips={activeFilterChips}
-                    onClearAll={resetFilters}
+                            <div className="w-full lg:w-auto lg:min-w-[220px]">
+                                <DateRangePicker
+                                    dateRange={filters.dateRange}
+                                    setDateRange={(val) => setFilter('dateRange', val)}
+                                    datePreset={filters.datePreset}
+                                    setDatePreset={(val) => setFilter('datePreset', val)}
+                                    formatDisplayDate={(d) => formatDate(d, 'short')}
+                                />
+                            </div>
+                        </>
+                    }
+                    activeFilters={activeFilterChips}
+                    onClearAllFilters={resetFilters}
                 />
-            </div>
+            )}
 
             {/* Content */}
             {filteredOrders.length === 0 ? (
@@ -282,7 +290,7 @@ const PurchaseOrders = () => {
                             data={filteredOrders}
                             columns={columns}
                             keyExtractor={(po) => po.id}
-                            onRowClick={(po) => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}
+                            onRowClick={(po) => navigateRole(`/procurement/purchase-orders/${po.id}`)}
                         />
                     </div>
 
@@ -296,7 +304,7 @@ const PurchaseOrders = () => {
                                 status={<StatusBadge status={po.status} type="po" className="text-[10px] lg:text-xs" />}
                                 date={po.createdAt}
                                 amount={po.totalValue}
-                                onClick={() => navigate(`/accountant/procurement/purchase-orders/${po.id}`)}
+                                onClick={() => navigateRole(`/procurement/purchase-orders/${po.id}`)}
                             />
                         ))}
                     </div>

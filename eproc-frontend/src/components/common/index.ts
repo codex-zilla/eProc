@@ -11,3 +11,6 @@ export { ActiveFilters, type FilterChip } from './ActiveFilters';
 export { DateRangePicker, type DatePreset, PRESET_LABELS, getPresetRange } from './DateRangePicker';
 export { DataTable, type ColumnDef } from './DataTable';
 export { ErrorDisplay } from './ErrorDisplay';
+export { SummaryStatGrid } from './SummaryStatGrid';
+export { PageHeader } from './PageHeader';
+export { FilterToolbar } from './FilterToolbar';

@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import {
     FileText,
     Loader2,
@@ -31,7 +32,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import {
     LoadingSpinner, EmptyState, ErrorDisplay, DataTable, type ColumnDef,
-    StatCard, FilterSelect, SearchInput, PaginationControls, ItemMobileCard,
+    FilterSelect, SearchInput, PaginationControls, ItemMobileCard, SummaryStatGrid
 } from '@/components/common';
 import type { PurchaseOrderItem } from '@/types/models';
 import { computePODetailStats, getProgressColor, isRequestFullyOrdered } from '@/lib/po-stats';
@@ -43,7 +44,7 @@ interface ItemFilters {
 
 const PurchaseOrderDetails = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
+    const navigateRole = useRoleNavigate();
     const poId = Number(id);
     const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -239,7 +240,7 @@ const PurchaseOrderDetails = () => {
                 error={error as Error}
                 title="Failed to load purchase order"
                 onRetry={refetch}
-                onBack={() => navigate('/accountant/procurement/purchase-orders')}
+                onBack={() => navigateRole('/procurement/purchase-orders')}
                 backLabel="Back to Purchase Orders"
             />
         );
@@ -254,7 +255,7 @@ const PurchaseOrderDetails = () => {
                 action={
                     <Button
                         variant="link"
-                        onClick={() => navigate('/accountant/procurement/purchase-orders')}
+                        onClick={() => navigateRole('/procurement/purchase-orders')}
                         className="mt-2 text-[#2a3455] hover:text-[#1e253e] font-medium"
                     >
                         Back to Purchase Orders
@@ -324,7 +325,7 @@ const PurchaseOrderDetails = () => {
 
                                         {showUpdateOrderButton && (
                                             <Button
-                                                onClick={() => navigate(`${location.pathname}/edit`)}
+                                                onClick={() => navigateRole('/procurement/purchase-orders/' + po.id + '/edit')}
                                                 size="sm"
                                                 className="flex-1 lg:flex-none gap-2 px-3 bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
                                             >
@@ -340,49 +341,50 @@ const PurchaseOrderDetails = () => {
                 </CardContent>
             </Card>
 
-            {/* Summary Cards */}
-            <div className="flex overflow-x-auto pb-2 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 no-scrollbar snap-x snap-mandatory scrollbar-hide">
-                <style>{`.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
-                <StatCard
-                    icon={ShoppingCart}
-                    label="Total Requested Items"
-                    value={formatNumber(stats!.totalRequestedQty)}
-                    color="slate"
-                    subtitle="Requested Qty"
-                    subtitleClassName="text-green-600"
-                    className="min-w-[200px] sm:min-w-0 snap-center shrink-0"
-                />
-                <StatCard
-                    icon={Truck}
-                    label="Total Delivered"
-                    value={formatNumber(stats!.totalDeliveredQty)}
-                    color="green"
-                    className="min-w-[200px] sm:min-w-0 snap-center shrink-0"
-                >
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                            <Progress value={stats!.deliveryPercentage} className="h-1.5 bg-slate-100" indicatorClassName={getProgressColor(stats!.deliveryPercentage)} />
-                        </div>
-                        <span className="text-[10px] sm:text-xs font-medium text-slate-600 whitespace-nowrap">{stats!.deliveryPercentage}%</span>
-                    </div>
-                </StatCard>
-                <StatCard
-                    icon={Clock}
-                    label="Pending Delivery"
-                    value={formatNumber(stats!.totalPendingDelivery)}
-                    color="amber"
-                    subtitle={`${stats!.pendingItemsCount} items require attention`}
-                    subtitleClassName="text-amber-600"
-                    className="min-w-[200px] sm:min-w-0 snap-center shrink-0"
-                />
-                <StatCard
-                    icon={PieChart}
-                    label="Total Expenses"
-                    value={formatCurrency(po.totalValue)}
-                    color="blue"
-                    className="min-w-[200px] sm:min-w-0 snap-center shrink-0"
-                />
-            </div>
+            <SummaryStatGrid
+                stats={[
+                    {
+                        icon: ShoppingCart,
+                        label: "Total Requested Items",
+                        value: formatNumber(stats!.totalRequestedQty),
+                        color: "slate",
+                        subtitle: "Requested Qty",
+                        subtitleClassName: "text-green-600",
+                        className: "min-w-[200px] sm:min-w-0"
+                    },
+                    {
+                        icon: Truck,
+                        label: "Total Delivered",
+                        value: formatNumber(stats!.totalDeliveredQty),
+                        color: "green",
+                        className: "min-w-[200px] sm:min-w-0",
+                        children: (
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                    <Progress value={stats!.deliveryPercentage} className="h-1.5 bg-slate-100" indicatorClassName={getProgressColor(stats!.deliveryPercentage)} />
+                                </div>
+                                <span className="text-[10px] sm:text-xs font-medium text-slate-600 whitespace-nowrap">{stats!.deliveryPercentage}%</span>
+                            </div>
+                        )
+                    },
+                    {
+                        icon: Clock,
+                        label: "Pending Delivery",
+                        value: formatNumber(stats!.totalPendingDelivery),
+                        color: "amber",
+                        subtitle: `${stats!.pendingItemsCount} items require attention`,
+                        subtitleClassName: "text-amber-600",
+                        className: "min-w-[200px] sm:min-w-0"
+                    },
+                    {
+                        icon: PieChart,
+                        label: "Total Expenses",
+                        value: formatCurrency(po.totalValue),
+                        color: "blue",
+                        className: "min-w-[200px] sm:min-w-0"
+                    }
+                ]}
+            />
 
             {/* Ordered Items Table Section */}
             <Card className="flex flex-col shadow-none min-w-0 bg-transparent sm:bg-card border-none sm:border">
@@ -391,58 +393,64 @@ const PurchaseOrderDetails = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
                             <div className={`flex items-center justify-between w-full sm:w-auto transition-opacity duration-200 ${isSearchOpen ? 'opacity-0 pointer-events-none sm:opacity-100 sm:pointer-events-auto' : 'opacity-100'}`}>
                                 <h2 className="text-base sm:text-lg font-bold text-[#2a3455]">Ordered Items</h2>
-                                <div className="flex items-center gap-1 sm:hidden">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-card border rounded-lg" onClick={() => setIsSearchOpen(true)}>
-                                        <Search className="h-4 w-4 text-slate-500" />
-                                    </Button>
-                                    <FilterSelect
-                                        value={filters.status}
-                                        onChange={(val) => setFilter('status', val)}
-                                        options={statusFilterOptions}
-                                        label="Filter"
-                                        icon={Filter}
-                                        minimal={true}
-                                    />
-                                </div>
+                                {(po.items.length > 1 || filters.search || filters.status !== 'all') && (
+                                    <div className="flex items-center gap-1 sm:hidden">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-card border rounded-lg" onClick={() => setIsSearchOpen(true)}>
+                                            <Search className="h-4 w-4 text-slate-500" />
+                                        </Button>
+                                        <FilterSelect
+                                            value={filters.status}
+                                            onChange={(val) => setFilter('status', val)}
+                                            options={statusFilterOptions}
+                                            label="Filter"
+                                            icon={Filter}
+                                            minimal={true}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                            <div
-                                ref={searchContainerRef}
-                                className={`absolute inset-0 z-20 flex items-center gap-1 bg-white sm:hidden transition-all duration-300 origin-right ${isSearchOpen ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 pointer-events-none'}`}
-                            >
-                                <SearchInput
-                                    value={filters.search}
-                                    onChange={(v) => setFilter('search', v)}
-                                    placeholder="Search Material or Site..."
-                                    className="flex-1 border-none"
-                                    inputClassName="bg-slate-50 shadow-none focus-visible:ring-0"
-                                    autoFocus={isSearchOpen}
-                                />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-10 w-10 shrink-0 text-slate-500 hover:bg-slate-50 mr-1"
-                                    onClick={() => setIsSearchOpen(false)}
-                                >
-                                    <X className="h-5 w-5" />
-                                    <span className="sr-only">Close search</span>
-                                </Button>
-                            </div>
-                            <div className="hidden sm:flex w-full sm:w-auto flex-col sm:flex-row gap-3">
-                                <SearchInput
-                                    value={filters.search}
-                                    onChange={(v) => setFilter('search', v)}
-                                    placeholder="Search Material or Site..."
-                                    className="flex-1 lg:min-w-[300px]"
-                                    inputClassName="bg-white"
-                                />
-                                <FilterSelect
-                                    value={filters.status}
-                                    onChange={(val) => setFilter('status', val)}
-                                    options={statusFilterOptions}
-                                    label="Filter"
-                                    icon={Filter}
-                                />
-                            </div>
+                            {(po.items.length > 1 || filters.search || filters.status !== 'all') && (
+                                <>
+                                    <div
+                                        ref={searchContainerRef}
+                                        className={`absolute inset-0 z-20 flex items-center gap-1 bg-white sm:hidden transition-all duration-300 origin-right ${isSearchOpen ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 pointer-events-none'}`}
+                                    >
+                                        <SearchInput
+                                            value={filters.search}
+                                            onChange={(v) => setFilter('search', v)}
+                                            placeholder="Search Material or Site..."
+                                            className="flex-1 border-none"
+                                            inputClassName="bg-slate-50 shadow-none focus-visible:ring-0"
+                                            autoFocus={isSearchOpen}
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-10 w-10 shrink-0 text-slate-500 hover:bg-slate-50 mr-1"
+                                            onClick={() => setIsSearchOpen(false)}
+                                        >
+                                            <X className="h-5 w-5" />
+                                            <span className="sr-only">Close search</span>
+                                        </Button>
+                                    </div>
+                                    <div className="hidden sm:flex w-full sm:w-auto flex-col sm:flex-row gap-3">
+                                        <SearchInput
+                                            value={filters.search}
+                                            onChange={(v) => setFilter('search', v)}
+                                            placeholder="Search Material or Site..."
+                                            className="flex-1 lg:min-w-[300px]"
+                                            inputClassName="bg-white"
+                                        />
+                                        <FilterSelect
+                                            value={filters.status}
+                                            onChange={(val) => setFilter('status', val)}
+                                            options={statusFilterOptions}
+                                            label="Filter"
+                                            icon={Filter}
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 

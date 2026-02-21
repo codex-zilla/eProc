@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import { Package, AlertCircle, CheckCircle, Clock, Building, ArrowRight, Truck } from 'lucide-react';
 import { useProjects } from '@/hooks/queries/useProjects';
 import { usePurchaseOrders } from '@/hooks/queries/usePurchaseOrders';
@@ -16,19 +17,9 @@ interface DeliveryListProps {
 
 export const DeliveryList: React.FC<DeliveryListProps> = ({ role }) => {
     const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
     const projectIdParam = searchParams.get('projectId');
     const projectId = projectIdParam ? parseInt(projectIdParam) : undefined;
-
-    // Determine base path based on user role
-    const basePath = useMemo(() => {
-        switch (role) {
-            case 'ENGINEER': return '/engineer';
-            case 'MANAGER': return '/manager';
-            case 'ACCOUNTANT': return '/accountant';
-            default: return '/manager';
-        }
-    }, [role]);
+    const navigateRole = useRoleNavigate();
 
     // Queries
     const { data: projects = [], isLoading: loadingProjects, error: projectsError } = useProjects();
@@ -46,16 +37,16 @@ export const DeliveryList: React.FC<DeliveryListProps> = ({ role }) => {
     // Redirect if only one project and no project selected
     useEffect(() => {
         if (!loadingProjects && !projectId && projects.length === 1) {
-            navigate(`${basePath}/deliveries?projectId=${projects[0].id}`, { replace: true });
+            navigateRole(`/deliveries?projectId=${projects[0].id}`, { replace: true });
         }
-    }, [projectId, projects, loadingProjects, navigate, basePath]);
+    }, [projectId, projects, loadingProjects, navigateRole]);
 
     const handleProjectSelect = (id: number) => {
-        navigate(`${basePath}/deliveries?projectId=${id}`);
+        navigateRole(`/deliveries?projectId=${id}`);
     };
 
     const clearProjectSelection = () => {
-        navigate(`${basePath}/deliveries`);
+        navigateRole(`/deliveries`);
     };
 
     const getDeliveryProgress = (po: PurchaseOrderResponse) => {
@@ -203,7 +194,7 @@ export const DeliveryList: React.FC<DeliveryListProps> = ({ role }) => {
                             return (
                                 <div
                                     key={po.id}
-                                    onClick={() => navigate(`${basePath}/deliveries/${po.id}?projectId=${projectId}`)}
+                                    onClick={() => navigateRole(`/deliveries/${po.id}?projectId=${projectId}`)}
                                     className={`group relative flex flex-col gap-4 rounded-lg border-2 bg-white p-5 transition-all hover:shadow-md cursor-pointer ${getDeliveryStatusColor(po)}`}
                                 >
                                     <div className="flex items-start justify-between">

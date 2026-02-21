@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import { useRequests } from '../../../hooks/queries/useRequests';
 import type { RequestDetail } from '../../../types/models';
 import { formatDate, formatCurrency } from '../../../lib/formatters';
@@ -34,8 +34,8 @@ interface RequestListProps {
     role: 'ENGINEER' | 'MANAGER';
 }
 
-export const RequestList = ({ role }: RequestListProps) => {
-    const navigate = useNavigate();
+export const RequestList = (_props: RequestListProps) => {
+    const navigateRole = useRoleNavigate();
     const { data: requests = [], isLoading: loading, error: queryError } = useRequests();
     const error = queryError ? 'Failed to load requests' : null;
 
@@ -63,8 +63,7 @@ export const RequestList = ({ role }: RequestListProps) => {
     }, [requests]);
 
     const handleRowClick = (request: RequestDetail) => {
-        const basePath = role === 'ENGINEER' ? '/engineer/requests' : '/manager/requests';
-        navigate(`${basePath}/${request.id}`);
+        navigateRole(`/requests/${request.id}`);
     };
 
     const toggleProject = (projectName: string) => {

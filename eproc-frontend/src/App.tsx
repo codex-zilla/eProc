@@ -90,8 +90,10 @@ function App() {
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
                 <Route path="/manager/procurement" element={<ProcurementDashboard />} />
                 <Route path="/manager/procurement/create" element={<PurchaseOrderForm />} />
+                <Route path="/manager/procurement/purchase-orders/:id" element={<PurchaseOrderDetails />} />
                 <Route path="/manager/procurement/purchase-orders/:id/edit" element={<PurchaseOrderForm />} />
                 <Route path="/manager/deliveries" element={<ManagerDeliveries />} />
+                <Route path="/manager/deliveries/:poId" element={<DeliveryRegistration />} />
               </Route>
 
               {/* Accountant Routes (ACCOUNTANT) */}
@@ -111,6 +113,7 @@ function App() {
                 <Route path="/accountant/purchase-orders/:id" element={<Navigate to="/accountant/procurement/purchase-orders/:id" replace />} />
 
                 <Route path="/accountant/deliveries" element={<ManagerDeliveries />} />
+                <Route path="/accountant/deliveries/:poId" element={<DeliveryRegistration />} />
                 <Route path="/accountant/reports" element={<AccountantReports />} />
               </Route>
 

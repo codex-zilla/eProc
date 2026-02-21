@@ -1,35 +1,35 @@
 import { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import {
     FileText,
-    Filter,
     ShoppingCart,
     AlertTriangle
 } from 'lucide-react';
 import {
-    FilterSelect,
-    getPresetRange,
+    LoadingSpinner,
     EmptyState,
     ErrorDisplay,
-    DataTable,
-    type ColumnDef,
-    LoadingSpinner,
+    FilterSelect,
     SearchInput,
     type FilterChip,
     PaginationControls,
-    ActiveFilters
+    PageHeader,
+    FilterToolbar,
+    getPresetRange,
+    DataTable,
+    type ColumnDef
 } from '../../components/common';
 import type { RequestDetail } from '@/types/models';
 import { useProjects } from '@/hooks/queries/useProjects';
 import { useRequests } from '@/hooks/queries/useRequests';
 import { useFilters } from '@/hooks/useFilters';
+import { useFilteredRequests } from '@/hooks/useFilteredRequests';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePagination } from '@/hooks/usePagination';
 import { useSites } from '@/hooks/queries/useSites';
 import { cn, getAgeInDays } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { formatDate, formatCurrency } from '@/lib/formatters';
 import { ChevronDown, Briefcase } from 'lucide-react';
 import { MobileListCard } from '@/components/common';
@@ -38,7 +38,7 @@ import { RequestStatusBadge } from '@/components/domain/requests/RequestStatusBa
 const buildColumns = (): ColumnDef<RequestDetail>[] => [
     {
         header: "Request Name",
-        cell: (request) => (
+        cell: (request: RequestDetail) => (
             <span className="text-[#2a3455] text-xs lg:text-sm block pr-2 font-semibold" title={request.title || 'BOQ Request'}>
                 {request.title || 'BOQ Request'}
             </span>
@@ -48,7 +48,7 @@ const buildColumns = (): ColumnDef<RequestDetail>[] => [
     {
         header: "Requested By",
         accessorKey: "createdByName",
-        cell: (request) => (
+        cell: (request: RequestDetail) => (
             <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                     <AvatarImage src={`https://ui-avatars.com/api/?name=${request.createdByName}&background=random`} />
@@ -61,7 +61,7 @@ const buildColumns = (): ColumnDef<RequestDetail>[] => [
     },
     {
         header: "Date",
-        cell: (request) => request.plannedStartDate
+        cell: (request: RequestDetail) => request.plannedStartDate
             ? formatDate(request.plannedStartDate, 'short')
             : formatDate(request.createdAt, 'short'),
         className: "pr-0 text-slate-600 hidden lg:table-cell lg:max-w-[100px]",
@@ -70,7 +70,7 @@ const buildColumns = (): ColumnDef<RequestDetail>[] => [
     {
         id: 'priority',
         header: 'Priority',
-        cell: (request) => (
+        cell: (request: RequestDetail) => (
             <span className={cn(
                 "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize",
                 request.priority === 'HIGH' ? "bg-red-100 text-red-800" :
@@ -84,13 +84,11 @@ const buildColumns = (): ColumnDef<RequestDetail>[] => [
     },
     {
         header: "Amount (TZS)",
-        cell: (request) => formatCurrency(request.totalValue || 0),
+        cell: (request: RequestDetail) => formatCurrency(request.totalValue || 0),
         className: "pr-0 font-bold text-slate-900 font-mono lg:max-w-[130px]"
     },
 
 ];
-
-
 
 interface RequestFilters {
     status: string;
@@ -102,7 +100,7 @@ interface RequestFilters {
 }
 
 const ApprovedRequests = () => {
-    const navigate = useNavigate();
+    const navigateRole = useRoleNavigate();
 
     const { data: projects = [] } = useProjects();
 
@@ -134,27 +132,9 @@ const ApprovedRequests = () => {
     );
 
     const debouncedSearch = useDebounce(filters.search, 300);
-    const [showMobileFilters, setShowMobileFilters] = useState(false);
 
     // Derived State
-    // Derived State
-    const filteredRequests = useMemo(() => {
-        return requests.filter(req => {
-            // Search Filter
-            if (debouncedSearch) {
-                const searchLower = debouncedSearch.toLowerCase();
-                const matchesSearch =
-                    req.title.toLowerCase().includes(searchLower) ||
-                    req.projectName?.toLowerCase().includes(searchLower) ||
-                    req.createdByName?.toLowerCase().includes(searchLower) ||
-                    req.materials?.some((item: any) => item.name.toLowerCase().includes(searchLower));
-
-                if (!matchesSearch) return false;
-            }
-
-            return true;
-        });
-    }, [requests, debouncedSearch]);
+    const filteredRequests = useFilteredRequests(requests, debouncedSearch);
 
     // Pagination
     const pagination = usePagination({
@@ -206,8 +186,8 @@ const ApprovedRequests = () => {
 
     const handleAction = useCallback((req: RequestDetail) => {
         // Handle row action (e.g. view details)
-        navigate(`/accountant/procurement/create?requestId=${req.id}&projectId=${req.projectId}`);
-    }, [navigate]);
+        navigateRole(`/procurement/create?requestId=${req.id}&projectId=${req.projectId}`);
+    }, [navigateRole]);
 
     const columns = useMemo(() => buildColumns(), []);
 
@@ -242,9 +222,6 @@ const ApprovedRequests = () => {
         return chips;
     }, [filters, projects, setFilter]);
 
-    // Mock sites for now or fetch if needed. Assuming projects have sites.
-    // For simplicity, sticking to Project filter as primary.
-
     if (isLoadingRequests) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
@@ -265,80 +242,61 @@ const ApprovedRequests = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <Card className="shadow-none bg-transparent border-0">
-                <CardContent className="p-0 sm:p-1">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 lg:gap-6">
-                        <div>
-                            <h1 className="text-base sm:text-2xl font-bold tracking-tight text-slate-900">Approved Requests</h1>
-                            <p className="text-xs sm:text-base text-slate-500">Review approved material requisitions and generate purchase orders for vendors.</p>
-                        </div>
-                        <Button
-                            variant="default"
-                            className="text-sm bg-[#2a3455] px-3 sm:px-4 hover:bg-[#1e253e] text-white w-full sm:w-auto whitespace-nowrap"
-                            onClick={() => navigate('/accountant/procurement/create')}
-                        >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Create Purchase Order
-                        </Button>
+            <PageHeader
+                title="Approved Requests"
+                description="Review approved material requisitions and generate purchase orders for vendors."
+                actions={
+                    <Button
+                        variant="default"
+                        className="text-sm bg-[#2a3455] px-3 sm:px-4 hover:bg-[#1e253e] text-white w-full sm:w-auto whitespace-nowrap"
+                        onClick={() => navigateRole('/procurement/create')}
+                    >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Create Purchase Order
+                    </Button>
+                }
+            />
 
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Filters */}
-
-            <div className="space-y-2">
-                <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
-                    <div className="flex items-center gap-2 w-full lg:w-auto flex-grow lg:flex-1 min-w-0">
+            {(requests.length > 1 || activeFilterChips.length > 0 || filters.search) && (
+                <FilterToolbar
+                    search={
                         <SearchInput
                             value={filters.search}
                             onChange={(val) => setFilter('search', val)}
                             placeholder="Search project, material or ID..."
-                            className="flex-grow min-w-0"
+                            className="w-full bg-white"
                         />
-                        <button
-                            onClick={() => setShowMobileFilters(!showMobileFilters)}
-                            className="lg:hidden flex-none h-10 w-10 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-                        >
-                            <Filter className="h-5 w-5" />
-                        </button>
-                    </div>
-
-                    {/* Desktop Filters / Mobile Collapsible */}
-                    <div className={`${showMobileFilters ? 'flex' : 'hidden'} lg:flex flex-col lg:flex-row gap-2 w-full lg:w-auto`}>
-                        <div className="w-full lg:w-auto lg:min-w-[180px]">
-                            <FilterSelect
-                                label="All Projects"
-                                value={filters.project}
-                                onChange={(val) => setFilter('project', val)}
-                                options={[
-                                    { value: 'ALL', label: 'All Projects' },
-                                    ...projects.map(p => ({ value: p.id, label: p.name }))
-                                ]}
-                            />
-                        </div>
-
-                        <div className="w-full lg:w-auto lg:min-w-[180px]">
-                            <FilterSelect
-                                label="All Sites"
-                                value={filters.site}
-                                onChange={(val) => setFilter('site', val)}
-                                options={[
-                                    { value: 'ALL', label: 'All Sites' },
-                                    ...sites.map(s => ({ value: s.id, label: s.name }))
-                                ]}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <ActiveFilters
-                    chips={activeFilterChips}
-                    onClearAll={resetFilters}
+                    }
+                    filters={
+                        <>
+                            <div className="w-full lg:w-auto lg:min-w-[180px]">
+                                <FilterSelect
+                                    label="All Projects"
+                                    value={filters.project}
+                                    onChange={(val) => setFilter('project', val)}
+                                    options={[
+                                        { value: 'ALL', label: 'All Projects' },
+                                        ...projects.map(p => ({ value: p.id, label: p.name }))
+                                    ]}
+                                />
+                            </div>
+                            <div className="w-full lg:w-auto lg:min-w-[180px]">
+                                <FilterSelect
+                                    label="All Sites"
+                                    value={filters.site}
+                                    onChange={(val) => setFilter('site', val)}
+                                    options={[
+                                        { value: 'ALL', label: 'All Sites' },
+                                        ...sites.map(s => ({ value: s.id, label: s.name }))
+                                    ]}
+                                />
+                            </div>
+                        </>
+                    }
+                    activeFilters={activeFilterChips}
+                    onClearAllFilters={resetFilters}
                 />
-            </div>
-
+            )}
 
             {/* Overdue Warning Banner */}
             {stats.overdueItems > 0 && (

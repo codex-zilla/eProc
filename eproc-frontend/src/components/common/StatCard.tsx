@@ -9,24 +9,20 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface StatCardProps {
-    label: string;
-    value: string | number;
-    icon: LucideIcon;
-    color?: 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'slate';
+export interface StatCardProps {
+    label: string | React.ReactNode;
+    value: React.ReactNode;
+    icon?: LucideIcon;
+    color?: 'blue' | 'green' | 'amber' | 'slate' | 'red' | 'purple';
+    className?: string;
     trend?: {
         value: number;
         isPositive: boolean;
     };
-    /** Override icon background with a custom className (e.g. "bg-green-50") */
     iconBgClassName?: string;
-    /** Subtitle text rendered below the value */
-    subtitle?: string;
-    /** Custom className for the subtitle */
+    subtitle?: React.ReactNode;
     subtitleClassName?: string;
-    /** Slot for custom content below the value (e.g. progress bars) */
     children?: React.ReactNode;
-    className?: string;
 }
 
 const colorClasses = {
@@ -78,7 +74,7 @@ export const StatCard: React.FC<StatCardProps> = ({
                     iconBgClassName || colorClasses[color]
                 )}
             >
-                <Icon className="h-9 w-9 sm:h-5 sm:w-5" />
+                {Icon && <Icon className="h-9 w-9 sm:h-5 sm:w-5" />}
             </div>
         </div>
     );

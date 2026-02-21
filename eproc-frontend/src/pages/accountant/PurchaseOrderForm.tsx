@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import { Loader2, ShoppingCart, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -9,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useAuth } from '@/context/AuthContext';
 import { useProjectRequests } from '@/hooks/queries/useRequests';
 import { useCreatePurchaseOrder, usePurchaseOrder, useUpdatePurchaseOrder } from '@/hooks/queries/usePurchaseOrders';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -26,8 +26,7 @@ const PurchaseOrderForm = () => {
     const [searchParams] = useSearchParams();
     const { id } = useParams();
     const isUpdateMode = !!id;
-    const navigate = useNavigate();
-    const { user } = useAuth();
+    const navigateRole = useRoleNavigate();
 
     // Query params for creation
     const queryProjectId = searchParams.get('projectId');
@@ -39,9 +38,6 @@ const PurchaseOrderForm = () => {
     // Derived IDs
     const projectId = isUpdateMode ? existingPO?.projectId : Number(queryProjectId);
     const requestId = isUpdateMode ? existingPO?.requestId : Number(queryRequestId);
-
-    // Determine base path based on user role for back navigation
-    const basePath = user?.role === 'ACCOUNTANT' ? '/accountant' : '/manager';
 
     const { data: requests = [], isLoading: loadingRequests, error: requestsError } = useProjectRequests(projectId || 0);
     const createPOMutation = useCreatePurchaseOrder();
@@ -249,10 +245,9 @@ const PurchaseOrderForm = () => {
             await createPOMutation.mutateAsync(dto);
 
             // If it was "Update Mode", we are done with the "old" PO interaction, go back to list or details of NEW PO?
-            // Usually we go back to list.
             clearData(); // Clear draft just in case
             toast.success(isUpdateMode ? 'Supplemental Purchase Order created successfully' : 'Purchase Order created successfully');
-            navigate(`${basePath}/procurement/purchase-orders`);
+            navigateRole('/procurement/purchase-orders');
         } catch (error) {
             console.error('Failed to save PO:', error);
         }
@@ -402,7 +397,7 @@ const PurchaseOrderForm = () => {
             <ErrorDisplay
                 error={(requestsError || poError) as Error || new Error('Data not found')}
                 title="Failed to load data"
-                onBack={() => navigate(`${basePath}/procurement/approved-requests`)}
+                onBack={() => navigateRole('/procurement/approved-requests')}
                 backLabel="Back to Approved Requests"
             />
         );
@@ -415,7 +410,7 @@ const PurchaseOrderForm = () => {
                 title="No Approved Materials"
                 description="This request has no approved materials to order."
                 action={
-                    <Button onClick={() => navigate(`${basePath}/procurement/approved-requests`)}>
+                    <Button onClick={() => navigateRole('/procurement/approved-requests')}>
                         Return to Approved Requests
                     </Button>
                 }
@@ -478,46 +473,52 @@ const PurchaseOrderForm = () => {
                                         <p className="text-[10px] sm:text-xs italic text-slate-500">(Please fill in the <strong>Unit Cost</strong> and <strong>Ord. Qty</strong> for each item below.)</p>
                                     </div>
 
-                                    <div className="flex items-center gap-1 sm:hidden">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-card border rounded-lg" onClick={() => setIsSearchOpen(true)}>
-                                            <Search className="h-4 w-4 text-slate-500" />
-                                        </Button>
-                                    </div>
+                                    {(orderItems.length > 1 || search) && (
+                                        <div className="flex items-center gap-1 sm:hidden">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-card border rounded-lg" onClick={() => setIsSearchOpen(true)}>
+                                                <Search className="h-4 w-4 text-slate-500" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Mobile Search Overlay */}
-                                <div
-                                    className={`absolute inset-0 z-20 flex items-center gap-1 bg-white sm:hidden transition-all duration-300 origin-right ${isSearchOpen ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 pointer-events-none'}`}
-                                >
-                                    <SearchInput
-                                        value={search}
-                                        onChange={setSearch}
-                                        placeholder="Search Material..."
-                                        className="flex-1 border-none"
-                                        inputClassName="bg-slate-50 shadow-none focus-visible:ring-0"
-                                        autoFocus={isSearchOpen}
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-10 w-10 shrink-0 text-slate-500 hover:bg-slate-50 mr-1"
-                                        onClick={() => setIsSearchOpen(false)}
-                                    >
-                                        <X className="h-5 w-5" />
-                                        <span className="sr-only">Close search</span>
-                                    </Button>
-                                </div>
+                                {(orderItems.length > 1 || search) && (
+                                    <>
+                                        {/* Mobile Search Overlay */}
+                                        <div
+                                            className={`absolute inset-0 z-20 flex items-center gap-1 bg-white sm:hidden transition-all duration-300 origin-right ${isSearchOpen ? 'scale-x-100 opacity-100' : 'scale-x-0 opacity-0 pointer-events-none'}`}
+                                        >
+                                            <SearchInput
+                                                value={search}
+                                                onChange={setSearch}
+                                                placeholder="Search Material..."
+                                                className="flex-1 border-none"
+                                                inputClassName="bg-slate-50 shadow-none focus-visible:ring-0"
+                                                autoFocus={isSearchOpen}
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-10 w-10 shrink-0 text-slate-500 hover:bg-slate-50 mr-1"
+                                                onClick={() => setIsSearchOpen(false)}
+                                            >
+                                                <X className="h-5 w-5" />
+                                                <span className="sr-only">Close search</span>
+                                            </Button>
+                                        </div>
 
-                                {/* Desktop Search */}
-                                <div className="hidden sm:flex w-full sm:w-auto flex-col sm:flex-row gap-3">
-                                    <SearchInput
-                                        value={search}
-                                        onChange={setSearch}
-                                        placeholder="Search Material..."
-                                        className="flex-1 lg:min-w-[300px]"
-                                        inputClassName="bg-white"
-                                    />
-                                </div>
+                                        {/* Desktop Search */}
+                                        <div className="hidden sm:flex w-full sm:w-auto flex-col sm:flex-row gap-3">
+                                            <SearchInput
+                                                value={search}
+                                                onChange={setSearch}
+                                                placeholder="Search Material..."
+                                                className="flex-1 lg:min-w-[300px]"
+                                                inputClassName="bg-white"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -589,7 +590,7 @@ const PurchaseOrderForm = () => {
                                 <Button
                                     variant="outline"
                                     className="w-full border-slate-200 mb-0 text-slate-600 bg-slate-100 hover:bg-slate-50 hover:text-slate-900"
-                                    onClick={() => isUpdateMode ? navigate(`${basePath}/procurement/purchase-orders/${id}`) : navigate(`${basePath}/procurement/approved-requests`)}
+                                    onClick={() => isUpdateMode ? navigateRole(`/procurement/purchase-orders/${id}`) : navigateRole('/procurement/approved-requests')}
                                 >
                                     Cancel
                                 </Button>
