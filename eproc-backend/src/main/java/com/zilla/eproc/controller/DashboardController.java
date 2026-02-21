@@ -1,5 +1,6 @@
 package com.zilla.eproc.controller;
 
+import com.zilla.eproc.dto.AccountantDashboardDTO;
 import com.zilla.eproc.dto.EngineerDashboardDTO;
 import com.zilla.eproc.dto.ManagerDashboardDTO;
 import com.zilla.eproc.service.DashboardService;
@@ -40,6 +41,17 @@ public class DashboardController {
     public ResponseEntity<ManagerDashboardDTO> getManagerDashboard(Authentication authentication) {
         String email = authentication.getName();
         ManagerDashboardDTO dashboard = dashboardService.getManagerDashboard(email);
+        return ResponseEntity.ok(dashboard);
+    }
+
+    /**
+     * Get dashboard statistics for an accountant.
+     */
+    @GetMapping("/accountant")
+    @PreAuthorize("hasRole('ACCOUNTANT')")
+    public ResponseEntity<AccountantDashboardDTO> getAccountantDashboard(Authentication authentication) {
+        String email = authentication.getName();
+        AccountantDashboardDTO dashboard = dashboardService.getAccountantDashboard(email);
         return ResponseEntity.ok(dashboard);
     }
 }

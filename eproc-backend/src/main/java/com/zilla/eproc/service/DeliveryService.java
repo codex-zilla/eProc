@@ -84,6 +84,10 @@ public class DeliveryService extends BaseProjectService {
                                         .build();
 
                         delivery.getItems().add(deliveryItem);
+
+                        // IMPORTANT: Update the other side of the bidirectional relationship so that
+                        // in-memory calculations in updatePurchaseOrderStatus() see the new delivery.
+                        poItem.getDeliveryItems().add(deliveryItem);
                 }
 
                 // Save delivery
@@ -173,5 +177,30 @@ public class DeliveryService extends BaseProjectService {
                                 .receivedById(delivery.getReceivedBy().getId())
                                 .items(itemDtos)
                                 .build();
+        }
+
+        /**
+         * One-time retro-active fix for existing POs whose statuses were not properly
+         * updated due to the missing bidirectional relationship update in past
+         * deliveries.
+         */
+        @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+        @Transactional
+        public void fixLegacyPurchaseOrderStatuses() {
+                log.info("Running automated fix to re-evaluate PO statuses based on existing deliveries...");
+                List<PurchaseOrder> allPOs = purchaseOrderRepository.findAll();
+                int fixedCount = 0;
+                for (PurchaseOrder po : allPOs) {
+                        if (po.getStatus() != PurchaseOrderStatus.CLOSED) {
+                                PurchaseOrderStatus oldStatus = po.getStatus();
+                                updatePurchaseOrderStatus(po);
+                                if (po.getStatus() != oldStatus) {
+                                        fixedCount++;
+                                }
+                        }
+                }
+                if (fixedCount > 0) {
+                        log.info("Fixed statuses for {} Purchase Orders.", fixedCount);
+                }
         }
 }

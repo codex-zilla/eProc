@@ -8,7 +8,8 @@ import {
     getProjectStatusClass,
     getRequestStatusClass,
     getPOStatusClass,
-    getRequestStatusLabel
+    getRequestStatusLabel,
+    getPOStatusLabel
 } from '@/lib/status-utils';
 
 export type StatusType = 'project' | 'request' | 'po' | 'default';
@@ -34,6 +35,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'defaul
             break;
         case 'po':
             statusClass = getPOStatusClass(status as POStatus);
+            label = getPOStatusLabel(status as POStatus);
             break;
         default:
             break;
@@ -44,7 +46,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'defaul
             variant="outline"
             className={cn(
                 statusClass,
-                "rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize border shadow-none",
+                "rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize border shadow-none whitespace-nowrap",
                 className
             )}
         >

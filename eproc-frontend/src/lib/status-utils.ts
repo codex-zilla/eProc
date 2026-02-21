@@ -22,7 +22,7 @@ export type RequestStatus =
 /**
  * Purchase Order status types
  */
-export type POStatus = 'OPEN' | 'CLOSED' | 'ORDERED' | 'PARTIAL' | 'RECEIVED' | 'Ordered' | 'Partial' | 'Received';
+export type POStatus = 'OPEN' | 'CLOSED' | 'ORDERED' | 'PARTIAL' | 'RECEIVED' | 'Ordered' | 'Partial' | 'Received' | 'PARTIALLY_DELIVERED' | 'DELIVERED';
 
 /**
  * Project status types
@@ -64,21 +64,21 @@ export const getRequestStatusClass = (status: RequestStatus): string => {
  * @example
  * getPOStatusClass('OPEN') // "bg-blue-100 text-blue-800 border-blue-200"
  */
-export const getPOStatusClass = (status: POStatus): string => {
+export const getPOStatusClass = (status: POStatus | string): string => {
   switch (status) {
     case 'OPEN':
     case 'Ordered':
+    case 'ORDERED':
       return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'CLOSED':
     case 'Received':
+    case 'RECEIVED':
+    case 'DELIVERED':
       return 'bg-green-100 text-green-800 border-green-200';
     case 'PARTIAL':
     case 'Partial':
+    case 'PARTIALLY_DELIVERED':
       return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'ORDERED':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'RECEIVED':
-      return 'bg-green-100 text-green-800 border-green-200';
     default:
       return 'bg-slate-100 text-slate-800 border-slate-200';
   }
@@ -130,6 +130,31 @@ export const getRequestStatusLabel = (status: RequestStatus): string => {
     case 'REJECTED':
       return 'Rejected';
     default:
+      return status;
+  }
+};
+
+/**
+ * Get human-readable label for PO status
+ * 
+ * @param status - The PO status
+ * @returns Human-readable status label
+ */
+export const getPOStatusLabel = (status: POStatus | string): string => {
+  switch (status) {
+    case 'OPEN':
+      return 'Ordered'; // Requested label override for OPEN
+    case 'PARTIALLY_DELIVERED':
+      return 'Partially Delivered';
+    case 'DELIVERED':
+      return 'Delivered';
+    case 'CLOSED':
+      return 'Closed';
+    default:
+      if (typeof status === 'string') {
+        const lower = status.toLowerCase();
+        return lower.charAt(0).toUpperCase() + lower.slice(1).replace(/_/g, ' ');
+      }
       return status;
   }
 };
