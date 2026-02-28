@@ -158,3 +158,32 @@ export const getPOStatusLabel = (status: POStatus | string): string => {
       return status;
   }
 };
+
+/**
+ * Get human-readable label for a Project status, including the synthetic 'ALL' value
+ * used in filter pill UIs.
+ *
+ * @param status - A ProjectStatus value or the sentinel 'ALL'
+ * @returns Human-readable status label
+ *
+ * @example
+ * getProjectStatusLabel('ALL')       // "All Projects"
+ * getProjectStatusLabel('ACTIVE')    // "Active"
+ * getProjectStatusLabel('ON_HOLD')   // "On Hold"
+ * getProjectStatusLabel('COMPLETED') // "Completed"
+ * getProjectStatusLabel('CANCELLED') // "Cancelled"
+ */
+export const getProjectStatusLabel = (status: ProjectStatus | 'ALL'): string => {
+  if (status === 'ALL') return 'All Projects';
+  switch (status) {
+    case 'ACTIVE':    return 'Active';
+    case 'ON_HOLD':   return 'On Hold';
+    case 'COMPLETED': return 'Completed';
+    case 'CANCELLED': return 'Cancelled';
+    default: {
+      // Graceful fallback for any future statuses
+      const s = status as string;
+      return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/_/g, ' ');
+    }
+  }
+};

@@ -1,169 +1,101 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useProjects } from '@/hooks/queries/useProjects';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { useNavigate, Link } from 'react-router-dom';
+import { ProjectList } from '@/components/domain/projects/ProjectList';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Plus, FolderOpen, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Filter, Users } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useProjects } from '@/hooks/queries/useProjects';
+import { type ColumnDef } from '@/components/common/DataTable';
+import { type Project } from '@/types/models';
+import { formatNumber, formatDate } from '@/lib/formatters';
+import ProjectStatusBadge from '@/components/domain/ProjectStatusBadge';
 
-import { formatNumber } from '@/lib/formatters';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { EmptyState } from '@/components/common/EmptyState';
-import { StatusBadge } from '@/components/common/StatusBadge';
+/**
+ * Manager-specific column definitions.
+ * - No "Owner" column (all projects belong to the same manager).
+ * - Includes "Team" column showing the number of team members.
+ */
+const managerProjectColumns: ColumnDef<Project>[] = [
+  {
+    header: 'Project Name',
+    cell: (project) => (
+      <span className="text-[#2a3455] font-semibold">{project.name}</span>
+    ),
+    className: 'min-w-[200px]',
+  },
+  {
+    header: 'Budget',
+    cell: (project) => (
+      <span className="font-mono text-slate-900">
+        {project.currency} {formatNumber(project.budgetTotal || 0)}
+      </span>
+    ),
+    className: 'font-medium',
+  },
+  {
+    header: 'Team',
+    cell: (project) => (
+      <div className="flex items-center gap-1.5 text-slate-600">
+        <Users className="h-3.5 w-3.5 text-slate-400" />
+        <span>{project.teamCount ?? 0} members</span>
+      </div>
+    ),
+    className: 'hidden md:table-cell',
+  },
+  {
+    header: 'Created Date',
+    cell: (project) => formatDate(project.createdAt, 'short'),
+    className: 'text-slate-600 hidden md:table-cell',
+  },
+  {
+    header: 'Status',
+    cell: (project) => <ProjectStatusBadge status={project.status as any} />,
+    className: 'text-right',
+  },
+];
 
-const MyProjects = () => {
+/**
+ * Manager Projects page – lists all projects the manager can manage.
+ * Uses the shared ProjectList with manager-specific columns, row navigation
+ * and empty state action. No conditionals needed inside ProjectList.
+ */
+const ManagerProjects = () => {
   const navigate = useNavigate();
-  const { data: projects = [], isLoading: loading, error: queryError, refetch } = useProjects();
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const error = queryError ? (queryError as Error).message : null;
-
-  const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleRowClick = (projectId: number) => {
-    navigate(`/manager/projects/${projectId}`);
-  };
+  // Pre-warm the query cache so ProjectList renders instantly.
+  useProjects();
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium">Error:</span> {error}
+    <div className="space-y-6">
+      <PageHeader
+        title={
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-5 h-5 text-[#2a3455]" />
+            My Projects
           </div>
-          <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-red-700 hover:bg-red-100 text-xs sm:text-sm">
-            Retry
+        }
+        description="Manage and monitor all projects under your supervision."
+        actions={
+          <Button
+            asChild
+            className="bg-[#2a3455] text-white hover:bg-[#1e253e] whitespace-nowrap"
+          >
+            <Link to="/manager/projects/new" className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Create New Project
+            </Link>
           </Button>
-        </div>
-      )}
-
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="p-3 sm:p-4 lg:p-6 pb-3 sm:pb-4">
-          <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 sm:max-w-sm">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                <Input
-                  placeholder="Search projects..."
-                  className="pl-9 border-slate-200 bg-slate-50 focus:bg-white transition-colors text-sm h-9 sm:h-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Button variant="outline" size="icon" className="border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <Button asChild className="bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-md text-xs sm:text-sm h-9 sm:h-10 flex-shrink-0">
-              <Link to="/manager/projects/new" className="flex items-center justify-center gap-1 sm:gap-1.5">
-                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Create New Project</span>
-                <span className="sm:hidden">New</span>
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
-          {loading ? (
-            <div className="flex items-center justify-center p-8 sm:p-12">
-              <LoadingSpinner size="lg" text="Loading projects..." />
-            </div>
-          ) : error ? (
-            <div className="text-center py-8 sm:py-10 text-slate-400 text-sm sm:text-base">Could not load projects.</div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
-              <EmptyState
-                icon={Search}
-                title="No projects found"
-                description={searchTerm ? "Try adjusting your search query to find what you're looking for." : "No projects have been created yet."}
-                action={
-                  <Button asChild className="mt-4 bg-[#2a3455] hover:bg-[#1e253e]">
-                    <Link to="/manager/projects/new">Create Project</Link>
-                  </Button>
-                }
-              />
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-md border border-slate-200">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
-                      <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3">Project Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Status</TableHead>
-                      <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3">Budget</TableHead>
-                      <TableHead className="font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">Team</TableHead>
-                      <TableHead className="text-right font-semibold text-slate-700 text-xs sm:text-sm px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProjects.map((project) => (
-                      <TableRow
-                        key={project.id}
-                        onClick={() => handleRowClick(project.id)}
-                        className="hover:bg-indigo-50/50 transition-colors cursor-pointer"
-                      >
-                        <TableCell className="font-medium text-slate-900 text-xs sm:text-sm px-3 sm:px-4 py-2.5 sm:py-3">
-                          <span className="line-clamp-1">{project.name}</span>
-                        </TableCell>
-                        <TableCell className="px-2 sm:px-4 py-2.5 sm:py-3">
-                          <StatusBadge
-                            status={project.status}
-                            type="project"
-                          />
-                        </TableCell>
-                        <TableCell className="text-slate-600 text-xs sm:text-sm px-2 sm:px-4 py-2.5 sm:py-3 whitespace-nowrap">
-                          <span className="hidden sm:inline">{project.currency} </span>
-                          <span className="sm:hidden">TZS </span>
-                          {formatNumber(project.budgetTotal || 0)}
-                        </TableCell>
-                        <TableCell className="text-slate-600 text-xs sm:text-sm px-2 sm:px-4 py-2.5 sm:py-3 hidden md:table-cell">
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
-                            <span>{project.teamCount || 0} members</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right px-2 sm:px-4 py-2.5 sm:py-3 hidden md:table-cell">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              className="text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Link to={`/manager/projects/${project.id}/edit`}>
-                                Edit
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-xs sm:text-sm h-7 sm:h-8"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Link to={`/manager/projects/${project.id}`}>
-                                View
-                              </Link>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        }
+      />
+      <ProjectList
+        columns={managerProjectColumns}
+        onRowClick={(project) => navigate(`/manager/projects/${project.id}`)}
+        emptyStateAction={
+          <Button asChild className="mt-4 bg-[#2a3455] hover:bg-[#1e253e] text-white">
+            <Link to="/manager/projects/new">Create Project</Link>
+          </Button>
+        }
+      />
     </div>
   );
 };
 
-export default MyProjects;
+export default ManagerProjects;

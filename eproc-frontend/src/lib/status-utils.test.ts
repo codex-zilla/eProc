@@ -8,6 +8,7 @@ import {
   getPOStatusClass,
   getProjectStatusClass,
   getRequestStatusLabel,
+  getProjectStatusLabel,
   type RequestStatus,
   type POStatus,
   type ProjectStatus,
@@ -58,9 +59,9 @@ describe('getPOStatusClass', () => {
     );
   });
 
-  it('should return gray classes for CLOSED', () => {
+  it('should return green classes for CLOSED', () => {
     expect(getPOStatusClass('CLOSED')).toBe(
-      'bg-gray-100 text-gray-800 border-gray-200'
+      'bg-green-100 text-green-800 border-green-200'
     );
   });
 
@@ -178,5 +179,34 @@ describe('Status coverage', () => {
       expect(result).toContain('text-');
       expect(result).toContain('border-');
     });
+  });
+});
+
+describe('getProjectStatusLabel', () => {
+  it('returns "All Projects" for the ALL sentinel', () => {
+    expect(getProjectStatusLabel('ALL')).toBe('All Projects');
+  });
+
+  it('returns "Active" for ACTIVE', () => {
+    expect(getProjectStatusLabel('ACTIVE')).toBe('Active');
+  });
+
+  it('returns "On Hold" for ON_HOLD', () => {
+    expect(getProjectStatusLabel('ON_HOLD')).toBe('On Hold');
+  });
+
+  it('returns "Completed" for COMPLETED', () => {
+    expect(getProjectStatusLabel('COMPLETED')).toBe('Completed');
+  });
+
+  it('returns "Cancelled" for CANCELLED', () => {
+    expect(getProjectStatusLabel('CANCELLED')).toBe('Cancelled');
+  });
+
+  it('falls back gracefully for an unknown status', () => {
+    // Unknown values should come back as title-cased with spaces
+    const result = getProjectStatusLabel('FUTURE_STATUS' as any);
+    expect(result).toBeTruthy();
+    expect(result[0]).toBe(result[0].toUpperCase());
   });
 });

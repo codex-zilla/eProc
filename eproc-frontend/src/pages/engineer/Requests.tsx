@@ -6,7 +6,7 @@ import { RequestList } from '@/components/domain/requests/RequestList';
  * Uses shared RequestList component.
  */
 const Requests = () => {
-  return <RequestList role="ENGINEER" />;
+  return <RequestList />;
 };
 
 export default Requests;
