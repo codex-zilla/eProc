@@ -1,133 +1,101 @@
-import { useState, useEffect } from 'react';
-
-import { Link } from 'react-router-dom';
-import api from '../../lib/axios';
-import type { Project } from '@/types/models';
-import { formatNumber } from '../../lib/formatters';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ProjectList } from '@/components/domain/projects/ProjectList';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Plus, Briefcase } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useProjects } from '@/hooks/queries/useProjects';
 
 /**
- * Assigned Project page - read-only view of the engineer's assigned project.
- * Updated for Role Model Overhaul: boss → owner
+ * Assigned Project page - displays all projects the engineer is assigned to.
  */
 const AssignedProject = () => {
+  const navigate = useNavigate();
+  const { data: projects = [] } = useProjects();
+  const activeProjects = projects.filter(p => p.status === 'ACTIVE');
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-
-
-  useEffect(() => {
-    const loadProject = async () => {
-      try {
-        const response = await api.get<Project[]>(
-          '/projects'
-        );
-        // Engineer should only see projects they have assignments on
-        if (response.data.length > 0) {
-          setProject(response.data[0]);
-        }
-      } catch (err) {
-        console.error('Failed to load project:', err);
-        setError('Failed to load project data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProject();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <p className="text-gray-500">Loading project...</p>
-      </div>
-    );
-  }
+  const handleCreateRequest = () => {
+    if (selectedProjectId) {
+      setIsModalOpen(false);
+      navigate(`/engineer/create-batch?projectId=${selectedProjectId}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
-      {project ? (
-        <div className="bg-white rounded-lg shadow">
-          {/* Project Header */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">{project.name}</h2>
-              <span className={`px-3 py-1 text-sm font-medium rounded ${project.status === 'ACTIVE'
-                  ? 'bg-green-100 text-green-800'
-                  : project.status === 'COMPLETED'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                {project.status}
-              </span>
-            </div>
+      <PageHeader
+        title={
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-[#2a3455]" />
+            Assigned Projects
           </div>
-
-          {/* Project Details */}
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Budget</h3>
-                <p className="mt-1 text-lg font-medium text-gray-900">
-                  {project.currency} {formatNumber(project.budgetTotal || 0)}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Currency</h3>
-                <p className="mt-1 text-lg font-medium text-gray-900">{project.currency}</p>
-              </div>
-            </div>
-
-            {/* Project Owner Info */}
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-                Project Owner
-              </h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 text-xl">👔</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{project.ownerName || 'Not specified'}</p>
-                    <p className="text-sm text-gray-500">{project.ownerEmail || ''}</p>
-                  </div>
+        }
+        description="View all projects you are currently assigned to."
+        actions={
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#2a3455] text-white hover:bg-[#1e253e] whitespace-nowrap">
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Request
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Create New Request</DialogTitle>
+                <DialogDescription>
+                  Select an active project below to begin creating a new request.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeProjects.length === 0 ? (
+                        <SelectItem value="none" disabled>No active projects available</SelectItem>
+                      ) : (
+                        activeProjects.map((p) => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            {p.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
-                {project.status === 'ACTIVE' && (
-                  <Link
-                    to="/engineer/create-batch"
-                    className="inline-flex items-center px-4 py-2 bg-[#2a3455] text-white rounded-lg hover:bg-[#1e253e] transition-colors"
-                  >
-                    + Create New Request
-                  </Link>
-                )}
               </div>
-            </div>
-          </div>
-
-          {/* Actions - consolidated above */}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <div className="text-3xl md:text-4xl mb-4">🏗️</div>
-          <h2 className="text-xl font-semibold text-gray-900">No Project Assigned</h2>
-          <p className="text-gray-500 mt-2">
-            You have not been assigned to any project yet.
-          </p>
-          <p className="text-gray-500">
-            Please contact your project owner for assignment.
-          </p>
-        </div>
-      )}
+              <DialogFooter>
+                <Button
+                  onClick={handleCreateRequest}
+                  disabled={!selectedProjectId || selectedProjectId === 'none'}
+                  className="bg-[#2a3455] hover:bg-[#1e253e] text-white"
+                >
+                  Continue
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+      <ProjectList />
     </div>
   );
 };
 
 export default AssignedProject;
+

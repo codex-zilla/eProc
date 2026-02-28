@@ -20,7 +20,7 @@ const ProjectStatusBadge = ({ status }: ProjectStatusBadgeProps) => {
   };
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded ${getClass()}`}>
+    <span className={`px-2 py-1 text-[10px] sm:text-xs font-medium rounded ${getClass()}`}>
       {status}
     </span>
   );

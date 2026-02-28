@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     Package,
-    AlertCircle,
     ArrowLeft,
     CheckCircle,
     Truck,
@@ -15,6 +14,9 @@ import {
 } from '@/hooks/queries/useDeliveries';
 import { type CreateDeliveryDTO } from '../../services/procurementService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Button } from '@/components/ui/button';
 import { formatDate, formatCurrency } from '../../lib/formatters';
 
 interface DeliveryItemInput {
@@ -163,14 +165,11 @@ const DeliveryRegistration: React.FC = () => {
 
     if (!purchaseOrder) {
         return (
-            <div className="rounded-md bg-red-50 p-4">
-                <div className="flex">
-                    <AlertCircle className="h-5 w-5 text-red-400" />
-                    <div className="ml-3">
-                        <p className="text-sm text-red-700">Purchase order not found</p>
-                    </div>
-                </div>
-            </div>
+            <ErrorDisplay
+                error={new Error('Purchase order not found')}
+                title="Purchase order not found"
+                message="The purchase order you're trying to record a delivery for could not be found."
+            />
         );
     }
 
@@ -178,39 +177,35 @@ const DeliveryRegistration: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate(`/engineer/deliveries?projectId=${projectId}`)}
-                    className="rounded-full p-2 hover:bg-slate-100 transition-colors"
-                >
-                    <ArrowLeft className="h-5 w-5 text-slate-600" />
-                </button>
-                <div className="flex-1">
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 font-serif">
-                        Receive Delivery
-                    </h1>
-                    <p className="text-slate-500">
-                        {purchaseOrder.poNumber} • {purchaseOrder.vendorName || 'No vendor specified'}
-                    </p>
-                </div>
-                {isFullyDelivered && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700">
-                        <CheckCircle className="h-4 w-4" />
-                        Fully Delivered
-                    </span>
-                )}
-            </div>
+            <PageHeader
+                title="Receive Delivery"
+                description={`${purchaseOrder.poNumber} • ${purchaseOrder.vendorName || 'No vendor specified'}`}
+                actions={
+                    <div className="flex items-center gap-2">
+                        {isFullyDelivered && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700">
+                                <CheckCircle className="h-4 w-4" />
+                                Fully Delivered
+                            </span>
+                        )}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/engineer/deliveries?projectId=${projectId}`)}
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-1" />
+                            Back
+                        </Button>
+                    </div>
+                }
+            />
 
             {error && (
-                <div className="rounded-md bg-red-50 p-4">
-                    <div className="flex">
-                        <AlertCircle className="h-5 w-5 text-red-400" />
-                        <div className="ml-3">
-                            <p className="text-sm text-red-700">{error}</p>
-                        </div>
-                    </div>
-                </div>
+                <ErrorDisplay
+                    error={new Error(error)}
+                    message={error}
+                    variant="inline"
+                />
             )}
 
             {/* PO Summary */}

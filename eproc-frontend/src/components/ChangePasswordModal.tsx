@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { GenericModal } from '@/components/common/GenericModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,19 +63,34 @@ const ChangePasswordModal = () => {
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => user?.requirePasswordChange && e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-amber-500" />
-            Password Change Required
-          </DialogTitle>
-          <DialogDescription>
-            You must change your password before continuing. Your current password is the default password provided to you.
-          </DialogDescription>
-        </DialogHeader>
+  const modalTitle = (
+    <div className="flex items-center gap-2">
+      <AlertCircle className="h-5 w-5 text-amber-500" />
+      Password Change Required
+    </div>
+  );
 
+  const modalFooter = (
+    <Button
+      type="submit"
+      disabled={loading}
+      className="w-full bg-[#2a3455] hover:bg-[#1e253e]"
+      onClick={handleSubmit}
+    >
+      {loading ? 'Changing Password...' : 'Change Password'}
+    </Button>
+  );
+
+  return (
+    <GenericModal
+      isOpen={isOpen}
+      onClose={handleOpenChange}
+      onInteractOutside={(e: Event) => user?.requirePasswordChange && e.preventDefault()}
+      title={modalTitle}
+      description="You must change your password before continuing. Your current password is the default password provided to you."
+      footer={modalFooter}
+    >
+      <div className="space-y-4">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
             {error}
@@ -119,14 +134,9 @@ const ChangePasswordModal = () => {
             />
           </div>
 
-          <DialogFooter>
-            <Button type="submit" disabled={loading} className="w-full bg-[#2a3455] hover:bg-[#1e253e]">
-              {loading ? 'Changing Password...' : 'Change Password'}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </GenericModal>
   );
 };
 

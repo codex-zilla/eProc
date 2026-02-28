@@ -176,9 +176,9 @@ export const ProjectRole = {
   PROJECT_OWNER: 'PROJECT_OWNER',
   PROJECT_MANAGER: 'PROJECT_MANAGER',
   PROJECT_ACCOUNTANT: 'PROJECT_ACCOUNTANT',
-  PROJECT_LEAD_ENGINEER: 'PROJECT_LEAD_ENGINEER',
-  PROJECT_SITE_ENGINEER: 'PROJECT_SITE_ENGINEER',
-  PROJECT_CONSULTANT_ENGINEER: 'PROJECT_CONSULTANT_ENGINEER'
+  PROJECT_LEAD_ENGINEER: 'LEAD_ENGINEER',
+  PROJECT_SITE_ENGINEER: 'SITE_ENGINEER',
+  PROJECT_CONSULTANT_ENGINEER: 'CONSULTANT_ENGINEER'
 } as const;
 
 export type ProjectRole = (typeof ProjectRole)[keyof typeof ProjectRole];
@@ -277,6 +277,7 @@ export interface UserSummary {
   status: 'ACTIVE' | 'INACTIVE';
   lastActive?: string;
   erbNumber?: string; // Added
+  createdById?: number; // Used to track ownership for managers/accountants
 }
 
 export interface PurchaseOrderItem {

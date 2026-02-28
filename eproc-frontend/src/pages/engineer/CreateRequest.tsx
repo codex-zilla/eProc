@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import { DuplicateWarningModal } from '@/components/DuplicateWarningModal';
 import { formatCurrency } from '../../lib/formatters';
 import { useSites } from '@/hooks/queries/useSites';
 import { useCreateBatchRequests } from '@/hooks/queries/useRequests';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { PageHeader } from '@/components/common/PageHeader';
 
 
 interface MaterialItem {
@@ -466,25 +468,31 @@ const CreateBatch = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <PageHeader
+        title="Create BOQ Request"
+        description="Submit a Bill of Quantities for your assigned project"
+      />
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-4 sm:py-3 rounded-lg text-xs sm:text-sm flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
+        <ErrorDisplay
+          error={new Error(error)}
+          message={error}
+          variant="inline"
+        />
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {boqEntries.map((entry, entryIndex) => (
           <Card key={entry.tempId} className="border-2 border-slate-300">
-            <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg flex flex-row items-center justify-between">
-              <CardTitle className="text-sm sm:text-base text-white">BOQ Entry {entryIndex + 1}</CardTitle>
+            <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-50 border-b border-slate-200 rounded-t-lg flex flex-row items-center justify-between">
+              <CardTitle className="text-sm sm:text-base text-slate-800 font-semibold">BOQ Entry {entryIndex + 1}</CardTitle>
               {boqEntries.length > 1 && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => removeBOQEntry(entry.tempId)}
-                  className="h-7 text-xs text-red-200 hover:text-red-100 hover:bg-red-900/20"
+                  className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
                   Remove BOQ

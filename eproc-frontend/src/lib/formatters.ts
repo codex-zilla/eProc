@@ -128,3 +128,29 @@ export const formatNumber = (value: number, decimals = 0): string => {
     maximumFractionDigits: decimals,
   }).format(value);
 };
+
+/**
+ * Format GPS coordinates to 4 decimal places
+ * Formats strings like "-6.7924344, 39.2083232" to "-6.7924, 39.2083"
+ * 
+ * @param gpsString - The GPS coordinate string
+ * @returns Formatted GPS string
+ */
+export const formatGPS = (gpsString: string | null | undefined): string => {
+  if (!gpsString) return 'Not pinned';
+  
+  try {
+    const parts = gpsString.split(',');
+    if (parts.length !== 2) return gpsString; // Return as is if not a comma-separated pair
+    
+    const lat = parseFloat(parts[0].trim());
+    const lng = parseFloat(parts[1].trim());
+    
+    if (isNaN(lat) || isNaN(lng)) return gpsString; // Return as is if not valid numbers
+    
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  } catch (error) {
+    return gpsString; // Fallback to raw string on any error
+  }
+};
+

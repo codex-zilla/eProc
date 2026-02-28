@@ -14,6 +14,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/shared/Profile';
 import NotFound from './pages/shared/NotFound';
 import NotAuthorized from './pages/shared/NotAuthorized';
+import ProjectDetails from './pages/shared/ProjectDetails';
 
 // Engineer pages
 import EngineerDashboard from './pages/engineer/EngineerDashboard';
@@ -27,7 +28,6 @@ import Deliveries from './pages/engineer/Deliveries';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import Projects from './pages/manager/Projects'; // Renamed from MyProjects
 import ProjectWizard from './components/ProjectWizard';
-import ProjectDetails from './pages/manager/ProjectDetails';
 import ManagerRequests from './pages/manager/Requests';
 import RequestDetailsManager from './pages/manager/RequestDetailsManager';
 import ManageProjectUsers from './pages/manager/ManageProjectUsers';

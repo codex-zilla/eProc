@@ -67,17 +67,17 @@ export function DataTable<T>({
     return (
         <div className={cn("rounded-md border border-slate-200 overflow-hidden", className)}>
             <Table>
-                <TableHeader className={headerClassName ?? "bg-[#2a3455]"}>
-                    <TableRow className={cn("border-b-0", headerClassName ? "hover:bg-transparent" : "hover:bg-[#2a3455]")}>
+                <TableHeader className={headerClassName ?? "bg-slate-100"}>
+                    <TableRow className={cn("border-b-0 border-slate-200", headerClassName ? "hover:bg-transparent" : "hover:bg-slate-100")}>
                         {columns.map((col, index) => {
                             const isSortable = !!col.sortKey && !!onSort;
                             return (
                                 <TableHead
                                     key={col.id ?? (col.accessorKey as string) ?? index}
                                     className={cn(
-                                        "text-xs lg:text-sm font-semibold uppercase p-3 h-auto",
-                                        !headerClassName && "text-white",
-                                        isSortable && "cursor-pointer select-none hover:bg-white/10 transition-colors",
+                                        "text-xs lg:text-sm font-semibold uppercase p-3 h-auto tracking-wide",
+                                        !headerClassName && "text-slate-700",
+                                        isSortable && "cursor-pointer select-none hover:bg-slate-200 transition-colors",
                                         col.headerClassName
                                     )}
                                     onClick={isSortable ? () => onSort(col.sortKey!) : undefined}
