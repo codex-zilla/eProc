@@ -37,7 +37,8 @@ public class ProjectService extends BaseProjectService {
         /**
          * Get projects visible to the current user based on their role.
          * - PROJECT_OWNER: sees only projects they own (owner_id = user.id)
-         * - ENGINEER: sees projects where they have a ProjectAssignment
+         * - ENGINEER/MANAGER/ACCOUNTANT: see projects where they have a
+         * ProjectAssignment
          */
         @Transactional(readOnly = true)
         public List<ProjectDTO> getProjectsForUser(String userEmail) {
@@ -47,29 +48,19 @@ public class ProjectService extends BaseProjectService {
                 List<Project> projects;
 
                 if (user.getRole() == Role.OWNER) {
-                        // Owner sees their own projects
-                        projects = projectRepository.findByOwnerIdAndIsActiveTrue(user.getId());
-                } else if (user.getRole() == Role.ENGINEER) {
-                        // Engineer sees projects via team assignments
+                        // Owner sees all their projects
+                        projects = projectRepository.findByOwnerId(user.getId());
+                } else if (user.getRole() == Role.ENGINEER || user.getRole() == Role.MANAGER
+                                || user.getRole() == Role.ACCOUNTANT) {
+                        // These roles see projects via active team assignments
                         List<Long> projectIds = projectAssignmentRepository.findByUserIdAndIsActiveTrue(user.getId())
                                         .stream()
                                         .map(pa -> pa.getProject().getId())
                                         .collect(Collectors.toList());
-                        projects = projectRepository.findAllById(projectIds).stream()
-                                        .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
-                                        .collect(Collectors.toList());
-                } else if (user.getRole() == Role.MANAGER || user.getRole() == Role.ACCOUNTANT) {
-                        // Manager/Accountant sees projects via team assignments (same as Engineer)
-                        List<Long> projectIds = projectAssignmentRepository.findByUserIdAndIsActiveTrue(user.getId())
-                                        .stream()
-                                        .map(pa -> pa.getProject().getId())
-                                        .collect(Collectors.toList());
-                        projects = projectRepository.findAllById(projectIds).stream()
-                                        .filter(p -> Boolean.TRUE.equals(p.getIsActive()))
-                                        .collect(Collectors.toList());
+                        projects = projectRepository.findAllById(projectIds);
                 } else {
-                        // ADMIN only - show all active projects
-                        projects = projectRepository.findByIsActiveTrue();
+                        // ADMIN only - show all projects
+                        projects = projectRepository.findAll();
                 }
 
                 return projects.stream()
@@ -182,10 +173,16 @@ public class ProjectService extends BaseProjectService {
 
                 project.setStatus(newStatus);
 
-                // If project is no longer active, also mark isActive to false
-                if (newStatus != ProjectStatus.ACTIVE) {
-                        project.setIsActive(false);
+                // End Date Logic: Auto-assign on completion/cancellation, clear if reactivated.
+                if (newStatus == ProjectStatus.COMPLETED || newStatus == ProjectStatus.CANCELLED) {
+                        project.setEndDate(java.time.LocalDate.now());
+                } else if (newStatus == ProjectStatus.ACTIVE) {
+                        project.setEndDate(null);
                 }
+
+                // If project is no longer active, we DO NOT mark isActive = false
+                // automatically.
+                // isActive is for soft deletion ONLY, not for status tracking.
 
                 Project saved = projectRepository.save(project);
                 return mapToDTO(saved);
@@ -346,6 +343,7 @@ public class ProjectService extends BaseProjectService {
                                 // Timeline
                                 .startDate(project.getStartDate())
                                 .expectedCompletionDate(project.getExpectedCompletionDate())
+                                .endDate(project.getEndDate())
                                 // Contractual
                                 .contractType(project.getContractType() != null ? project.getContractType().name()
                                                 : null)

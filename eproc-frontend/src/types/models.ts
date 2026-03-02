@@ -41,6 +41,7 @@ export interface Project {
   // Timeline
   startDate?: string;
   expectedCompletionDate?: string;
+  endDate?: string;
 
   // Contractual
   contractType?: string; // Enum

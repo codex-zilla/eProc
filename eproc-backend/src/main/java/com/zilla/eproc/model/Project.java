@@ -102,6 +102,9 @@ public class Project {
     @Column(name = "expected_completion_date")
     private LocalDate expectedCompletionDate;
 
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
     // === NEW: Contractual ===
 
     @Enumerated(EnumType.STRING)

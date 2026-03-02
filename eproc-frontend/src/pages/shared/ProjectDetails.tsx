@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useProject, useUpdateProjectStatus } from '@/hooks/queries/useProjects';
 import { useSites } from '@/hooks/queries/useSites';
+import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import { toast } from 'sonner';
 
 
@@ -12,6 +13,7 @@ import { CheckCircle, XCircle, Briefcase, FileText, Layers, Flag } from 'lucide-
 import TeamManagement from '@/components/TeamManagement';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import ProjectStatusBadge from '@/components/domain/ProjectStatusBadge';
 
 // Domain components
@@ -24,6 +26,8 @@ const ProjectDetails = () => {
     const projectId = id ? parseInt(id) : 0;
 
     const [activeTab, setActiveTab] = useState('overview');
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const { isManager } = useRoleNavigate();
 
     const { data: project, isLoading: loadingProject, error: projectError, refetch } = useProject(projectId);
     const { data: sites = [] } = useSites(projectId);
@@ -38,6 +42,9 @@ const ProjectDetails = () => {
             {
                 onSuccess: () => {
                     toast.success(`Project marked as ${newStatus}`);
+                    if (newStatus === 'CANCELLED') {
+                        setIsCancelModalOpen(false);
+                    }
                 },
                 onError: (err: any) => {
                     toast.error(err?.message || `Failed to mark project as ${newStatus}`);
@@ -90,7 +97,7 @@ const ProjectDetails = () => {
                 </div>
 
                 {/* Right: Actions */}
-                {project.status === 'ACTIVE' && (
+                {project.status === 'ACTIVE' && isManager && (
                     <div className="flex w-full sm:w-auto items-center shrink-0 gap-2">
                         <Button
                             variant="default"
@@ -105,7 +112,7 @@ const ProjectDetails = () => {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleUpdateStatus('CANCELLED')}
+                            onClick={() => setIsCancelModalOpen(true)}
                             disabled={updateStatusMutation.isPending}
                             className="text-xs sm:text-sm h-9 flex-1 sm:flex-none border-red-200 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white shadow-none"
                         >
@@ -124,7 +131,9 @@ const ProjectDetails = () => {
                 <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent gap-1 sm:gap-4 lg:gap-6 overflow-x-auto flex-nowrap">
                     <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Overview</TabsTrigger>
                     <TabsTrigger value="sites" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Sites</TabsTrigger>
-                    <TabsTrigger value="team" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Team</TabsTrigger>
+                    {isManager && (
+                        <TabsTrigger value="team" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Team</TabsTrigger>
+                    )}
                     <TabsTrigger value="milestones" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Milestones</TabsTrigger>
                     <TabsTrigger value="scopes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Scopes</TabsTrigger>
                     <TabsTrigger value="documents" className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 data-[state=active]:bg-transparent px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap">Documents</TabsTrigger>
@@ -132,18 +141,20 @@ const ProjectDetails = () => {
 
                 {/* OVERVIEW TAB */}
                 <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-                    <ProjectOverviewTab project={project} onManageTeamClick={() => setActiveTab('team')} />
+                    <ProjectOverviewTab project={project} onManageTeamClick={isManager ? () => setActiveTab('team') : undefined} />
                 </TabsContent>
 
                 {/* SITES TAB */}
                 <TabsContent value="sites" className="mt-4 sm:mt-6">
-                    <ProjectSitesTab project={project} sites={sites} />
+                    <ProjectSitesTab project={project} sites={sites} isManager={isManager} />
                 </TabsContent>
 
                 {/* TEAM TAB */}
-                <TabsContent value="team" className="mt-4 sm:mt-6">
-                    <TeamManagement projectId={project.id} projectOwnerId={project.ownerId} />
-                </TabsContent>
+                {isManager && (
+                    <TabsContent value="team" className="mt-4 sm:mt-6">
+                        <TeamManagement projectId={project.id} projectOwnerId={project.ownerId} />
+                    </TabsContent>
+                )}
 
                 {/* MILESTONES TAB */}
                 <TabsContent value="milestones" className="mt-4 sm:mt-6">
@@ -172,7 +183,24 @@ const ProjectDetails = () => {
                     </div>
                 </TabsContent>
             </Tabs>
-        </div >
+
+            <ConfirmModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onConfirm={() => handleUpdateStatus('CANCELLED')}
+                title="Cancel Project"
+                description={
+                    <span className="text-slate-600 space-y-2 block">
+                        <p>Are you sure you want to cancel the project <strong>{project.name}</strong>?</p>
+                        <p>This action will halt all ongoing tasks, requests, and deliveries associated with this project. This action cannot be undone.</p>
+                    </span>
+                }
+                confirmLabel="Yes, Cancel Project"
+                cancelLabel="No, keep it active"
+                confirmVariant="destructive"
+                isPending={updateStatusMutation.isPending}
+            />
+        </div>
     );
 };
 

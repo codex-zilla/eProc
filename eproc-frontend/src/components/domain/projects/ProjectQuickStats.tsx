@@ -8,6 +8,8 @@ interface ProjectQuickStatsProps {
 }
 
 export const ProjectQuickStats = ({ project }: ProjectQuickStatsProps) => {
+    console.log("Project end date: ", project.endDate);
+
     return (
         <Card className="bg-white border-slate-200 shadow-sm rounded-xl">
             <CardContent className="py-4 px-6 md:py-5 md:px-8">
@@ -26,9 +28,16 @@ export const ProjectQuickStats = ({ project }: ProjectQuickStatsProps) => {
                         </div>
                         <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                            <span className="text-slate-500">Due:</span>
-                            <span className="font-semibold text-slate-900">{project.expectedCompletionDate || 'TBD'}</span>
+                            <span className="text-slate-500">Start Date:</span>
+                            <span className="font-semibold text-slate-900">{project.startDate || 'TBD'}</span>
                         </div>
+                        {project.endDate && (
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                <span className="text-slate-500">End Date:</span>
+                                <span className="font-semibold text-slate-900">{project.endDate}</span>
+                            </div>
+                        )}
                     </div>
                     {/* Bottom Row Stats */}
                     <div className="flex items-center gap-2 text-sm pt-1">

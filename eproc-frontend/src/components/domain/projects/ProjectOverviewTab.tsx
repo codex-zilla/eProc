@@ -106,8 +106,12 @@ export const ProjectOverviewTab = ({ project, onManageTeamClick }: ProjectOvervi
                             <span className="font-semibold text-slate-700">{project.startDate || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between items-center group">
-                            <span className="text-slate-600">Completion</span>
-                            <span className="font-semibold text-slate-700">{project.expectedCompletionDate || 'N/A'}</span>
+                            <span className="text-slate-600">
+                                {project.status === 'COMPLETED' ? 'Completed' : project.status === 'CANCELLED' ? 'Cancelled' : 'Due'}
+                            </span>
+                            <span className="font-semibold text-slate-700">
+                                {project.status !== 'ACTIVE' ? (project.endDate || 'N/A') : (project.expectedCompletionDate || 'N/A')}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -116,13 +120,15 @@ export const ProjectOverviewTab = ({ project, onManageTeamClick }: ProjectOvervi
                 <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4">
                     <div className="flex justify-between items-center mb-3">
                         <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] border-s-4 border-[#2a3455] ps-2">Team Summary</h3>
-                        <Button
-                            variant="link"
-                            className="text-xs font-medium h-auto p-0 text-[#1e256e] hover:text-[#2a3455]"
-                            onClick={onManageTeamClick}
-                        >
-                            Manage
-                        </Button>
+                        {onManageTeamClick && (
+                            <Button
+                                variant="link"
+                                className="text-xs font-medium h-auto p-0 text-[#1e256e] hover:text-[#2a3455]"
+                                onClick={onManageTeamClick}
+                            >
+                                Manage
+                            </Button>
+                        )}
                     </div>
 
                     <div>

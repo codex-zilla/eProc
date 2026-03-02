@@ -58,6 +58,7 @@ public class ProjectDTO {
     // === Timeline ===
     private java.time.LocalDate startDate;
     private java.time.LocalDate expectedCompletionDate;
+    private java.time.LocalDate endDate;
 
     // === Contractual ===
     private String contractType; // ContractType enum as string

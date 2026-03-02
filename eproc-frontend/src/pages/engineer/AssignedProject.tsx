@@ -35,7 +35,7 @@ const AssignedProject = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title={
           <div className="flex items-center gap-2">
@@ -92,7 +92,7 @@ const AssignedProject = () => {
           </Dialog>
         }
       />
-      <ProjectList />
+      <ProjectList onRowClick={(project) => navigate(`/engineer/projects/${project.id}`)} />
     </div>
   );
 };

@@ -70,6 +70,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={['ENGINEER']} />}>
                 <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
                 <Route path="/engineer/project" element={<AssignedProject />} />
+                <Route path="/engineer/projects/:id" element={<ProjectDetails />} />
                 <Route path="/engineer/requests" element={<Requests />} />
                 <Route path="/engineer/requests/:id" element={<RequestDetails />} />
                 <Route path="/engineer/create-batch" element={<CreateRequest />} />
@@ -99,6 +100,7 @@ function App() {
               {/* Accountant Routes (ACCOUNTANT) */}
               <Route element={<ProtectedRoute allowedRoles={['ACCOUNTANT']} />}>
                 <Route path="/accountant/dashboard" element={<AccountantDashboard />} />
+                <Route path="/accountant/projects/:id" element={<ProjectDetails />} />
 
                 {/* Procurement Section */}
                 <Route path="/accountant/procurement" element={<Navigate to="/accountant/procurement/approved-requests" replace />} />
