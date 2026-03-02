@@ -178,7 +178,8 @@ const PurchaseOrders = () => {
                         onClick={() => navigateRole('/procurement/create')}
                     >
                         <Plus className="h-4 w-4 mr-2" />
-                        Create Purchase Order
+                        <span className="hidden sm:inline">Create Purchase Order</span>
+                        <span className="sm:hidden">Create PO</span>
                     </Button>
                 }
             />

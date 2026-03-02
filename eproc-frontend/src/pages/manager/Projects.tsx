@@ -64,7 +64,7 @@ const ManagerProjects = () => {
   useProjects();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2 sm:space-y-3">
       <PageHeader
         title={
           <div className="flex items-center gap-2">
@@ -72,15 +72,16 @@ const ManagerProjects = () => {
             My Projects
           </div>
         }
-        description="Manage and monitor all projects under your supervision."
+        description="Manage and monitor your projects."
         actions={
           <Button
             asChild
-            className="bg-[#2a3455] text-white hover:bg-[#1e253e] whitespace-nowrap"
+            className="bg-[#2a3455] text-white hover:bg-[#1e253e] whitespace-nowrap h-8 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm"
           >
-            <Link to="/manager/projects/new" className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Create New Project
+            <Link to="/manager/projects/new" className="flex items-center gap-1.5 sm:gap-2">
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Create New Project</span>
+              <span className="sm:hidden">New Project</span>
             </Link>
           </Button>
         }

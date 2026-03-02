@@ -72,18 +72,19 @@ export function SearchSortToolbar({
         sortOptions.find((o) => o.value === sortField)?.label ?? sortField;
 
     return (
-        <div className="flex flex-col sm:flex-row gap-4 w-full">
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
             <div className="relative flex-1">
                 <SearchInput
                     value={searchQuery}
                     onChange={onSearchChange}
                     placeholder={searchPlaceholder}
                     className="w-full"
+                    inputClassName='border-[#2a3455]/20 focus:border-[#2a3455]/50'
                 />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
                 <Select value={sortField} onValueChange={onSortFieldChange}>
-                    <SelectTrigger className="w-full sm:w-[160px] h-10 bg-white border-slate-200 focus:border-indigo-500">
+                    <SelectTrigger className="w-full sm:w-[160px] h-10 bg-white border-[#2a3455]/20 focus:border-[#2a3455]/50">
                         <div className="flex items-center gap-2">
                             <span className="text-slate-500">Sort by</span>
                             <span className="font-medium">{activeLabel}</span>
@@ -103,7 +104,7 @@ export function SearchSortToolbar({
                         <TooltipTrigger asChild>
                             <Button
                                 variant="outline"
-                                className="h-10 px-3 border-slate-200 bg-white hover:bg-slate-50 gap-1 flex items-center focus:bg-indigo-50"
+                                className="h-10 px-3 border-[#2a3455]/20 bg-white hover:bg-slate-50 gap-1 flex items-center focus:bg-indigo-50"
                                 onClick={() =>
                                     onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')
                                 }

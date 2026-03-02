@@ -38,7 +38,7 @@ export const StatusFilterPills = ({
     onChange,
     className = '',
 }: StatusFilterPillsProps) => (
-    <div className={`flex gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${className}`}>
+    <div className={`flex gap-1 sm:gap-2 overflow-x-auto pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${className}`}>
         {items.map(({ value, label, count }) => {
             const isActive = active === value;
             return (

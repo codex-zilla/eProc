@@ -102,7 +102,7 @@ export const ProjectList = ({ onRowClick, emptyStateAction, columns }: ProjectLi
     }
 
     return (
-        <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-500">
             <FilterToolbar
                 search={
                     <SearchSortToolbar

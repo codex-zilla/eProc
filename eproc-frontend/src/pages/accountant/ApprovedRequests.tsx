@@ -2,8 +2,8 @@ import { useMemo, useState, useCallback } from 'react';
 import { useRoleNavigate } from '@/hooks/useRoleNavigate';
 import {
     FileText,
-    ShoppingCart,
-    AlertTriangle
+    AlertTriangle,
+    Plus
 } from 'lucide-react';
 import {
     LoadingSpinner,
@@ -251,8 +251,9 @@ const ApprovedRequests = () => {
                         className="text-sm bg-[#2a3455] px-3 sm:px-4 hover:bg-[#1e253e] text-white w-full sm:w-auto whitespace-nowrap"
                         onClick={() => navigateRole('/procurement/create')}
                     >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Create Purchase Order
+                        <Plus className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Create Purchase Order</span>
+                        <span className="sm:hidden">Create PO</span>
                     </Button>
                 }
             />

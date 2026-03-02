@@ -125,7 +125,7 @@ export const RequestList = ({ emptyStateAction }: RequestListProps = {}) => {
     }
 
     return (
-        <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-500">
             <FilterToolbar
                 search={
                     <SearchSortToolbar
@@ -215,7 +215,7 @@ export const RequestList = ({ emptyStateAction }: RequestListProps = {}) => {
                                                 title={getTitle(request)}
                                                 titleAdornment={
                                                     getPriority(request) === 'HIGH' ? (
-                                                        <div className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
+                                                        <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
                                                     ) : undefined
                                                 }
                                                 subtitle={request.siteName || 'No Site'}

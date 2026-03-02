@@ -55,9 +55,13 @@ export function MobileListCard({
             <CardContent className="p-3 sm:p-4">
                 <div className="flex justify-between items-start gap-3 mb-3">
                     <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{title}</h3>
-                            {titleAdornment}
+                        <div className="mb-1">
+                            <h3 className="inline font-bold tracking-tight text-sm text-[#2a3455] align-middle mr-1.5">{title}</h3>
+                            {titleAdornment && (
+                                <span className="inline-flex align-middle">
+                                    {titleAdornment}
+                                </span>
+                            )}
                         </div>
                         {subtitle && (
                             <p className="text-xs text-slate-500 flex items-center gap-1">
