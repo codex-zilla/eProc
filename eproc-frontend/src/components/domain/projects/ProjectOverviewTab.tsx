@@ -37,7 +37,7 @@ export const ProjectOverviewTab = ({ project, onManageTeamClick }: ProjectOvervi
 
                 {/* Context & Objectives */}
                 <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 relative">
-                    <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] mb-6 border-s-4 border-[#2a3455] ps-2">Context & Objectives</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] mb-3 border-s-4 border-[#2a3455] ps-2">Context & Objectives</h3>
                     <div className="space-y-2 sm:space-y-2 px-1.5">
                         <div>
                             <h4 className="font-semibold text-sm text-slate-700">Key Objectives</h4>
@@ -53,7 +53,7 @@ export const ProjectOverviewTab = ({ project, onManageTeamClick }: ProjectOvervi
 
                 {/* Site Details */}
                 <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] mb-6 border-s-4 border-[#2a3455] ps-2">Site Details</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] mb-3 border-s-4 border-[#2a3455] ps-2">Site Details</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-2 gap-y-2 sm:gap-y-3 px-1.5 gap-x-4 sm:gap-x-6">
                         <div>
                             <span className="text-slate-700 block text-[10px] uppercase tracking-widest font-medium">Region</span>
@@ -91,7 +91,7 @@ export const ProjectOverviewTab = ({ project, onManageTeamClick }: ProjectOvervi
 
                 {/* Contract */}
                 <div className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] mb-6 border-s-4 border-[#2a3455] ps-2">Contract</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] mb-3 border-s-4 border-[#2a3455] ps-2">Contract</h3>
                     <div className="space-y-3 text-sm px-1.5">
                         <div className="flex justify-between items-center group">
                             <span className="text-slate-600">Type</span>

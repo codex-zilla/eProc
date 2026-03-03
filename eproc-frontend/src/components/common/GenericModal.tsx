@@ -73,12 +73,12 @@ export const GenericModal: React.FC<GenericModalProps> = ({
                 className={`${maxWidthClass} max-h-[90vh] overflow-y-auto`}
                 onInteractOutside={onInteractOutside}
             >
-                <DialogHeader className='space-y-0.5'>
+                <DialogHeader className='space-y-0.5 '>
                     <DialogTitle className="flex items-center text-[#2a3455] font-bold">
                         {title}
                     </DialogTitle>
                     {description && (
-                        <DialogDescription className="text-[#2a3455]">
+                        <DialogDescription className="text-[#2a3455] text-left text-xs sm:text-sm">
                             {description}
                         </DialogDescription>
                     )}
