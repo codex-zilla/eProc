@@ -67,7 +67,7 @@ export const DeliveryList: React.FC<DeliveryListProps> = ({ role }) => {
         if (progress.percentage > 0) {
             return <Clock className="h-5 w-5 text-yellow-600" />;
         }
-        return <Package className="h-5 w-5 text-blue-600" />;
+        return <Package className="h-5 w-5 text-[#2a3455]" />;
     };
 
     const getDeliveryStatusText = (po: PurchaseOrderResponse) => {
@@ -81,7 +81,7 @@ export const DeliveryList: React.FC<DeliveryListProps> = ({ role }) => {
         const progress = getDeliveryProgress(po);
         if (po.status === 'CLOSED' || progress.percentage === 100) return 'border-green-200 bg-green-50/10';
         if (progress.percentage > 0) return 'border-yellow-200 bg-yellow-50/10';
-        return 'border-blue-200 bg-blue-50/10';
+        return 'border-[#2a3455]/20 bg-[#2a3455]/5';
     };
 
     // Stats calculations
@@ -229,7 +229,7 @@ export const DeliveryList: React.FC<DeliveryListProps> = ({ role }) => {
                                         </div>
                                         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                                             <div
-                                                className={`h-full transition-all duration-500 ${progress.percentage === 100 ? 'bg-green-500' : progress.percentage > 0 ? 'bg-yellow-500' : 'bg-blue-500'
+                                                className={`h-full transition-all duration-500 ${progress.percentage === 100 ? 'bg-green-500' : progress.percentage > 0 ? 'bg-yellow-500' : 'bg-[#2a3455]'
                                                     }`}
                                                 style={{ width: `${progress.percentage}%` }}
                                             />

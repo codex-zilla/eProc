@@ -56,7 +56,7 @@ export function DashboardAlerts({ alerts }: DashboardAlertsProps) {
                                             )}
                                         </div>
                                     </div>
-                                    <button className="text-xs font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                    <button className="text-xs font-semibold text-[#2a3455] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                         View
                                     </button>
                                 </div>

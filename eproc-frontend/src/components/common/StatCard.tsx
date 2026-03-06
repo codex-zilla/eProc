@@ -26,7 +26,7 @@ export interface StatCardProps {
 }
 
 const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
+    blue: 'bg-[#2a3455]/10 text-[#2a3455]',
     green: 'bg-green-50 text-green-600',
     amber: 'bg-amber-50 text-amber-600',
     red: 'bg-red-50 text-red-600',

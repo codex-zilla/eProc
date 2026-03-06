@@ -11,7 +11,7 @@ const ProjectStatusBadge = ({ status }: ProjectStatusBadgeProps) => {
       case 'ACTIVE':
         return 'bg-green-100 text-green-800';
       case 'COMPLETED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-[#2a3455]/10 text-[#2a3455]';
       case 'CANCELLED':
         return 'bg-red-100 text-red-800';
       default:

@@ -45,14 +45,14 @@ export const DeliveryStats = ({ stats }: DeliveryStatsProps) => {
                     </div>
                 </div>
             </div>
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <div className="rounded-lg border border-[#2a3455]/20 bg-[#2a3455]/5 p-4">
                 <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Package className="h-5 w-5 text-blue-600" />
+                    <div className="h-10 w-10 rounded-full bg-[#2a3455]/10 flex items-center justify-center">
+                        <Package className="h-5 w-5 text-[#2a3455]" />
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-blue-700">{stats.awaiting}</p>
-                        <p className="text-sm text-blue-600">Awaiting</p>
+                        <p className="text-2xl font-bold text-[#2a3455]">{stats.awaiting}</p>
+                        <p className="text-sm text-[#2a3455]/80">Awaiting</p>
                     </div>
                 </div>
             </div>

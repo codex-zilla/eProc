@@ -1,17 +1,26 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/formatters';
-import { type AccountantDashboardData } from '@/hooks/queries/useDashboard';
 
-interface BudgetOverviewListProps {
-    data: AccountantDashboardData['budgetOverview'];
+export interface BudgetOverviewProject {
+    projectId: number;
+    projectName: string;
+    currency: string;
+    budgetTotal: number;
+    committedAmount: number;
+    utilizationPct: number;
 }
 
-export const BudgetOverviewList: React.FC<BudgetOverviewListProps> = ({ data }) => {
+interface BudgetOverviewListProps {
+    data: BudgetOverviewProject[];
+    title?: string;
+}
+
+export const BudgetOverviewList: React.FC<BudgetOverviewListProps> = ({ data, title }) => {
     return (
         <div className="bg-white rounded-lg border border-slate-200">
             <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-slate-900">Budget Overview</h2>
+                <h2 className="text-lg font-semibold text-slate-900">{title || "Budget Overview"}</h2>
             </div>
 
             <div className="p-4 space-y-5 max-h-[400px] overflow-y-auto">
@@ -21,7 +30,7 @@ export const BudgetOverviewList: React.FC<BudgetOverviewListProps> = ({ data }) 
                         const isNearBudget = project.utilizationPct >= 80 && project.utilizationPct <= 100;
 
                         // Determine progress bar color based on utilization
-                        let progressColorClass = 'bg-blue-600';
+                        let progressColorClass = 'bg-[#2a3455]';
                         if (isOverspent) {
                             progressColorClass = 'bg-red-600';
                         } else if (isNearBudget) {
@@ -41,7 +50,7 @@ export const BudgetOverviewList: React.FC<BudgetOverviewListProps> = ({ data }) 
 
                                 {/* Progress bar wrapper with custom color injection for the indicator */}
                                 <div className="relative">
-                                    <Progress value={Math.min(project.utilizationPct, 100)} className="h-2 bg-slate-100 [&>div]:transition-all" style={{ '--progress-color': isOverspent ? '#dc2626' : isNearBudget ? '#eab308' : '#2563eb' } as React.CSSProperties} />
+                                    <Progress value={Math.min(project.utilizationPct, 100)} className="h-2 bg-slate-100 [&>div]:transition-all" style={{ '--progress-color': isOverspent ? '#dc2626' : isNearBudget ? '#eab308' : '#2a3455' } as React.CSSProperties} />
                                     {/* Using standard Radix Progress unfortunately hardcodes background to primary unless overridden with CSS vars or wrapper. Let's use standard Tailwind classes. The above style prop trick requires modifying ui/progress.tsx. Since we don't want to modify ui components, we will build a simple inline progress bar for simplicity and control here */}
                                 </div>
 

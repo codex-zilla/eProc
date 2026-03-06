@@ -6,7 +6,7 @@ import com.zilla.eproc.repository.ProjectAssignmentRepository;
 import com.zilla.eproc.repository.RequestRepository;
 import com.zilla.eproc.repository.UserRepository;
 import com.zilla.eproc.repository.ProjectRepository;
-import com.zilla.eproc.repository.PurchaseOrderRepository;
+import com.zilla.eproc.repository.PurchaseOrderItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -41,7 +42,7 @@ class RequestFilterTest {
         private ProjectSecurityService projectSecurityService;
 
         @Mock
-        private PurchaseOrderRepository purchaseOrderRepository;
+        private PurchaseOrderItemRepository purchaseOrderItemRepository;
 
         @InjectMocks
         private RequestService requestService;
@@ -57,6 +58,8 @@ class RequestFilterTest {
                 when(projectSecurityService.hasProjectAccess(testUser.getEmail(), project1.getId())).thenReturn(true);
                 when(requestRepository.findByProjectIdOrderByCreatedAtDesc(project1.getId()))
                                 .thenReturn(List.of(approvedRequest, pendingRequest));
+
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(List.of());
 
                 // Act
                 List<RequestResponseDTO> result = requestService.getProjectRequests(project1.getId(),
@@ -125,6 +128,8 @@ class RequestFilterTest {
 
                 when(requestRepository.findByProjectIdInOrderByCreatedAtDesc(List.of(10L)))
                                 .thenReturn(List.of(approvedRequest, pendingRequest));
+
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(List.of());
 
                 // Act
                 List<RequestResponseDTO> result = requestService.getAllManagerRequests(

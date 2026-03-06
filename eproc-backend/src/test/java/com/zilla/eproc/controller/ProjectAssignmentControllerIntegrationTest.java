@@ -43,6 +43,12 @@ public class ProjectAssignmentControllerIntegrationTest {
         private JwtUtil jwtUtil;
         @Autowired
         private RefreshTokenRepository refreshTokenRepository;
+        @Autowired
+        private PurchaseOrderRepository purchaseOrderRepository;
+        @Autowired
+        private RequestRepository requestRepository;
+        @Autowired
+        private SiteRepository siteRepository;
 
         private String bossToken;
         private String engineerToken;
@@ -53,6 +59,9 @@ public class ProjectAssignmentControllerIntegrationTest {
         @BeforeEach
         void setUp() {
                 refreshTokenRepository.deleteAll();
+                purchaseOrderRepository.deleteAll();
+                requestRepository.deleteAll();
+                siteRepository.deleteAll();
                 assignmentRepository.deleteAll();
                 projectRepository.deleteAll();
                 userRepository.deleteAll();
@@ -119,7 +128,7 @@ public class ProjectAssignmentControllerIntegrationTest {
                 mockMvc.perform(post("/api/projects/{projectId}/team", project.getId())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                                .andExpect(status().isForbidden());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test

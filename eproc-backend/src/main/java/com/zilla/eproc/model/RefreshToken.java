@@ -21,7 +21,7 @@ public class RefreshToken {
     @Column(nullable = false, unique = true)
     private String token; // Stores the HASH of the token
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 

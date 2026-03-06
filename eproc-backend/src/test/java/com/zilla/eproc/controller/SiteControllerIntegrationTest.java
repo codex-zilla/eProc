@@ -39,6 +39,10 @@ public class SiteControllerIntegrationTest {
     private JwtUtil jwtUtil;
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private PurchaseOrderRepository purchaseOrderRepository;
+    @Autowired
+    private RequestRepository requestRepository;
 
     private String engineerToken;
     private String pmToken;
@@ -47,6 +51,8 @@ public class SiteControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         refreshTokenRepository.deleteAll();
+        purchaseOrderRepository.deleteAll();
+        requestRepository.deleteAll();
         siteRepository.deleteAll();
         projectAssignmentRepository.deleteAll();
         projectRepository.deleteAll();

@@ -48,7 +48,7 @@ class AuthControllerIntegrationTest {
         @Test
         void register_success_returnsToken() throws Exception {
                 RegisterRequest request = RegisterRequest.builder()
-                                .email("engineer@test.com")
+                                .email("engineer@auth.test.com")
                                 .password("password123")
                                 .name("Test Engineer")
                                 .role(Role.ENGINEER)
@@ -58,7 +58,7 @@ class AuthControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.email", is("engineer@test.com")))
+                                .andExpect(jsonPath("$.email", is("engineer@auth.test.com")))
                                 .andExpect(jsonPath("$.role", is("ENGINEER")))
                                 .andExpect(jsonPath("$.name", is("Test Engineer")));
         }
@@ -67,7 +67,7 @@ class AuthControllerIntegrationTest {
         void register_duplicateEmail_returnsBadRequest() throws Exception {
                 // First registration
                 RegisterRequest request = RegisterRequest.builder()
-                                .email("duplicate@test.com")
+                                .email("duplicate@auth.test.com")
                                 .password("password123")
                                 .name("First User")
                                 .role(Role.ENGINEER)
@@ -80,7 +80,7 @@ class AuthControllerIntegrationTest {
 
                 // Second registration with same email
                 RegisterRequest duplicateRequest = RegisterRequest.builder()
-                                .email("duplicate@test.com")
+                                .email("duplicate@auth.test.com")
                                 .password("password456")
                                 .name("Second User")
                                 .role(Role.OWNER)
@@ -113,7 +113,7 @@ class AuthControllerIntegrationTest {
         void login_success_returnsToken() throws Exception {
                 // First register a user
                 RegisterRequest registerRequest = RegisterRequest.builder()
-                                .email("login@test.com")
+                                .email("login@auth.test.com")
                                 .password("password123")
                                 .name("Login User")
                                 .role(Role.OWNER)
@@ -126,7 +126,7 @@ class AuthControllerIntegrationTest {
 
                 // Then login
                 LoginRequest loginRequest = LoginRequest.builder()
-                                .email("login@test.com")
+                                .email("login@auth.test.com")
                                 .password("password123")
                                 .build();
 
@@ -134,7 +134,7 @@ class AuthControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.email", is("login@test.com")))
+                                .andExpect(jsonPath("$.email", is("login@auth.test.com")))
                                 .andExpect(jsonPath("$.role", is("OWNER")));
         }
 
@@ -142,7 +142,7 @@ class AuthControllerIntegrationTest {
         void login_wrongPassword_returnsBadRequest() throws Exception {
                 // First register a user
                 RegisterRequest registerRequest = RegisterRequest.builder()
-                                .email("wrongpass@test.com")
+                                .email("wrongpass@auth.test.com")
                                 .password("correctpassword")
                                 .name("Wrong Pass User")
                                 .role(Role.OWNER)
@@ -155,7 +155,7 @@ class AuthControllerIntegrationTest {
 
                 // Try login with wrong password
                 LoginRequest loginRequest = LoginRequest.builder()
-                                .email("wrongpass@test.com")
+                                .email("wrongpass@auth.test.com")
                                 .password("wrongpassword")
                                 .build();
 
@@ -169,7 +169,7 @@ class AuthControllerIntegrationTest {
         @Test
         void login_userNotFound_returnsBadRequest() throws Exception {
                 LoginRequest loginRequest = LoginRequest.builder()
-                                .email("nonexistent@test.com")
+                                .email("nonexistent@auth.test.com")
                                 .password("password123")
                                 .build();
 

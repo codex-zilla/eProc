@@ -49,17 +49,20 @@ public class DashboardService {
 
                 EngineerDashboardDTO.EngineerDashboardDTOBuilder builder = EngineerDashboardDTO.builder();
 
+                Project activeProject = null;
+
                 if (!assignments.isEmpty()) {
                         // Take the first active assignment's project
-                        Project project = assignments.get(0).getProject();
-                        if (project != null && project.getStatus() == ProjectStatus.ACTIVE) {
-                                builder.assignedProjectId(project.getId())
-                                                .assignedProjectName(project.getName())
-                                                .projectStatus(project.getStatus().name());
+                        activeProject = assignments.get(0).getProject();
+                        if (activeProject != null && activeProject.getStatus() == ProjectStatus.ACTIVE) {
+                                builder.assignedProjectId(activeProject.getId())
+                                                .assignedProjectName(activeProject.getName())
+                                                .projectStatus(activeProject.getStatus().name())
+                                                .totalBudget(activeProject.getBudgetTotal());
 
-                                if (project.getOwner() != null) {
-                                        builder.ownerName(project.getOwner().getName())
-                                                        .ownerEmail(project.getOwner().getEmail());
+                                if (activeProject.getOwner() != null) {
+                                        builder.ownerName(activeProject.getOwner().getName())
+                                                        .ownerEmail(activeProject.getOwner().getEmail());
                                 }
                         }
                 }
@@ -75,12 +78,115 @@ public class DashboardService {
                 int rejected = (int) myRequests.stream()
                                 .filter(r -> r.getStatus() == RequestStatus.REJECTED).count();
 
-                return builder
-                                .pendingRequests(pending)
+                builder.pendingRequests(pending)
                                 .approvedRequests(approved)
                                 .rejectedRequests(rejected)
-                                .totalRequests(myRequests.size())
-                                .build();
+                                .totalRequests(myRequests.size());
+
+                // --- NEW STATISTICS LOGIC ---
+
+                final Project finalActiveProject = activeProject;
+
+                // Remaining Budget Calculation for assigned project
+                if (finalActiveProject != null) {
+                        List<PurchaseOrder> projectPOs = purchaseOrderRepository.findAllWithProjectAndSite().stream()
+                                        .filter(po -> po.getProject() != null
+                                                        && po.getProject().getId().equals(finalActiveProject.getId()))
+                                        .toList();
+                        BigDecimal committed = projectPOs.stream()
+                                        .map(po -> po.getTotalValue() != null ? po.getTotalValue() : BigDecimal.ZERO)
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                        BigDecimal remaining = (finalActiveProject.getBudgetTotal() != null)
+                                        ? finalActiveProject.getBudgetTotal().subtract(committed)
+                                        : BigDecimal.ZERO;
+                        builder.remainingBudget(remaining);
+                } else {
+                        builder.remainingBudget(BigDecimal.ZERO);
+                        builder.totalBudget(BigDecimal.ZERO);
+                }
+
+                // Upcoming Milestones
+                if (finalActiveProject != null && finalActiveProject.getMilestones() != null) {
+                        List<ManagerDashboardDTO.RecentMilestoneSummary> milestones = finalActiveProject.getMilestones()
+                                        .stream()
+                                        .filter(m -> m.getStatus() != MilestoneStatus.COMPLETED)
+                                        .sorted(Comparator.comparing(
+                                                        m -> m.getDeadline() != null ? m.getDeadline()
+                                                                        : java.time.LocalDate.MAX))
+                                        .limit(5)
+                                        .map(m -> ManagerDashboardDTO.RecentMilestoneSummary.builder()
+                                                        .id(m.getId())
+                                                        .projectId(finalActiveProject.getId())
+                                                        .projectName(finalActiveProject.getName())
+                                                        .title(m.getName())
+                                                        .dueDate(m.getDeadline() != null
+                                                                        ? m.getDeadline().atStartOfDay()
+                                                                        : null)
+                                                        .status(m.getStatus().name())
+                                                        .isOverdue(m.getDeadline() != null && m.getDeadline()
+                                                                        .isBefore(java.time.LocalDate.now()))
+                                                        .build())
+                                        .toList();
+                        builder.projectMilestones(milestones);
+                } else {
+                        builder.projectMilestones(Collections.emptyList());
+                }
+
+                // Expected Deliveries (Deliveries targeting Engineer's requests)
+                // Finding POs linked to activeProject
+                List<PurchaseOrder> allPOsForProject = finalActiveProject != null
+                                ? purchaseOrderRepository.findAllWithItemsAndDeliveries().stream()
+                                                .filter(po -> po.getProject() != null && po.getProject().getId()
+                                                                .equals(finalActiveProject.getId()))
+                                                .toList()
+                                : Collections.emptyList();
+
+                List<EngineerDashboardDTO.ExpectedDeliverySummary> expectedDeliveries = new ArrayList<>();
+                for (PurchaseOrder po : allPOsForProject) {
+                        if (po.getStatus() == PurchaseOrderStatus.OPEN
+                                        || po.getStatus() == PurchaseOrderStatus.PARTIALLY_DELIVERED) {
+                                expectedDeliveries.add(EngineerDashboardDTO.ExpectedDeliverySummary
+                                                .builder()
+                                                .deliveryId(po.getId()) // Use PO ID as placeholder for expected
+                                                .deliveryRef("PO-" + po.getPoNumber())
+                                                .requestId(po.getRequest() != null ? po.getRequest().getId() : null)
+                                                .requestTitle(po.getRequest() != null ? po.getRequest().getTitle()
+                                                                : null)
+                                                .siteName(po.getSite() != null ? po.getSite().getName()
+                                                                : null)
+                                                .expectedDate(null) // Expected delivery date not natively tracked at PO
+                                                                    // level MVP
+                                                .status(po.getStatus().name())
+                                                .vendorName(po.getVendorName())
+                                                .build());
+                        }
+                }
+
+                // Sort by expected date
+                expectedDeliveries.sort(Comparator.comparing(
+                                e -> e.getExpectedDate() != null ? e.getExpectedDate() : LocalDateTime.MAX,
+                                Comparator.nullsLast(Comparator.naturalOrder())));
+
+                builder.expectedDeliveries(expectedDeliveries.stream().limit(5).toList());
+
+                // Activity Feed (Dummy implementation, should query RequestAuditLog)
+                builder.activityFeed(Collections.emptyList());
+
+                // Alerts (Rejected requests needing attention)
+                List<AccountantDashboardDTO.DashboardAlert> engineeAlerts = myRequests.stream()
+                                .filter(r -> r.getStatus() == RequestStatus.REJECTED)
+                                .map(r -> AccountantDashboardDTO.DashboardAlert.builder()
+                                                .type("REQUEST_REJECTED")
+                                                .severity("danger")
+                                                .title("Request Rejected")
+                                                .message("Request '" + r.getTitle() + "' requires your attention.")
+                                                .referenceId(r.getId())
+                                                .build())
+                                .toList();
+                builder.alerts(engineeAlerts);
+
+                return builder.build();
         }
 
         /**
@@ -114,30 +220,158 @@ public class DashboardService {
                 List<User> availableEngineers = userRepository.findByRoleAndActiveTrue(Role.ENGINEER);
 
                 // Get pending requests from my projects
-                List<Request> pendingFromMyProjects = requestRepository.findByProjectIdInOrderByCreatedAtDesc(
-                                myProjects.stream().map(Project::getId).toList()).stream()
-                                .filter(r -> r.getStatus() == RequestStatus.PENDING)
-                                .toList();
-
-                // Get all requests from my projects for stats
                 List<Request> allFromMyProjects = requestRepository.findByProjectIdInOrderByCreatedAtDesc(
                                 myProjects.stream().map(Project::getId).toList());
+
+                List<Request> pendingFromMyProjects = allFromMyProjects.stream()
+                                .filter(r -> r.getStatus() == RequestStatus.PENDING)
+                                .toList();
 
                 int approved = (int) allFromMyProjects.stream()
                                 .filter(r -> r.getStatus() == RequestStatus.APPROVED).count();
                 int rejected = (int) allFromMyProjects.stream()
                                 .filter(r -> r.getStatus() == RequestStatus.REJECTED).count();
 
-                return ManagerDashboardDTO.builder()
+                // --- NEW STATISTICS LOGIC ---
+
+                ManagerDashboardDTO.ManagerDashboardDTOBuilder builder = ManagerDashboardDTO.builder()
                                 .activeProjects(activeProjects)
                                 .completedProjects(completedProjects)
                                 .totalProjects(myProjects.size())
                                 .pendingRequests(pendingFromMyProjects.size())
                                 .approvedRequests(approved)
                                 .rejectedRequests(rejected)
-                                .assignedEngineers(assignedTeamMembers) // Now counts all team assignments
-                                .availableEngineers(availableEngineers.size())
+                                .assignedEngineers(assignedTeamMembers)
+                                .availableEngineers(availableEngineers.size());
+
+                // 1. Procurement Stats & Budget Overview
+                // We'll mimic Accountant's partial load, but scoped to owner's projects
+                List<Long> projectIds = myProjects.stream().map(Project::getId).toList();
+                List<PurchaseOrder> myPOs = purchaseOrderRepository.findAllWithProjectAndSite().stream()
+                                .filter(po -> po.getProject() != null && projectIds.contains(po.getProject().getId()))
+                                .toList();
+
+                int openCount = (int) myPOs.stream()
+                                .filter(po -> po.getStatus() == PurchaseOrderStatus.OPEN).count();
+                int partialCount = (int) myPOs.stream()
+                                .filter(po -> po.getStatus() == PurchaseOrderStatus.PARTIALLY_DELIVERED).count();
+                int deliveredCount = (int) myPOs.stream()
+                                .filter(po -> po.getStatus() == PurchaseOrderStatus.DELIVERED
+                                                || po.getStatus() == PurchaseOrderStatus.CLOSED)
+                                .count();
+
+                BigDecimal totalCommitted = myPOs.stream()
+                                .map(po -> po.getTotalValue() != null ? po.getTotalValue() : BigDecimal.ZERO)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal openValue = myPOs.stream()
+                                .filter(po -> po.getStatus() == PurchaseOrderStatus.OPEN)
+                                .map(po -> po.getTotalValue() != null ? po.getTotalValue() : BigDecimal.ZERO)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                AccountantDashboardDTO.ProcurementStats pStats = AccountantDashboardDTO.ProcurementStats.builder()
+                                .approvedRequestsCount(approved)
+                                .totalPOsCount(myPOs.size())
+                                .openPOsCount(openCount)
+                                .partiallyDeliveredCount(partialCount)
+                                .deliveredCount(deliveredCount)
+                                .totalCommittedValue(totalCommitted)
+                                .openPOsValue(openValue)
                                 .build();
+                builder.procurementStats(pStats);
+
+                // 2. Budget Overview
+                Map<Long, List<PurchaseOrder>> posByProject = myPOs.stream()
+                                .filter(po -> po.getProject() != null)
+                                .collect(Collectors.groupingBy(po -> po.getProject().getId()));
+
+                List<AccountantDashboardDTO.ProjectBudgetSummary> budgetOverview = new ArrayList<>();
+                for (Project project : myProjects) {
+                        BigDecimal committed = posByProject.getOrDefault(project.getId(), Collections.emptyList())
+                                        .stream()
+                                        .map(po -> po.getTotalValue() != null ? po.getTotalValue() : BigDecimal.ZERO)
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                        BigDecimal budget = project.getBudgetTotal();
+                        BigDecimal utilPct = (budget != null && budget.compareTo(BigDecimal.ZERO) > 0)
+                                        ? committed.divide(budget, 4, RoundingMode.HALF_UP)
+                                                        .multiply(BigDecimal.valueOf(100))
+                                                        .setScale(2, RoundingMode.HALF_UP)
+                                        : BigDecimal.ZERO;
+
+                        budgetOverview.add(AccountantDashboardDTO.ProjectBudgetSummary.builder()
+                                        .projectId(project.getId())
+                                        .projectName(project.getName())
+                                        .currency(project.getCurrency() != null ? project.getCurrency() : "TZS")
+                                        .budgetTotal(budget != null ? budget : BigDecimal.ZERO)
+                                        .committedAmount(committed)
+                                        .utilizationPct(utilPct)
+                                        .build());
+                }
+                builder.projectBudgets(budgetOverview);
+
+                // 3. Upcoming Milestones
+                List<ManagerDashboardDTO.RecentMilestoneSummary> upcomingMilestones = new ArrayList<>();
+                for (Project project : myProjects) {
+                        if (project.getMilestones() != null) {
+                                upcomingMilestones.addAll(project.getMilestones().stream()
+                                                .filter(m -> m.getStatus() != MilestoneStatus.COMPLETED)
+                                                .map(m -> ManagerDashboardDTO.RecentMilestoneSummary.builder()
+                                                                .id(m.getId())
+                                                                .projectId(project.getId())
+                                                                .projectName(project.getName())
+                                                                .title(m.getName())
+                                                                .dueDate(m.getDeadline() != null
+                                                                                ? m.getDeadline().atStartOfDay()
+                                                                                : null)
+                                                                .status(m.getStatus().name())
+                                                                .isOverdue(m.getDeadline() != null && m
+                                                                                .getDeadline()
+                                                                                .isBefore(java.time.LocalDate.now()))
+                                                                .build())
+                                                .toList());
+                        }
+                }
+                upcomingMilestones.sort(
+                                Comparator.comparing(m -> m.getDueDate() != null ? m.getDueDate() : LocalDateTime.MAX));
+                builder.upcomingMilestones(upcomingMilestones.stream().limit(5).toList());
+
+                // 4. Site Activity Summary
+                Map<Long, List<Request>> requestsBySite = allFromMyProjects.stream()
+                                .filter(r -> r.getSite() != null && (r.getStatus() == RequestStatus.PENDING
+                                                || r.getStatus() == RequestStatus.APPROVED))
+                                .collect(Collectors.groupingBy(r -> r.getSite().getId()));
+
+                Map<Long, BigDecimal> spendBySite = myPOs.stream()
+                                .filter(po -> po.getSite() != null)
+                                .collect(Collectors.groupingBy(
+                                                po -> po.getSite().getId(),
+                                                Collectors.reducing(BigDecimal.ZERO,
+                                                                po -> po.getTotalValue() != null ? po.getTotalValue()
+                                                                                : BigDecimal.ZERO,
+                                                                BigDecimal::add)));
+
+                List<ManagerDashboardDTO.SiteActivitySummary> siteActivity = new ArrayList<>();
+                for (Map.Entry<Long, List<Request>> entry : requestsBySite.entrySet()) {
+                        Site s = entry.getValue().get(0).getSite();
+                        siteActivity.add(ManagerDashboardDTO.SiteActivitySummary.builder()
+                                        .siteId(s.getId())
+                                        .siteName(s.getName())
+                                        .projectName(entry.getValue().get(0).getProject().getName())
+                                        .activeRequestsCount(entry.getValue().size())
+                                        .totalSpend(spendBySite.getOrDefault(s.getId(), BigDecimal.ZERO))
+                                        .build());
+                }
+                builder.siteActivity(siteActivity);
+
+                // 5. Build Alerts (Use existing helper, passing restricted lists)
+                // Filter all requests just to active ones for the alerts logic
+                List<AccountantDashboardDTO.DashboardAlert> ownerAlerts = buildAlerts(myPOs, allFromMyProjects);
+                builder.alerts(ownerAlerts);
+
+                builder.averageApprovalTimeHours(0.0); // Dummy for now
+
+                return builder.build();
         }
 
         /**

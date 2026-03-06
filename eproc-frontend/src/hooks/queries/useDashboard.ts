@@ -12,6 +12,49 @@ export interface ManagerDashboardData {
   rejectedRequests: number;
   assignedEngineers: number;
   availableEngineers: number;
+  
+  // New Analytics Fields
+  procurementStats: {
+    approvedRequestsCount: number;
+    totalPOsCount: number;
+    openPOsCount: number;
+    partiallyDeliveredCount: number;
+    deliveredCount: number;
+    totalCommittedValue: number;
+    openPOsValue: number;
+  };
+  projectBudgets: {
+    projectId: number;
+    projectName: string;
+    currency: string;
+    budgetTotal: number;
+    committedAmount: number;
+    utilizationPct: number;
+  }[];
+  upcomingMilestones: {
+    id: number;
+    projectId: number;
+    projectName: string;
+    title: string;
+    dueDate: string;
+    status: string;
+    isOverdue: boolean;
+  }[];
+  siteActivity: {
+    siteId: number;
+    siteName: string;
+    projectName: string;
+    activeRequestsCount: number;
+    totalSpend: number;
+  }[];
+  averageApprovalTimeHours: number;
+  alerts: {
+    type: string;
+    severity: 'danger' | 'warning' | 'info';
+    title: string;
+    message: string;
+    referenceId?: number;
+  }[];
 }
 
 const getManagerDashboard = async (): Promise<ManagerDashboardData> => {
@@ -36,6 +79,42 @@ export interface EngineerDashboardData {
   approvedRequests: number;
   rejectedRequests: number;
   totalRequests: number;
+
+  // New Analytics Fields
+  remainingBudget: number;
+  totalBudget: number;
+  expectedDeliveries: {
+    poId: number;
+    poNumber: string;
+    expectedDate: string;
+    vendorName: string;
+    itemsCount: number;
+    status: string;
+  }[];
+  projectMilestones: {
+    id: number;
+    projectId: number;
+    projectName: string;
+    title: string;
+    dueDate: string;
+    status: string;
+    isOverdue: boolean;
+  }[];
+  activityFeed: {
+    id: string; // Generated ID
+    type: string; // 'REQUEST' | 'DELIVERY' | 'MILESTONE' | 'SYSTEM'
+    title: string;
+    description: string;
+    timestamp: string;
+    status?: string | null;
+  }[];
+  alerts: {
+    type: string;
+    severity: 'danger' | 'warning' | 'info';
+    title: string;
+    message: string;
+    referenceId?: number;
+  }[];
 }
 
 const getEngineerDashboard = async (): Promise<EngineerDashboardData> => {
