@@ -11,8 +11,8 @@ import { SummaryStatGrid } from '@/components/common/SummaryStatGrid';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import {
   DashboardAlerts,
-  UpcomingMilestonesWidget,
-  SiteActivityWidget
+  SiteActivityWidget,
+  DashboardRequestsWidget
 } from '@/components/domain/dashboard';
 import { BudgetOverviewList } from '@/components/domain/dashboard/BudgetOverviewList';
 import { useManagerDashboard } from '@/hooks/queries/useDashboard';
@@ -40,9 +40,8 @@ const ManagerDashboard = () => {
     );
   }
 
-  const data = dashboard!; // Assert non-null after loading/error check
+  const data = dashboard!;
 
-  // Calculate generic stats
   const stats = [
     {
       label: "Total Projects",
@@ -85,6 +84,13 @@ const ManagerDashboard = () => {
         </div>
         <div className="flex justify-end gap-2 sm:gap-3 flex-shrink-0">
           <button
+            onClick={() => navigateRole('/requests')}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2"
+          >
+            <span className="hidden sm:inline">View Requests</span>
+            <span className="sm:hidden">Requests</span>
+          </button>
+          <button
             onClick={() => navigateRole('/projects/new')}
             className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-[#2a3455] rounded-md hover:bg-[#1e253e] transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2 flex items-center shadow-sm"
           >
@@ -102,14 +108,19 @@ const ManagerDashboard = () => {
       <div className="mt-6">
         {/* Mobile & Tablet Layout (< 1024px) */}
         <div className="flex flex-col gap-6 lg:hidden">
-          {/* Alerts (Only shown if there are alerts) */}
           {data.alerts && data.alerts.length > 0 && (
             <div className="w-full">
               <DashboardAlerts alerts={data.alerts} />
             </div>
           )}
+          <DashboardRequestsWidget
+            title="Pending Requests"
+            requests={data.pendingRequestSummaries ?? []}
+            actionLabel="View All"
+            actionPath="/requests"
+            priority="pending"
+          />
           <BudgetOverviewList data={data.projectBudgets || []} />
-          <UpcomingMilestonesWidget milestones={data.upcomingMilestones} />
           <SiteActivityWidget siteActivity={data.siteActivity} />
         </div>
 
@@ -117,13 +128,18 @@ const ManagerDashboard = () => {
         <div className="hidden lg:grid lg:grid-cols-3 gap-6 items-start">
           {/* Main Content Column (2 cols) */}
           <div className="flex flex-col col-span-2 gap-6">
-            <UpcomingMilestonesWidget milestones={data.upcomingMilestones} />
+            <DashboardRequestsWidget
+              title="Pending Requests"
+              requests={data.pendingRequestSummaries ?? []}
+              actionLabel="View All Requests"
+              actionPath="/requests"
+              priority="pending"
+            />
             <SiteActivityWidget siteActivity={data.siteActivity} />
           </div>
 
           {/* Sidebar Column (1 col) */}
           <div className="flex flex-col col-span-1 gap-6">
-            {/* Alerts are always rendered on desktop sidebar (often hidden states inside) */}
             <DashboardAlerts alerts={data.alerts} />
             <BudgetOverviewList data={data.projectBudgets || []} title="Project Budgets" />
           </div>

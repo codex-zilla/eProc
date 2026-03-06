@@ -51,9 +51,27 @@ public class ManagerDashboardDTO {
     /** Auto-computed risk alerts. */
     private List<AccountantDashboardDTO.DashboardAlert> alerts;
 
+    /** Recent requests (PENDING first) for dashboard quick access. */
+    private List<RequestSummary> pendingRequestSummaries;
+
     // -------------------------------------------------------------------------
     // Nested DTOs Specific to Manager
     // -------------------------------------------------------------------------
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RequestSummary {
+        private Long id;
+        private String title;
+        private String projectName;
+        private String siteName;
+        private String createdByName;
+        private String status;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+    }
 
     @Data
     @Builder

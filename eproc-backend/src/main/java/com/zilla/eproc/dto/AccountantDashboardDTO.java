@@ -52,9 +52,10 @@ public class AccountantDashboardDTO {
         private int totalPOsCount;
         private int openPOsCount;
         private int partiallyDeliveredCount;
-        private int deliveredCount; // DELIVERED + CLOSED
+        private int deliveredCount; // DELIVERED + CLOSED count
         private BigDecimal totalCommittedValue; // sum of all PO totalValue
         private BigDecimal openPOsValue; // sum of OPEN PO values
+        private BigDecimal deliveredValue; // sum of DELIVERED/CLOSED PO values
     }
 
     @Data

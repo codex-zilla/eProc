@@ -1,8 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/axios"; // ManagerDashboard uses api directly
+import api from "@/lib/axios";
 import { queryKeys } from "./query-keys";
 
-// Types from ManagerDashboard.tsx
+// Shared request summary type used by Manager and Engineer dashboards
+export interface DashboardRequestSummary {
+  id: number;
+  title: string;
+  projectName: string;
+  siteName: string | null;
+  createdByName: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface ManagerDashboardData {
   activeProjects: number;
   completedProjects: number;
@@ -22,6 +32,7 @@ export interface ManagerDashboardData {
     deliveredCount: number;
     totalCommittedValue: number;
     openPOsValue: number;
+    deliveredValue: number;  // TZS value of DELIVERED/CLOSED POs
   };
   projectBudgets: {
     projectId: number;
@@ -55,6 +66,8 @@ export interface ManagerDashboardData {
     message: string;
     referenceId?: number;
   }[];
+  /** PENDING-first request summary for quick access card */
+  pendingRequestSummaries: DashboardRequestSummary[];
 }
 
 const getManagerDashboard = async (): Promise<ManagerDashboardData> => {
@@ -115,6 +128,8 @@ export interface EngineerDashboardData {
     message: string;
     referenceId?: number;
   }[];
+  /** APPROVED/REJECTED-first request summary for quick access card */
+  recentRequests: DashboardRequestSummary[];
 }
 
 const getEngineerDashboard = async (): Promise<EngineerDashboardData> => {
@@ -138,6 +153,7 @@ export interface AccountantDashboardData {
     deliveredCount: number;
     totalCommittedValue: number;
     openPOsValue: number;
+    deliveredValue: number;  // TZS value of DELIVERED/CLOSED POs
   };
   budgetOverview: {
     projectId: number;

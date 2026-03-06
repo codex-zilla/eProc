@@ -33,6 +33,7 @@ public class DashboardService {
         private final RequestRepository requestRepository;
         private final ProjectAssignmentRepository projectAssignmentRepository;
         private final PurchaseOrderRepository purchaseOrderRepository;
+        private final RequestAuditLogRepository auditLogRepository;
 
         /**
          * Get dashboard statistics for an engineer.
@@ -148,43 +149,104 @@ public class DashboardService {
                                         || po.getStatus() == PurchaseOrderStatus.PARTIALLY_DELIVERED) {
                                 expectedDeliveries.add(EngineerDashboardDTO.ExpectedDeliverySummary
                                                 .builder()
-                                                .deliveryId(po.getId()) // Use PO ID as placeholder for expected
-                                                .deliveryRef("PO-" + po.getPoNumber())
+                                                .poId(po.getId())
+                                                .poNumber(po.getPoNumber())
                                                 .requestId(po.getRequest() != null ? po.getRequest().getId() : null)
                                                 .requestTitle(po.getRequest() != null ? po.getRequest().getTitle()
                                                                 : null)
-                                                .siteName(po.getSite() != null ? po.getSite().getName()
-                                                                : null)
-                                                .expectedDate(null) // Expected delivery date not natively tracked at PO
-                                                                    // level MVP
+                                                .siteName(po.getSite() != null ? po.getSite().getName() : null)
+                                                .expectedDate(po.getExpectedDeliveryDate())
                                                 .status(po.getStatus().name())
                                                 .vendorName(po.getVendorName())
+                                                .itemsCount(po.getItems() != null ? po.getItems().size() : 0)
                                                 .build());
                         }
                 }
 
-                // Sort by expected date
+                // Sort by expected date ascending (soonest first)
                 expectedDeliveries.sort(Comparator.comparing(
                                 e -> e.getExpectedDate() != null ? e.getExpectedDate() : LocalDateTime.MAX,
                                 Comparator.nullsLast(Comparator.naturalOrder())));
 
                 builder.expectedDeliveries(expectedDeliveries.stream().limit(5).toList());
 
-                // Activity Feed (Dummy implementation, should query RequestAuditLog)
-                builder.activityFeed(Collections.emptyList());
+                // Activity Feed — recent audit log entries for engineer's requests
+                org.springframework.data.domain.PageRequest feedPage = org.springframework.data.domain.PageRequest.of(0,
+                                15);
+                List<EngineerDashboardDTO.ActivityFeedItem> feedItems = auditLogRepository
+                                .findRecentByRequestCreatorId(engineer.getId(), feedPage)
+                                .stream()
+                                .map(log -> {
+                                        String actionType = log.getAction();
+                                        // Determine status for icon colouring
+                                        String status = null;
+                                        if (actionType.contains("APPROVED"))
+                                                status = "APPROVED";
+                                        else if (actionType.contains("REJECTED"))
+                                                status = "REJECTED";
+                                        else if (actionType.equals("CREATED"))
+                                                status = "PENDING";
 
-                // Alerts (Rejected requests needing attention)
-                List<AccountantDashboardDTO.DashboardAlert> engineeAlerts = myRequests.stream()
-                                .filter(r -> r.getStatus() == RequestStatus.REJECTED)
-                                .map(r -> AccountantDashboardDTO.DashboardAlert.builder()
-                                                .type("REQUEST_REJECTED")
-                                                .severity("danger")
-                                                .title("Request Rejected")
-                                                .message("Request '" + r.getTitle() + "' requires your attention.")
-                                                .referenceId(r.getId())
-                                                .build())
+                                        return EngineerDashboardDTO.ActivityFeedItem.builder()
+                                                        .id(log.getId())
+                                                        .requestId(log.getRequest().getId())
+                                                        .type(actionType)
+                                                        .title(log.getRequest().getTitle())
+                                                        .description(log.getDetails() != null ? log.getDetails()
+                                                                        : actionType + " by "
+                                                                                        + log.getPerformedBy()
+                                                                                                        .getName())
+                                                        .timestamp(log.getTimestamp())
+                                                        .actorName(log.getPerformedBy().getName())
+                                                        .status(status)
+                                                        .build();
+                                })
                                 .toList();
-                builder.alerts(engineeAlerts);
+                builder.activityFeed(feedItems);
+
+                // Alerts (Rejected requests + engineer-visible stale requests)
+                List<AccountantDashboardDTO.DashboardAlert> engineerAlerts = myRequests.stream()
+                                .filter(r -> r.getStatus() == RequestStatus.REJECTED)
+                                .map(r -> {
+                                        // Collect rejection reason from material comments
+                                        String reason = r.getMaterials().stream()
+                                                        .filter(m -> m.getComment() != null
+                                                                        && !m.getComment().isBlank())
+                                                        .map(m -> m.getName() + ": " + m.getComment())
+                                                        .collect(Collectors.joining("; "));
+                                        String message = "Request '" + r.getTitle() + "' was rejected."
+                                                        + (reason.isBlank() ? "" : " Reason: " + reason);
+                                        return AccountantDashboardDTO.DashboardAlert.builder()
+                                                        .type("REQUEST_REJECTED")
+                                                        .severity("danger")
+                                                        .title("Request Rejected")
+                                                        .message(message)
+                                                        .referenceId(r.getId())
+                                                        .build();
+                                })
+                                .collect(Collectors.toList());
+                builder.alerts(engineerAlerts);
+
+                // Recent Requests for Engineer (APPROVED/REJECTED first, then PENDING; limit 5)
+                List<EngineerDashboardDTO.RequestSummary> engineerRequestSummaries = myRequests.stream()
+                        .sorted(Comparator.<Request, Integer>comparing(r ->
+                                (r.getStatus() == RequestStatus.APPROVED ||
+                                 r.getStatus() == RequestStatus.REJECTED) ? 0 : 1)
+                            .thenComparing(r -> r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt(),
+                                Comparator.reverseOrder()))
+                        .limit(5)
+                        .map(r -> EngineerDashboardDTO.RequestSummary.builder()
+                                .id(r.getId())
+                                .title(r.getTitle())
+                                .projectName(r.getProject() != null ? r.getProject().getName() : null)
+                                .siteName(r.getSite() != null ? r.getSite().getName() : null)
+                                .createdByName(r.getCreatedBy() != null ? r.getCreatedBy().getName() : null)
+                                .status(r.getStatus().name())
+                                .createdAt(r.getCreatedAt())
+                                .updatedAt(r.getUpdatedAt())
+                                .build())
+                        .collect(Collectors.toList());
+                builder.recentRequests(engineerRequestSummaries);
 
                 return builder.build();
         }
@@ -277,6 +339,12 @@ public class DashboardService {
                                 .deliveredCount(deliveredCount)
                                 .totalCommittedValue(totalCommitted)
                                 .openPOsValue(openValue)
+                                .deliveredValue(myPOs.stream()
+                                                .filter(po -> po.getStatus() == PurchaseOrderStatus.DELIVERED
+                                                                || po.getStatus() == PurchaseOrderStatus.CLOSED)
+                                                .map(po -> po.getTotalValue() != null ? po.getTotalValue()
+                                                                : BigDecimal.ZERO)
+                                                .reduce(BigDecimal.ZERO, BigDecimal::add))
                                 .build();
                 builder.procurementStats(pStats);
 
@@ -336,6 +404,26 @@ public class DashboardService {
                                 Comparator.comparing(m -> m.getDueDate() != null ? m.getDueDate() : LocalDateTime.MAX));
                 builder.upcomingMilestones(upcomingMilestones.stream().limit(5).toList());
 
+                // Pending Request Summaries for Manager (PENDING first, limit 5)
+                List<ManagerDashboardDTO.RequestSummary> pendingSummaries = allFromMyProjects.stream()
+                        .sorted(Comparator.<Request, Integer>comparing(r ->
+                                r.getStatus() == RequestStatus.PENDING ? 0 : 1)
+                            .thenComparing(r -> r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt(),
+                                Comparator.reverseOrder()))
+                        .limit(5)
+                        .map(r -> ManagerDashboardDTO.RequestSummary.builder()
+                                .id(r.getId())
+                                .title(r.getTitle())
+                                .projectName(r.getProject() != null ? r.getProject().getName() : null)
+                                .siteName(r.getSite() != null ? r.getSite().getName() : null)
+                                .createdByName(r.getCreatedBy() != null ? r.getCreatedBy().getName() : null)
+                                .status(r.getStatus().name())
+                                .createdAt(r.getCreatedAt())
+                                .updatedAt(r.getUpdatedAt())
+                                .build())
+                        .collect(Collectors.toList());
+                builder.pendingRequestSummaries(pendingSummaries);
+
                 // 4. Site Activity Summary
                 Map<Long, List<Request>> requestsBySite = allFromMyProjects.stream()
                                 .filter(r -> r.getSite() != null && (r.getStatus() == RequestStatus.PENDING
@@ -364,12 +452,96 @@ public class DashboardService {
                 }
                 builder.siteActivity(siteActivity);
 
-                // 5. Build Alerts (Use existing helper, passing restricted lists)
-                // Filter all requests just to active ones for the alerts logic
+                // 5. Build Alerts
                 List<AccountantDashboardDTO.DashboardAlert> ownerAlerts = buildAlerts(myPOs, allFromMyProjects);
+
+                // 5a. Stale PENDING request alerts (pending > 7 days)
+                LocalDateTime staleCutoff = LocalDateTime.now().minusDays(7);
+                List<Request> stalePending = requestRepository.findStalePendingByOwnerId(owner.getId(), staleCutoff);
+                for (Request r : stalePending) {
+                        long ageDays = java.time.temporal.ChronoUnit.DAYS.between(r.getCreatedAt(),
+                                        LocalDateTime.now());
+                        ownerAlerts.add(AccountantDashboardDTO.DashboardAlert.builder()
+                                        .type("PENDING_TOO_LONG")
+                                        .severity("warning")
+                                        .title("Request Pending Too Long")
+                                        .message("'" + r.getTitle() + "' has been pending for " + ageDays
+                                                        + " days without review.")
+                                        .referenceId(r.getId())
+                                        .build());
+                }
+
+                // 5b. Delayed delivery alerts (PO past expectedDeliveryDate)
+                List<PurchaseOrder> overdueDeliveries = purchaseOrderRepository
+                                .findOverdueDeliveries(LocalDateTime.now())
+                                .stream()
+                                .filter(po -> po.getProject() != null && projectIds.contains(po.getProject().getId()))
+                                .toList();
+                for (PurchaseOrder po : overdueDeliveries) {
+                        long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(
+                                        po.getExpectedDeliveryDate(), LocalDateTime.now());
+                        ownerAlerts.add(AccountantDashboardDTO.DashboardAlert.builder()
+                                        .type("DELAYED_DELIVERY")
+                                        .severity("warning")
+                                        .title("Delivery Overdue")
+                                        .message("PO '" + po.getPoNumber() + "' was expected " + overdueDays
+                                                        + " day(s) ago.")
+                                        .referenceId(po.getId())
+                                        .build());
+                }
+
+                // 5c. Project health alerts (expectedCompletionDate approaching/passed)
+                for (Project p : myProjects) {
+                        if (p.getStatus() == ProjectStatus.ACTIVE && p.getExpectedCompletionDate() != null) {
+                                long daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(
+                                                java.time.LocalDate.now(), p.getExpectedCompletionDate());
+                                if (daysRemaining < 0) {
+                                        ownerAlerts.add(AccountantDashboardDTO.DashboardAlert.builder()
+                                                        .type("PROJECT_AT_RISK")
+                                                        .severity("danger")
+                                                        .title("Project Overdue")
+                                                        .message("'" + p.getName()
+                                                                        + "' passed its expected completion date "
+                                                                        + Math.abs(daysRemaining) + " day(s) ago.")
+                                                        .referenceId(p.getId())
+                                                        .build());
+                                } else if (daysRemaining <= 14) {
+                                        ownerAlerts.add(AccountantDashboardDTO.DashboardAlert.builder()
+                                                        .type("PROJECT_AT_RISK")
+                                                        .severity("warning")
+                                                        .title("Project Deadline Approaching")
+                                                        .message("'" + p.getName() + "' is due in " + daysRemaining
+                                                                        + " day(s).")
+                                                        .referenceId(p.getId())
+                                                        .build());
+                                }
+                        }
+                }
+
                 builder.alerts(ownerAlerts);
 
-                builder.averageApprovalTimeHours(0.0); // Dummy for now
+                // 6. Average approval time
+                List<String> approvalActions = List.of("CREATED", "APPROVED", "REJECTED",
+                                "MATERIAL_APPROVED", "MATERIAL_REJECTED");
+                List<com.zilla.eproc.model.RequestAuditLog> logs = auditLogRepository
+                                .findByRequestOwnerAndActions(owner.getId(), approvalActions);
+
+                Map<Long, LocalDateTime> createdTimes = new HashMap<>();
+                List<Long> resolvedDurations = new ArrayList<>();
+                for (com.zilla.eproc.model.RequestAuditLog log : logs) {
+                        Long reqId = log.getRequest().getId();
+                        if ("CREATED".equals(log.getAction())) {
+                                createdTimes.putIfAbsent(reqId, log.getTimestamp());
+                        } else if (("APPROVED".equals(log.getAction()) || "REJECTED".equals(log.getAction()))
+                                        && createdTimes.containsKey(reqId)) {
+                                long hours = java.time.temporal.ChronoUnit.HOURS.between(
+                                                createdTimes.get(reqId), log.getTimestamp());
+                                resolvedDurations.add(hours);
+                        }
+                }
+                double avgHours = resolvedDurations.isEmpty() ? 0.0
+                                : resolvedDurations.stream().mapToLong(Long::longValue).average().orElse(0.0);
+                builder.averageApprovalTimeHours(avgHours);
 
                 return builder.build();
         }
@@ -426,6 +598,12 @@ public class DashboardService {
                                 .deliveredCount(deliveredCount)
                                 .totalCommittedValue(totalCommitted)
                                 .openPOsValue(openValue)
+                                .deliveredValue(allPOs.stream()
+                                                .filter(po -> po.getStatus() == PurchaseOrderStatus.DELIVERED
+                                                                || po.getStatus() == PurchaseOrderStatus.CLOSED)
+                                                .map(po -> po.getTotalValue() != null ? po.getTotalValue()
+                                                                : BigDecimal.ZERO)
+                                                .reduce(BigDecimal.ZERO, BigDecimal::add))
                                 .build();
 
                 // ── 3. Budget overview (group by project) ────────────────────────────────
@@ -434,9 +612,11 @@ public class DashboardService {
                                 .collect(Collectors.groupingBy(po -> po.getProject().getId()));
 
                 List<ProjectBudgetSummary> budgetOverview = new ArrayList<>();
-                for (Map.Entry<Long, List<PurchaseOrder>> entry : posByProject.entrySet()) {
-                        Project project = entry.getValue().get(0).getProject();
-                        BigDecimal committed = entry.getValue().stream()
+                // Use all projects from the repository so zero-spend projects are included
+                List<Project> allProjects = projectRepository.findAll();
+                for (Project project : allProjects) {
+                        BigDecimal committed = posByProject.getOrDefault(project.getId(), Collections.emptyList())
+                                        .stream()
                                         .map(po -> po.getTotalValue() != null ? po.getTotalValue() : BigDecimal.ZERO)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
                         BigDecimal budget = project.getBudgetTotal();
@@ -493,8 +673,41 @@ public class DashboardService {
                 // ── 6. Monthly spend (last 6 months) ─────────────────────────────────────
                 List<MonthlySpend> monthlySpend = buildMonthlySpend(allPOs);
 
-                // ── 7. Alerts ─────────────────────────────────────────────────────────────
+                // ── 7. Alerts (OVER_DELIVERED, BUDGET_THRESHOLD, UNDER_ORDERED + new
+                // age-based)
                 List<DashboardAlert> alerts = buildAlerts(allPOs, allRequests);
+
+                // 7a. Stale APPROVED unordered requests (>7 days without a PO)
+                LocalDateTime accountantStaleCutoff = LocalDateTime.now().minusDays(7);
+                List<Request> staleApproved = requestRepository.findStaleApprovedUnordered(accountantStaleCutoff);
+                for (Request r : staleApproved) {
+                        long ageDays = java.time.temporal.ChronoUnit.DAYS.between(r.getCreatedAt(),
+                                        LocalDateTime.now());
+                        alerts.add(DashboardAlert.builder()
+                                        .type("APPROVED_UNORDERED")
+                                        .severity("warning")
+                                        .title("Approved Request Awaiting PO")
+                                        .message("'" + r.getTitle() + "' was approved " + ageDays
+                                                        + " days ago but has no Purchase Order.")
+                                        .referenceId(r.getId())
+                                        .build());
+                }
+
+                // 7b. Delayed delivery alerts (overdue POs)
+                List<PurchaseOrder> overdueDeliveries = purchaseOrderRepository
+                                .findOverdueDeliveries(LocalDateTime.now());
+                for (PurchaseOrder po : overdueDeliveries) {
+                        long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(
+                                        po.getExpectedDeliveryDate(), LocalDateTime.now());
+                        alerts.add(DashboardAlert.builder()
+                                        .type("DELAYED_DELIVERY")
+                                        .severity("warning")
+                                        .title("Delivery Overdue")
+                                        .message("PO '" + po.getPoNumber() + "' was expected " + overdueDays
+                                                        + " day(s) ago.")
+                                        .referenceId(po.getId())
+                                        .build());
+                }
 
                 return AccountantDashboardDTO.builder()
                                 .stats(stats)

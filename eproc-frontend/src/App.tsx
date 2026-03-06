@@ -87,7 +87,7 @@ function App() {
                 <Route path="/manager/projects/:id/edit" element={<EditProject />} />
                 <Route path="/manager/projects/:id/sites" element={<ManageSites />} />
                 <Route path="/manager/users" element={<ManageProjectUsers />} />
-                <Route path="/manager/pending" element={<ManagerRequests />} />
+                <Route path="/manager/requests" element={<ManagerRequests />} />
                 <Route path="/manager/requests/:id" element={<RequestDetailsManager />} />
                 <Route path="/manager/procurement" element={<ProcurementDashboard />} />
                 <Route path="/manager/procurement/create" element={<PurchaseOrderForm />} />
@@ -121,7 +121,7 @@ function App() {
 
               {/* Legacy routes redirect */}
               <Route path="/site-dashboard" element={<Navigate to="/engineer/dashboard" replace />} />
-              <Route path="/approvals" element={<Navigate to="/manager/pending" replace />} />
+              <Route path="/approvals" element={<Navigate to="/manager/requests" replace />} />
               <Route path="/projects" element={<Navigate to="/manager/projects" replace />} />
 
               {/* Default redirect based on role (ProtectedRoute handles this) */}

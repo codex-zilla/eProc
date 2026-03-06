@@ -15,7 +15,8 @@ import {
   DashboardAlerts,
   UpcomingMilestonesWidget,
   ActivityFeedWidget,
-  ExpectedDeliveriesWidget
+  ExpectedDeliveriesWidget,
+  DashboardRequestsWidget
 } from '@/components/domain/dashboard';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/formatters';
@@ -180,6 +181,13 @@ const EngineerDashboard = () => {
             <DashboardAlerts alerts={data.alerts} />
           )}
           <ActivityFeedWidget activities={data.activityFeed} />
+          <DashboardRequestsWidget
+            title="My Requests"
+            requests={data.recentRequests ?? []}
+            actionLabel="All Requests"
+            actionPath="/requests"
+            priority="processed"
+          />
         </div>
       </div>
     </div>

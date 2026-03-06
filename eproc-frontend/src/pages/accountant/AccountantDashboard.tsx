@@ -15,7 +15,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import {
     DashboardAlerts,
     RecentPOsWidget,
-    RecentRequestsWidget
+    DashboardRequestsWidget
 } from '@/components/domain/dashboard';
 import { useAccountantDashboard } from '@/hooks/queries/useDashboard';
 
@@ -113,7 +113,17 @@ const AccountantDashboard = () => {
                     )}
                     <BudgetOverviewList data={budgetOverview} />
                     <RecentPOsWidget recentPOs={data.recentPOs} />
-                    <RecentRequestsWidget recentRequests={data.recentApprovedRequests} />
+                    <DashboardRequestsWidget
+                        title="Recent Approved Requests"
+                        requests={data.recentApprovedRequests.map(r => ({
+                            ...r,
+                            status: 'APPROVED',
+                            createdAt: r.updatedAt,
+                            siteName: r.siteName || null
+                        }))}
+                        actionLabel="Process"
+                        actionPath="/procurement/requests"
+                    />
 
                     <div className="bg-white rounded-lg border border-slate-200">
                         <MonthlySpendChart data={monthlySpend} />
@@ -125,7 +135,17 @@ const AccountantDashboard = () => {
                     {/* Main Content Column (2 cols) */}
                     <div className="flex flex-col col-span-2 gap-6">
                         <RecentPOsWidget recentPOs={data.recentPOs} />
-                        <RecentRequestsWidget recentRequests={data.recentApprovedRequests} />
+                        <DashboardRequestsWidget
+                            title="Recent Approved Requests"
+                            requests={data.recentApprovedRequests.map(r => ({
+                                ...r,
+                                status: 'APPROVED',
+                                createdAt: r.updatedAt,
+                                siteName: r.siteName || null
+                            }))}
+                            actionLabel="Process"
+                            actionPath="/procurement/requests"
+                        />
 
                         <div className="bg-white rounded-lg border border-slate-200">
                             <MonthlySpendChart data={monthlySpend} />

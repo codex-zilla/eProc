@@ -68,6 +68,23 @@ public class PurchaseOrder {
     private LocalDateTime updatedAt;
 
     /**
+     * Expected delivery date — auto-set to createdAt + 7 days on first persist.
+     * Updated manually if a revised delivery window is known.
+     */
+    @Column(name = "expected_delivery_date")
+    private LocalDateTime expectedDeliveryDate;
+
+    @PrePersist
+    protected void onPrePersist() {
+        // Auto-set expectedDeliveryDate to 7 days after creation if not set explicitly
+        if (this.expectedDeliveryDate == null) {
+            // createdAt is set by @CreationTimestamp, so we use LocalDateTime.now() as
+            // surrogate
+            this.expectedDeliveryDate = LocalDateTime.now().plusDays(7);
+        }
+    }
+
+    /**
      * Items on this purchase order.
      */
     @Builder.Default

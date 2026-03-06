@@ -80,4 +80,29 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
                         @Param("materialNames") List<String> materialNames,
                         @Param("plannedStart") LocalDateTime plannedStart,
                         @Param("plannedEnd") LocalDateTime plannedEnd);
+
+        /**
+         * Find PENDING requests older than the given cutoff for a manager's projects.
+         * Used to generate "stale pending" alerts on the Manager dashboard.
+         */
+        @Query("SELECT r FROM Request r " +
+                        "WHERE r.project.owner.id = :ownerId " +
+                        "AND r.status = 'PENDING' " +
+                        "AND r.createdAt < :cutoff " +
+                        "ORDER BY r.createdAt ASC")
+        List<Request> findStalePendingByOwnerId(
+                        @Param("ownerId") Long ownerId,
+                        @Param("cutoff") LocalDateTime cutoff);
+
+        /**
+         * Find APPROVED requests (across all projects) that have no linked PO
+         * and are older than the given cutoff.
+         * Used to generate "approved but not yet ordered" alerts.
+         */
+        @Query("SELECT r FROM Request r " +
+                        "WHERE r.status = 'APPROVED' " +
+                        "AND r.createdAt < :cutoff " +
+                        "AND r.id NOT IN (SELECT po.request.id FROM PurchaseOrder po WHERE po.request IS NOT NULL) " +
+                        "ORDER BY r.createdAt ASC")
+        List<Request> findStaleApprovedUnordered(@Param("cutoff") LocalDateTime cutoff);
 }

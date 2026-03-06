@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -78,4 +79,18 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
         @Query("SELECT DISTINCT po FROM PurchaseOrder po " +
                         "LEFT JOIN FETCH po.items i")
         List<PurchaseOrder> findAllWithItemsAndDeliveries();
+
+        /**
+         * Find OPEN or PARTIALLY_DELIVERED POs whose expected delivery date has passed.
+         * Used to generate delayed-delivery alerts on Manager and Accountant
+         * dashboards.
+         */
+        @Query("SELECT po FROM PurchaseOrder po " +
+                        "LEFT JOIN FETCH po.project " +
+                        "LEFT JOIN FETCH po.site " +
+                        "WHERE po.status IN ('OPEN', 'PARTIALLY_DELIVERED') " +
+                        "AND po.expectedDeliveryDate IS NOT NULL " +
+                        "AND po.expectedDeliveryDate < :now " +
+                        "ORDER BY po.expectedDeliveryDate ASC")
+        List<PurchaseOrder> findOverdueDeliveries(@Param("now") LocalDateTime now);
 }

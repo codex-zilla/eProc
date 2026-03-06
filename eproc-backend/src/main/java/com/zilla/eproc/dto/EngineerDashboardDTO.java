@@ -49,6 +49,9 @@ public class EngineerDashboardDTO {
     /** Actionable alerts (e.g. rejected requests needing attention). */
     private List<AccountantDashboardDTO.DashboardAlert> alerts;
 
+    /** Recent requests (APPROVED/REJECTED first) for dashboard quick access. */
+    private List<RequestSummary> recentRequests;
+
     // -------------------------------------------------------------------------
     // Nested DTOs Specific to Engineer
     // -------------------------------------------------------------------------
@@ -58,14 +61,15 @@ public class EngineerDashboardDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ExpectedDeliverySummary {
-        private Long deliveryId;
-        private String deliveryRef;
+        private Long poId; // Purchase Order ID
+        private String poNumber; // Purchase Order number (e.g. PO-2026-001)
         private Long requestId;
         private String requestTitle;
         private String siteName;
-        private LocalDateTime expectedDate;
+        private LocalDateTime expectedDate; // Auto-set to PO.expectedDeliveryDate
         private String status;
         private String vendorName;
+        private int itemsCount; // Number of line items on the PO
     }
 
     @Data
@@ -75,10 +79,26 @@ public class EngineerDashboardDTO {
     public static class ActivityFeedItem {
         private Long id; // Audit log ID
         private Long requestId;
-        private String requestTitle;
-        private String action; // e.g., "STATUS_CHANGED", "CREATED"
-        private String description; // e.g., "Request #123 was Approved by John"
+        private String type; // e.g. "CREATED", "APPROVED", "REJECTED"
+        private String title; // Request title
+        private String description; // Human-readable summary
         private LocalDateTime timestamp;
         private String actorName;
+        private String status; // Optional: APPROVED, REJECTED, PENDING (for icon colouring)
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RequestSummary {
+        private Long id;
+        private String title;
+        private String projectName;
+        private String siteName;
+        private String createdByName;
+        private String status;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
     }
 }

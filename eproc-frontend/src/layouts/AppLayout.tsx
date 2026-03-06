@@ -113,7 +113,7 @@ const AppLayout = () => {
         { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
         { label: 'Projects', path: '/manager/projects', icon: Briefcase },
         { label: 'Project Users', path: '/manager/users', icon: Users },
-        { label: 'Requests', path: '/manager/pending', icon: ClipboardList, badge: pendingCount },
+        { label: 'Requests', path: '/manager/requests', icon: ClipboardList, badge: pendingCount },
         { label: 'Procurement', path: '/manager/procurement', icon: ShoppingCart },
         { label: 'Deliveries', path: '/manager/deliveries', icon: Package },
       ];
@@ -142,11 +142,11 @@ const AppLayout = () => {
   // Breadcrumb Logic
   const breadcrumbs: { label: string; path?: string; active?: boolean }[] = [];
 
-  // Special handling for manager request details (doesn't match /manager/pending path)
+  // Special handling for manager request details (doesn't match /manager/requests path)
   if (/^\/manager\/requests\/\d+$/.test(location.pathname)) {
     breadcrumbs.push({
       label: 'Requests',
-      path: '/manager/pending',
+      path: '/manager/requests',
       active: false
     });
     breadcrumbs.push({
