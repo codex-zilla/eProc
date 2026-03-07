@@ -1,5 +1,6 @@
 import type { Project, Site } from '@/types/models';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { SiteCard } from '@/components/domain/projects/SiteCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { MapPin } from 'lucide-react';
@@ -12,29 +13,33 @@ interface ProjectSitesTabProps {
 
 export const ProjectSitesTab = ({ project, sites, isManager }: ProjectSitesTabProps) => {
     return (
-        <div className="mt-4 sm:mt-6 bg-white/50 rounded-xl">
-            <div className="flex flex-row justify-between items-center gap-3 mb-4 px-4 pt-4">
-                <h3 className="text-base sm:text-lg font-semibold text-[#2a3455] border-s-4 border-[#2a3455] ps-2">Active Sites</h3>
+        <Card className="flex flex-col shadow-none border-slate-200/50">
+            <CardHeader className="p-3 border-b border-slate-100 flex flex-row items-center justify-between pb-2 bg-slate-50/50">
+                <CardTitle className="text-base font-bold text-[#2a3455] flex items-center mb-0">
+                    Active Sites
+                </CardTitle>
                 {isManager && (
-                    <Button size="sm" asChild className="bg-[#2a3455] hover:bg-[#1e256e] text-white shadow-sm rounded-lg h-8 px-4 text-xs font-medium">
+                    <Button variant="link" asChild className="text-xs h-auto p-0 text-[#2a3455] font-semibold">
                         <a href={`/manager/projects/${project.id}/sites`}>Manage</a>
                     </Button>
                 )}
-            </div>
+            </CardHeader>
 
-            <div className="px-1.5">
+            <CardContent className="p-0 flex-1">
                 {sites.length === 0 ? (
-                    <EmptyState
-                        icon={MapPin}
-                        title="No sites configured"
-                        description="There are currently no active sites configured for this project."
-                        action={isManager ? {
-                            label: "Set up a new site",
-                            onClick: () => window.location.href = `/manager/projects/${project.id}/sites`
-                        } : undefined}
-                    />
+                    <div className="p-6">
+                        <EmptyState
+                            icon={MapPin}
+                            title="No sites configured"
+                            description="There are currently no active sites configured for this project."
+                            action={isManager ? {
+                                label: "Set up a new site",
+                                onClick: () => window.location.href = `/manager/projects/${project.id}/sites`
+                            } : undefined}
+                        />
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-2 sm:px-4 py-2 pb-4">
                         {sites.map(site => (
                             <div key={site.id} className="min-w-0">
                                 <SiteCard
@@ -45,7 +50,7 @@ export const ProjectSitesTab = ({ project, sites, isManager }: ProjectSitesTabPr
                         ))}
                     </div>
                 )}
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };

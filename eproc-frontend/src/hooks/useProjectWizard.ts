@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getAllRegions, getDistrictData, getWardData } from 'tz-geo-data';
 
-import type { Project, ProjectWizardFormData } from '@/types/models';
+import type { Project, ProjectWizardFormData, Site } from '@/types/models';
 import { getCoordinates } from '@/lib/geocoding';
 import { getExchangeRate } from '@/lib/currency';
 import { projectService } from '@/services/projectService';
@@ -30,6 +30,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 interface UseProjectWizardOptions {
     initialData?: Project;
+    initialSites?: Site[];
     isEditMode: boolean;
 }
 
@@ -65,7 +66,7 @@ const DEFAULT_FORM_DATA: ProjectWizardFormData = {
     initialSites: [{ name: 'Main Site', budgetCap: '', location: '', gpsCenter: '' }]
 };
 
-export function useProjectWizard({ initialData, isEditMode }: UseProjectWizardOptions) {
+export function useProjectWizard({ initialData, initialSites, isEditMode }: UseProjectWizardOptions) {
     const navigate = useNavigate();
     const { handleError } = useErrorHandler();
 
@@ -128,7 +129,16 @@ export function useProjectWizard({ initialData, isEditMode }: UseProjectWizardOp
                 defectsLiabilityPeriod: initialData.defectsLiabilityPeriod ?? '',
                 performanceSecurityRequired: initialData.performanceSecurityRequired || false,
                 keyObjectives: initialData.keyObjectives || '',
-                expectedOutput: initialData.expectedOutput || ''
+                expectedOutput: initialData.expectedOutput || '',
+                initialSites: initialSites && initialSites.length > 0 
+                    ? initialSites.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        budgetCap: s.budgetCap?.toString() || '',
+                        location: s.location || '',
+                        gpsCenter: s.gpsCenter || ''
+                    }))
+                    : [{ name: 'Main Site', budgetCap: '', location: '', gpsCenter: '' }]
             }));
 
             if (initialData.gpsCoordinates) {
@@ -136,7 +146,7 @@ export function useProjectWizard({ initialData, isEditMode }: UseProjectWizardOp
                 if (!isNaN(lat) && !isNaN(lng)) setMarkerPosition({ lat, lng });
             }
         }
-    }, [initialData, isEditMode, DRAFT_KEY]);
+    }, [initialData, initialSites, isEditMode, DRAFT_KEY]);
 
     // ─── Draft Integration ───
     const { saveData, clearData } = useDraft<any>({

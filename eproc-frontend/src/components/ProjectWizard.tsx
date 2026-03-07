@@ -8,17 +8,18 @@ import { WizardStepTimeline } from '@/components/domain/projects/wizard/WizardSt
 import { WizardStepContext } from '@/components/domain/projects/wizard/WizardStepContext';
 import { WizardStepReview } from '@/components/domain/projects/wizard/WizardStepReview';
 import { useProjectWizard } from '@/hooks/useProjectWizard';
-import type { Project } from '@/types/models';
+import type { Project, Site } from '@/types/models';
 
 interface ProjectWizardProps {
     initialData?: Project;
+    initialSites?: Site[];
     isEditMode?: boolean;
 }
 
 const TOTAL_STEPS = 5;
 
-const ProjectWizard = ({ initialData, isEditMode = false }: ProjectWizardProps) => {
-    const wizard = useProjectWizard({ initialData, isEditMode });
+const ProjectWizard = ({ initialData, initialSites, isEditMode = false }: ProjectWizardProps) => {
+    const wizard = useProjectWizard({ initialData, initialSites, isEditMode });
 
     // Shared props for steps 1-4
     const stepProps = {
