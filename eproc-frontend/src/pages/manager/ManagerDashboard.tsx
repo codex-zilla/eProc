@@ -78,7 +78,7 @@ const ManagerDashboard = () => {
   ];
 
   return (
-    <div className="space-y-3 min-w-0">
+    <div className="space-y-2 min-w-0">
       {/* Header */}
       <PageHeader
         title={`Welcome back, ${user?.name}`}
@@ -89,7 +89,7 @@ const ManagerDashboard = () => {
               onClick={() => navigateRole('/projects/new')}
               className="text-xs sm:text-sm bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-sm"
             >
-              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">New Project</span>
               <span className="sm:hidden">New</span>
             </Button>
@@ -101,9 +101,9 @@ const ManagerDashboard = () => {
       <SummaryStatGrid stats={stats} />
 
       {/* Dashboard Content Grid */}
-      <div className="mt-6">
+      <div className="my-3">
         {/* Mobile & Tablet Layout (< 1024px) */}
-        <div className="flex flex-col gap-6 lg:hidden">
+        <div className="flex flex-col gap-3 lg:hidden">
           {data.alerts && data.alerts.length > 0 && (
             <div className="w-full">
               <DashboardAlerts alerts={data.alerts} />

@@ -83,6 +83,8 @@ public class ProjectService extends BaseProjectService {
                         throw new ForbiddenException("Only Project Owners can create projects");
                 }
 
+                validateSitesBudget(dto);
+
                 Project project = Project.builder()
                                 .name(dto.getName())
 
@@ -199,6 +201,8 @@ public class ProjectService extends BaseProjectService {
 
                 // Authorization Check
                 checkOwner(ownerEmail, id);
+
+                validateSitesBudget(dto);
 
                 // Update Project Fields
                 project.setName(dto.getName());
@@ -379,5 +383,20 @@ public class ProjectService extends BaseProjectService {
                                 .role(user.getRole().name())
                                 .erbNumber(user.getErbNumber())
                                 .build();
+        }
+
+        private void validateSitesBudget(ProjectDTO dto) {
+                if (dto.getInitialSites() != null && dto.getBudgetTotal() != null
+                                && dto.getBudgetTotal().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                        java.math.BigDecimal totalSitesBudget = dto.getInitialSites().stream()
+                                        .map(s -> s.getBudgetCap() != null
+                                                        ? s.getBudgetCap()
+                                                        : java.math.BigDecimal.ZERO)
+                                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                        if (totalSitesBudget.compareTo(dto.getBudgetTotal()) > 0) {
+                                throw new IllegalArgumentException(
+                                                "Total budget cap of all sites cannot exceed the project budget.");
+                        }
+                }
         }
 }

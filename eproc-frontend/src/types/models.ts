@@ -420,3 +420,46 @@ export interface POFormItem {
     maxAssignable?: number;
     remainingAfterThis?: number;
 }
+
+// === Project Wizard ===
+
+export interface ProjectWizardFormData {
+    // Step 1: Core Identity
+    name: string;
+    code: string;
+    industry: string;
+    projectType: string;
+    currency: string;
+    budgetDisplay: string;
+    description: string;
+    // Step 2: Location
+    region: string;
+    district: string;
+    ward: string;
+    plotNumber: string;
+    gpsCoordinates: string;
+    siteAccessNotes: string;
+    titleDeedAvailable: boolean;
+    // Step 3: Owner & Timeline
+    ownerRepName: string;
+    ownerRepContact: string;
+    startDate: string;
+    expectedCompletionDate: string;
+    // Step 3: Contract
+    contractType: string;
+    defectsLiabilityPeriod: number | '';
+    performanceSecurityRequired: boolean;
+    // Step 4: Context
+    keyObjectives: string;
+    expectedOutput: string;
+    // Multi-site
+    initialSites: WizardSite[];
+}
+
+export interface WizardSite {
+    id?: number;
+    name: string;
+    budgetCap: string;
+    location: string;
+    gpsCenter: string;
+}
