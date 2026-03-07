@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GenericModal } from '@/components/common/GenericModal';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { FormField } from '@/components/common/FormField';
 import { useProjectUserManagement } from '@/hooks/useProjectUserManagement';
 
 export const ProjectUserModals = (props: ReturnType<typeof useProjectUserManagement>) => {
@@ -39,10 +39,9 @@ export const ProjectUserModals = (props: ReturnType<typeof useProjectUserManagem
                 }
             >
                 <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Project</Label>
+                    <FormField label="Project" required htmlFor="assign-project">
                         <Select value={assignProjectId} onValueChange={setAssignProjectId} disabled={projects.length === 0}>
-                            <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-[#2a3455]/60">
+                            <SelectTrigger id="assign-project" className="h-9 sm:h-10 text-xs sm:text-sm border-[#2a3455]/60">
                                 <SelectValue placeholder={projects.length === 0 ? "No projects available" : "Select project"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -55,32 +54,29 @@ export const ProjectUserModals = (props: ReturnType<typeof useProjectUserManagem
                                 )}
                             </SelectContent>
                         </Select>
-                    </div>
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Role</Label>
+                    </FormField>
+                    <FormField label="Role" required htmlFor="assign-role">
                         <Select value={assignRole} onValueChange={setAssignRole}>
-                            <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-[#2a3455]/60"><SelectValue placeholder="Select role" /></SelectTrigger>
+                            <SelectTrigger id="assign-role" className="h-9 sm:h-10 text-xs sm:text-sm border-[#2a3455]/60"><SelectValue placeholder="Select role" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="MANAGER" className="text-xs sm:text-sm">Project Manager</SelectItem>
                                 <SelectItem value="ACCOUNTANT" className="text-xs sm:text-sm">Project Accountant</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Start Date</Label>
-                        <Input type="date" value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
-                    </div>
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Responsibility</Label>
+                    </FormField>
+                    <FormField label="Start Date" required htmlFor="assign-startDate">
+                        <Input id="assign-startDate" type="date" value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
+                    </FormField>
+                    <FormField label="Responsibility" required htmlFor="assign-responsibility">
                         <Select value={assignResponsibility} onValueChange={setAssignResponsibility}>
-                            <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm border-[#2a3455]/60"><SelectValue /></SelectTrigger>
+                            <SelectTrigger id="assign-responsibility" className="h-9 sm:h-10 text-xs sm:text-sm border-[#2a3455]/60"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="FULL" className="text-xs sm:text-sm">Full</SelectItem>
                                 <SelectItem value="PARTIAL" className="text-xs sm:text-sm">Partial</SelectItem>
                                 <SelectItem value="ADVISORY" className="text-xs sm:text-sm">Advisory</SelectItem>
                             </SelectContent>
                         </Select>
-                    </div>
+                    </FormField>
                 </div>
             </GenericModal>
 
@@ -96,18 +92,15 @@ export const ProjectUserModals = (props: ReturnType<typeof useProjectUserManagem
                 }
             >
                 <div className="grid gap-3 sm:gap-4 py-3 sm:py-4">
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Name <span className="text-red-500">*</span></Label>
-                        <Input value={editUserName} onChange={(e) => setEditUserName(e.target.value)} placeholder="John Doe" className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
-                    </div>
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Email <span className="text-red-500">*</span></Label>
-                        <Input type="email" value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} placeholder="john@example.com" className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
-                    </div>
-                    <div className="grid gap-1.5 sm:gap-2">
-                        <Label className="text-xs sm:text-sm">Phone Number</Label>
-                        <Input value={editUserPhone} onChange={(e) => setEditUserPhone(e.target.value)} placeholder="+255 xxx xxx xxx" className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
-                    </div>
+                    <FormField label="Name" required htmlFor="edit-name">
+                        <Input id="edit-name" value={editUserName} onChange={(e) => setEditUserName(e.target.value)} placeholder="John Doe" className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
+                    </FormField>
+                    <FormField label="Email" required htmlFor="edit-email">
+                        <Input id="edit-email" type="email" value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} placeholder="john@example.com" className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
+                    </FormField>
+                    <FormField label="Phone Number" htmlFor="edit-phone">
+                        <Input id="edit-phone" value={editUserPhone} onChange={(e) => setEditUserPhone(e.target.value.replace(/[^\d+\s-]/g, ''))} placeholder="+255 xxx xxx xxx" className="h-9 sm:h-10 text-sm border-[#2a3455]/60" />
+                    </FormField>
                 </div>
             </GenericModal>
 

@@ -1,9 +1,9 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus } from 'lucide-react';
+import { FormField } from '@/components/common/FormField';
 import { useProjectUserManagement } from '@/hooks/useProjectUserManagement';
 
 export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserManagement>) => {
@@ -22,8 +22,7 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
     return (
         <Card className="border-slate-100 shadow-none bg-white/70">
             <CardHeader className="p-3 sm:p-4">
-                <CardTitle className="text-[#2a3455] text-base sm:text-lg border-s-4 border-[#2a3455] ps-2">Create New User</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
+                <CardDescription className="text-xs sm:text-sm leading-tight text-slate-800">
                     Create a new <span className="font-semibold">MANAGER</span> or <span className="font-semibold">ACCOUNTANT</span> user with a default password of <span className="font-semibold">123456</span>.
                     The user will be required to change their password on first login.
                 </CardDescription>
@@ -37,8 +36,7 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
 
                 <form onSubmit={handleCreateUser} className="space-y-3 sm:space-y-4">
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-                        <div className="grid gap-1.5 sm:gap-2">
-                            <Label htmlFor="name" className="text-xs sm:text-sm font-medium">Name <span className="text-red-500">*</span></Label>
+                        <FormField label="Name" required error={fieldErrors.name} htmlFor="name">
                             <Input
                                 id="name"
                                 value={newUserName}
@@ -55,11 +53,9 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                                 placeholder="John Doe"
                                 className={`h-9 sm:h-10 text-sm ${fieldErrors.name ? 'border-red-500' : ''}`}
                             />
-                            {fieldErrors.name && <p className="text-xs text-red-500">{fieldErrors.name}</p>}
-                        </div>
+                        </FormField>
 
-                        <div className="grid gap-1.5 sm:gap-2">
-                            <Label htmlFor="email" className="text-xs sm:text-sm font-medium">Email <span className="text-red-500">*</span></Label>
+                        <FormField label="Email" required error={fieldErrors.email} htmlFor="email">
                             <Input
                                 id="email"
                                 type="email"
@@ -77,11 +73,9 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                                 placeholder="john@example.com"
                                 className={`h-9 sm:h-10 text-sm ${fieldErrors.email ? 'border-red-500' : ''}`}
                             />
-                            {fieldErrors.email && <p className="text-xs text-red-500">{fieldErrors.email}</p>}
-                        </div>
+                        </FormField>
 
-                        <div className="grid gap-1.5 sm:gap-2">
-                            <Label htmlFor="role" className="text-xs sm:text-sm font-medium">Project Role <span className="text-red-500">*</span></Label>
+                        <FormField label="Project Role" required error={fieldErrors.role} htmlFor="role">
                             <Select value={newUserRole} onValueChange={(v) => {
                                 setNewUserRole(v);
                                 if (fieldErrors.role) {
@@ -100,22 +94,28 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                                     <SelectItem value="ACCOUNTANT" className="text-xs sm:text-sm">Project Accountant</SelectItem>
                                 </SelectContent>
                             </Select>
-                            {fieldErrors.role && <p className="text-xs text-red-500">{fieldErrors.role}</p>}
-                        </div>
+                        </FormField>
 
-                        <div className="grid gap-1.5 sm:gap-2">
-                            <Label htmlFor="phone" className="text-xs sm:text-sm font-medium">Phone Number</Label>
+                        <FormField label="Phone Number" error={fieldErrors.phone} htmlFor="phone">
                             <Input
                                 id="phone"
                                 value={newUserPhone}
-                                onChange={(e) => setNewUserPhone(e.target.value)}
+                                onChange={(e) => {
+                                    setNewUserPhone(e.target.value.replace(/[^\d+\s-]/g, ''));
+                                    if (fieldErrors.phone) {
+                                        props.setFieldErrors(prev => {
+                                            const newErrors = { ...prev };
+                                            delete newErrors.phone;
+                                            return newErrors;
+                                        });
+                                    }
+                                }}
                                 placeholder="+255 xxx xxx xxx"
-                                className="h-9 sm:h-10 text-sm"
+                                className={`h-9 sm:h-10 text-sm ${fieldErrors.phone ? 'border-red-500' : ''}`}
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="grid gap-1.5 sm:gap-2">
-                            <Label htmlFor="project" className="text-xs sm:text-sm font-medium">Assign to Project <span className="text-red-500">*</span></Label>
+                        <FormField label="Assign to Project" required error={fieldErrors.project} htmlFor="project">
                             <Select value={newUserProject} onValueChange={(v) => {
                                 setNewUserProject(v);
                                 if (fieldErrors.project) {
@@ -139,11 +139,9 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                                     )}
                                 </SelectContent>
                             </Select>
-                            {fieldErrors.project && <p className="text-xs text-red-500">{fieldErrors.project}</p>}
-                        </div>
+                        </FormField>
 
-                        <div className="grid gap-1.5 sm:gap-2">
-                            <Label htmlFor="startDate" className="text-xs sm:text-sm font-medium">Start Date <span className="text-red-500">*</span></Label>
+                        <FormField label="Start Date" required error={fieldErrors.startDate} htmlFor="startDate">
                             <Input
                                 id="startDate"
                                 type="date"
@@ -160,11 +158,9 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                                 }}
                                 className={`h-9 sm:h-10 text-sm ${fieldErrors.startDate ? 'border-red-500' : ''}`}
                             />
-                            {fieldErrors.startDate && <p className="text-xs text-red-500">{fieldErrors.startDate}</p>}
-                        </div>
+                        </FormField>
 
-                        <div className="space-y-1.5 sm:space-y-2 sm:col-span-2">
-                            <Label htmlFor="responsibility" className="text-xs sm:text-sm">Responsibility Level <span className="text-red-500">*</span></Label>
+                        <FormField label="Responsibility Level" required className="sm:col-span-2" htmlFor="responsibility">
                             <Select value={newUserResponsibility} onValueChange={setNewUserResponsibility}>
                                 <SelectTrigger id="responsibility" className="h-9 sm:h-10 text-xs sm:text-sm">
                                     <SelectValue />
@@ -175,7 +171,7 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                                     <SelectItem value="ADVISORY" className="text-xs sm:text-sm">Advisory</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
+                        </FormField>
                     </div>
 
                     <div className="flex justify-end pt-2 sm:pt-3">
@@ -185,7 +181,7 @@ export const CreateProjectUserForm = (props: ReturnType<typeof useProjectUserMan
                         </Button>
                     </div>
                 </form>
-            </CardContent>
-        </Card>
+            </CardContent >
+        </Card >
     );
 };

@@ -128,6 +128,13 @@ export const useProjectUserManagement = () => {
       errors.startDate = 'Start Date is required';
     }
 
+    if (newUserPhone && newUserPhone.trim().length > 0) {
+      const sanitizedPhone = newUserPhone.replace(/[^\d+]/g, '');
+      if (sanitizedPhone.length < 10 || sanitizedPhone.length > 15) {
+        errors.phone = 'Please enter a valid phone number (10-15 digits)';
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -138,7 +145,7 @@ export const useProjectUserManagement = () => {
       email: newUserEmail.trim(),
       role: newUserRole,
       projectId: parseInt(newUserProject),
-      phoneNumber: newUserPhone?.trim() || undefined,
+      phoneNumber: newUserPhone && newUserPhone.trim().length > 0 ? newUserPhone.replace(/[^\d+]/g, '') : undefined,
       startDate: newUserStartDate,
       responsibilityLevel: newUserResponsibility
     }, {
@@ -240,12 +247,20 @@ export const useProjectUserManagement = () => {
       return;
     }
 
+    if (editUserPhone && editUserPhone.trim().length > 0) {
+      const sanitizedPhone = editUserPhone.replace(/[^\d+]/g, '');
+      if (sanitizedPhone.length < 10 || sanitizedPhone.length > 15) {
+        handleError(new Error('Please enter a valid phone number (10-15 digits)'), 'Validation Error');
+        return;
+      }
+    }
+
     updateUserMutation.mutate({
       userId: editUserId,
       data: {
         name: editUserName.trim(),
         email: editUserEmail.trim(),
-        phoneNumber: editUserPhone?.trim() || undefined
+        phoneNumber: editUserPhone && editUserPhone.trim().length > 0 ? editUserPhone.replace(/[^\d+]/g, '') : undefined
       }
     }, {
       onSuccess: () => {
