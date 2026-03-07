@@ -104,7 +104,7 @@ export function SearchSortToolbar({
                         <TooltipTrigger asChild>
                             <Button
                                 variant="outline"
-                                className="h-10 px-3 border-[#2a3455]/20 bg-white hover:bg-slate-50 gap-1 flex items-center focus:bg-indigo-50"
+                                className="h-10 px-3 border-[#2a3455]/20 bg-white hover:bg-slate-50 gap-1 flex items-center focus:bg-[#2a3455]/5"
                                 onClick={() =>
                                     onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')
                                 }

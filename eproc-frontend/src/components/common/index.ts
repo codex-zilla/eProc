@@ -15,3 +15,4 @@ export { SummaryStatGrid } from './SummaryStatGrid';
 export { PageHeader } from './PageHeader';
 export { FilterToolbar } from './FilterToolbar';
 export { StatusFilterPills, type StatusPillItem } from './StatusFilterPills';
+export { ErrorPage } from './ErrorPage';

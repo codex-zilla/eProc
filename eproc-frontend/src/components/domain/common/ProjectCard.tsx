@@ -11,18 +11,18 @@ export const ProjectCard = ({ project, onClick, isSelected }: ProjectCardProps) 
     return (
         <div
             onClick={onClick}
-            className={`group relative flex flex-col gap-3 rounded-lg border bg-white p-6 shadow-sm transition-all hover:border-indigo-600 hover:shadow-md cursor-pointer ${isSelected ? 'border-indigo-600 ring-2 ring-indigo-50' : 'border-slate-200'}`}
+            className={`group relative flex flex-col gap-3 rounded-lg border bg-white p-6 shadow-sm transition-all hover:border-[#2a3455] hover:shadow-md cursor-pointer ${isSelected ? 'border-[#2a3455] ring-2 ring-[#2a3455]/10' : 'border-slate-200'}`}
         >
             <div className="flex items-center justify-between">
                 <div className={`rounded-full p-2.5 transition-colors ${isSelected
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'
+                    ? 'bg-[#2a3455] text-white'
+                    : 'bg-[#2a3455]/10 text-[#2a3455] group-hover:bg-[#2a3455] group-hover:text-white'
                     }`}>
                     <Building className="h-5 w-5" />
                 </div>
                 <ArrowRight className={`h-5 w-5 transition-colors ${isSelected
-                    ? 'text-indigo-600'
-                    : 'text-slate-300 group-hover:text-indigo-600'
+                    ? 'text-[#2a3455]'
+                    : 'text-slate-300 group-hover:text-[#2a3455]'
                     }`} />
             </div>
             <div>

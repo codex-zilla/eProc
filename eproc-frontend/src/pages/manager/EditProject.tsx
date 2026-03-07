@@ -42,9 +42,9 @@ const EditProject = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
                 <div className="text-red-500">{error || 'Project not found'}</div>
-                <button 
+                <button
                     onClick={() => navigate('/manager/projects')}
-                    className="text-indigo-600 hover:underline"
+                    className="text-[#2a3455] hover:text-[#1e253e] hover:underline"
                 >
                     Return to My Projects
                 </button>
@@ -53,9 +53,9 @@ const EditProject = () => {
     }
 
     return (
-        <ProjectWizard 
-            initialData={project} 
-            isEditMode={true} 
+        <ProjectWizard
+            initialData={project}
+            isEditMode={true}
         />
     );
 };

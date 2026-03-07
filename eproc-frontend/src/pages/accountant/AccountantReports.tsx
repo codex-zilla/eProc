@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
+import { PageHeader } from '@/components/common/PageHeader';
 import { useAccountantReports } from '@/hooks/queries/useReports';
 
 const AccountantReports = () => {
@@ -92,11 +93,15 @@ const AccountantReports = () => {
 
     return (
         <div className="space-y-6 min-w-0">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">Reports</h1>
-                <p className="text-sm text-slate-500 mt-1">Procurement insights and analytics</p>
-            </div>
+            <PageHeader
+                title={
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-[#2a3455]" />
+                        Reports
+                    </div>
+                }
+                description="Procurement insights and analytics"
+            />
 
             {/* Ordered vs Delivered Summary */}
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">

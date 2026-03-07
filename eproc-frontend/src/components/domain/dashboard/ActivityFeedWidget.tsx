@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Activity, Circle, CheckCircle2, Clock, Truck, FileText, AlertCircle } from "lucide-react";
+import { EmptyState } from '@/components/common/EmptyState';
 import { formatDistanceToNow } from "date-fns";
 import type { EngineerDashboardData } from "@/hooks/queries/useDashboard";
 
@@ -11,14 +12,21 @@ export function ActivityFeedWidget({ activities }: ActivityFeedWidgetProps) {
     if (!activities?.length) {
         return (
             <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="p-4 sm:p-5 flex-none">
-                    <CardTitle className="text-sm font-semibold text-slate-900 flex items-center">
-                        <Activity className="h-4 w-4 mr-2 text-indigo-500" />
+                <CardHeader className="p-3 border-b border-slate-100 bg-slate-50/50">
+                    <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
+                        <Activity className="h-4 w-4 mr-2 text-[#2a3455]" />
                         Activity Feed
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-5 pt-0 text-center text-sm text-slate-500">
-                    No recent activity.
+                <CardContent className="p-0">
+                    <div className="p-6">
+                        <EmptyState
+                            icon={Activity}
+                            title="No recent activity"
+                            description="Activity will appear here as you work on projects."
+                            className="py-2"
+                        />
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -37,16 +45,16 @@ export function ActivityFeedWidget({ activities }: ActivityFeedWidgetProps) {
 
     return (
         <Card className="border-slate-200 shadow-sm flex flex-col h-full">
-            <CardHeader className="p-4 sm:p-5 pb-2 border-b border-slate-100 flex-none">
-                <CardTitle className="text-sm font-semibold text-slate-900 flex items-center">
-                    <Activity className="h-4 w-4 mr-2 text-indigo-500" />
+            <CardHeader className="p-3 border-b border-slate-100 bg-slate-50/50 flex-none">
+                <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
+                    <Activity className="h-4 w-4 mr-2 text-[#2a3455]" />
                     Activity Feed
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-y-auto">
                 <ul className="divide-y divide-slate-100">
                     {activities.map((activity) => (
-                        <li key={activity.id} className="p-4 sm:p-5 hover:bg-slate-50 transition-colors">
+                        <li key={activity.id} className="px-4 py-2 hover:bg-slate-50 transition-colors">
                             <div className="flex gap-3">
                                 <div className="mt-0.5 shrink-0 bg-white border border-slate-100 p-1.5 rounded-full shadow-sm">
                                     {getActivityIcon(activity.type, activity.status)}

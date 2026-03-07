@@ -15,7 +15,7 @@ const RequestStatusBadge = ({ status }: RequestStatusBadgeProps) => {
       case 'REJECTED':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-100 text-slate-800';
     }
   };
 

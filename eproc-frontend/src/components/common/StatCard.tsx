@@ -49,8 +49,8 @@ export const StatCard: React.FC<StatCardProps> = ({
     return (
         <div className={cn('bg-white rounded-lg shadow-sm p-4 flex justify-between relative overflow-hidden', className)}>
             <div className="relative z-10 flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-600">{label}</p>
-                <h3 className="text-xl font-bold text-gray-900 mt-2">{value}</h3>
+                <p className="text-sm font-medium text-slate-600">{label}</p>
+                <h3 className="text-xl font-bold text-slate-900 mt-2">{value}</h3>
                 {trend && (
                     <p
                         className={cn(

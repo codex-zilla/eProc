@@ -229,23 +229,28 @@ public class DashboardService {
 
                 // Recent Requests for Engineer (APPROVED/REJECTED first, then PENDING; limit 5)
                 List<EngineerDashboardDTO.RequestSummary> engineerRequestSummaries = myRequests.stream()
-                        .sorted(Comparator.<Request, Integer>comparing(r ->
-                                (r.getStatus() == RequestStatus.APPROVED ||
-                                 r.getStatus() == RequestStatus.REJECTED) ? 0 : 1)
-                            .thenComparing(r -> r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt(),
-                                Comparator.reverseOrder()))
-                        .limit(5)
-                        .map(r -> EngineerDashboardDTO.RequestSummary.builder()
-                                .id(r.getId())
-                                .title(r.getTitle())
-                                .projectName(r.getProject() != null ? r.getProject().getName() : null)
-                                .siteName(r.getSite() != null ? r.getSite().getName() : null)
-                                .createdByName(r.getCreatedBy() != null ? r.getCreatedBy().getName() : null)
-                                .status(r.getStatus().name())
-                                .createdAt(r.getCreatedAt())
-                                .updatedAt(r.getUpdatedAt())
-                                .build())
-                        .collect(Collectors.toList());
+                                .sorted(Comparator
+                                                .<Request, Integer>comparing(
+                                                                r -> (r.getStatus() == RequestStatus.APPROVED ||
+                                                                                r.getStatus() == RequestStatus.REJECTED)
+                                                                                                ? 0
+                                                                                                : 1)
+                                                .thenComparing(r -> r.getUpdatedAt() != null ? r.getUpdatedAt()
+                                                                : r.getCreatedAt(),
+                                                                Comparator.reverseOrder()))
+                                .limit(5)
+                                .map(r -> EngineerDashboardDTO.RequestSummary.builder()
+                                                .id(r.getId())
+                                                .title(r.getTitle())
+                                                .projectName(r.getProject() != null ? r.getProject().getName() : null)
+                                                .siteName(r.getSite() != null ? r.getSite().getName() : null)
+                                                .createdByName(r.getCreatedBy() != null ? r.getCreatedBy().getName()
+                                                                : null)
+                                                .status(r.getStatus().name())
+                                                .createdAt(r.getCreatedAt())
+                                                .updatedAt(r.getUpdatedAt())
+                                                .build())
+                                .collect(Collectors.toList());
                 builder.recentRequests(engineerRequestSummaries);
 
                 return builder.build();
@@ -267,16 +272,17 @@ public class DashboardService {
                 int completedProjects = (int) myProjects.stream()
                                 .filter(p -> p.getStatus() == ProjectStatus.COMPLETED).count();
 
-                // Get team members assigned to my active projects (via ProjectAssignment)
-                int assignedTeamMembers = 0;
-                for (Project p : myProjects) {
-                        if (p.getStatus() == ProjectStatus.ACTIVE && p.getTeamAssignments() != null) {
-                                assignedTeamMembers += (int) p.getTeamAssignments().stream()
-                                                .filter(pa -> Boolean.TRUE.equals(pa.getIsActive())
-                                                                && pa.getRole() != ProjectRole.PROJECT_OWNER)
-                                                .count();
-                        }
-                }
+                // Get distinct team members assigned across all my active projects (excluding
+                // project owner)
+                long assignedTeamMembers = myProjects.stream()
+                                .filter(p -> p.getStatus() == ProjectStatus.ACTIVE && p.getTeamAssignments() != null)
+                                .flatMap(p -> p.getTeamAssignments().stream())
+                                .filter(pa -> Boolean.TRUE.equals(pa.getIsActive())
+                                                && pa.getRole() != ProjectRole.PROJECT_OWNER
+                                                && pa.getUser() != null)
+                                .map(pa -> pa.getUser().getId())
+                                .distinct()
+                                .count();
 
                 // Get available engineers (by system role)
                 List<User> availableEngineers = userRepository.findByRoleAndActiveTrue(Role.ENGINEER);
@@ -303,7 +309,7 @@ public class DashboardService {
                                 .pendingRequests(pendingFromMyProjects.size())
                                 .approvedRequests(approved)
                                 .rejectedRequests(rejected)
-                                .assignedEngineers(assignedTeamMembers)
+                                .assignedEngineers((int) assignedTeamMembers)
                                 .availableEngineers(availableEngineers.size());
 
                 // 1. Procurement Stats & Budget Overview
@@ -406,22 +412,25 @@ public class DashboardService {
 
                 // Pending Request Summaries for Manager (PENDING first, limit 5)
                 List<ManagerDashboardDTO.RequestSummary> pendingSummaries = allFromMyProjects.stream()
-                        .sorted(Comparator.<Request, Integer>comparing(r ->
-                                r.getStatus() == RequestStatus.PENDING ? 0 : 1)
-                            .thenComparing(r -> r.getUpdatedAt() != null ? r.getUpdatedAt() : r.getCreatedAt(),
-                                Comparator.reverseOrder()))
-                        .limit(5)
-                        .map(r -> ManagerDashboardDTO.RequestSummary.builder()
-                                .id(r.getId())
-                                .title(r.getTitle())
-                                .projectName(r.getProject() != null ? r.getProject().getName() : null)
-                                .siteName(r.getSite() != null ? r.getSite().getName() : null)
-                                .createdByName(r.getCreatedBy() != null ? r.getCreatedBy().getName() : null)
-                                .status(r.getStatus().name())
-                                .createdAt(r.getCreatedAt())
-                                .updatedAt(r.getUpdatedAt())
-                                .build())
-                        .collect(Collectors.toList());
+                                .sorted(Comparator
+                                                .<Request, Integer>comparing(
+                                                                r -> r.getStatus() == RequestStatus.PENDING ? 0 : 1)
+                                                .thenComparing(r -> r.getUpdatedAt() != null ? r.getUpdatedAt()
+                                                                : r.getCreatedAt(),
+                                                                Comparator.reverseOrder()))
+                                .limit(5)
+                                .map(r -> ManagerDashboardDTO.RequestSummary.builder()
+                                                .id(r.getId())
+                                                .title(r.getTitle())
+                                                .projectName(r.getProject() != null ? r.getProject().getName() : null)
+                                                .siteName(r.getSite() != null ? r.getSite().getName() : null)
+                                                .createdByName(r.getCreatedBy() != null ? r.getCreatedBy().getName()
+                                                                : null)
+                                                .status(r.getStatus().name())
+                                                .createdAt(r.getCreatedAt())
+                                                .updatedAt(r.getUpdatedAt())
+                                                .build())
+                                .collect(Collectors.toList());
                 builder.pendingRequestSummaries(pendingSummaries);
 
                 // 4. Site Activity Summary

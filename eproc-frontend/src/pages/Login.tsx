@@ -97,7 +97,7 @@ const Login = () => {
 
   // Helper to determine border color
   const getInputClassName = (hasError: boolean) => {
-    return `pl-10 h-11 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900 ${hasError ? 'border-red-500 focus:border-red-500' : ''
+    return `pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900 ${hasError ? 'border-red-500 focus:border-red-500' : ''
       }`;
   };
 
@@ -118,9 +118,9 @@ const Login = () => {
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-black-900 font-medium">Username</Label>
+            <Label htmlFor="email" className="text-slate-700 font-medium text-sm">Username</Label>
             <div className="relative group">
-              <User className="absolute left-3 top-2.5 h-5 w-5 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <Input
                 ref={emailInputRef}
                 id="email"
@@ -140,9 +140,9 @@ const Login = () => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-black-900 font-medium">Password</Label>
+            <Label htmlFor="password" className="text-slate-700 font-medium text-sm">Password</Label>
             <div className="relative group">
-              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
@@ -160,9 +160,9 @@ const Login = () => {
                 className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-700 focus:outline-none"
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -198,7 +198,7 @@ const Login = () => {
 
         <div className="text-sm text-slate-800">
           Don't have an account?{' '}
-          <Link to="/register" className="text-black-950 font-semibold hover:underline">
+          <Link to="/register" className="text-slate-900 font-semibold hover:underline">
             Sign up.
           </Link>
         </div>

@@ -119,7 +119,7 @@ const Register = () => {
           )}
 
           <div className="space-y-1">
-            <Label htmlFor="name" className="text-black-900 font-medium text-sm">Full Name</Label>
+            <Label htmlFor="name" className="text-slate-700 font-medium text-sm">Full Name</Label>
             <div className="relative group">
               <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <Input
@@ -138,7 +138,7 @@ const Register = () => {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="email" className="text-black-900 font-medium text-sm">Email Address</Label>
+            <Label htmlFor="email" className="text-slate-700 font-medium text-sm">Email Address</Label>
             <div className="relative group">
               <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <Input
@@ -157,7 +157,7 @@ const Register = () => {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="password" className="text-black-900 font-medium text-sm">Password</Label>
+            <Label htmlFor="password" className="text-slate-700 font-medium text-sm">Password</Label>
             <div className="relative group">
               <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <Input
@@ -188,7 +188,7 @@ const Register = () => {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="role" className="text-black-900 font-medium text-sm">Role</Label>
+            <Label htmlFor="role" className="text-slate-700 font-medium text-sm">Role</Label>
             <div className="relative group">
               <Users className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <select
@@ -205,7 +205,7 @@ const Register = () => {
 
           {role === 'ENGINEER' && (
             <div className="space-y-1">
-              <Label htmlFor="erbNumber" className="text-black-900 font-medium text-sm">
+              <Label htmlFor="erbNumber" className="text-slate-700 font-medium text-sm">
                 ERB Number <span className="text-slate-500 text-xs">(Engineers Registration Board)</span>
               </Label>
               <div className="relative group">
@@ -246,7 +246,7 @@ const Register = () => {
       <CardFooter className="flex flex-col gap-3 pt-4 pb-2">
         <div className="text-sm text-slate-800">
           Already have an account?{' '}
-          <Link to="/login" className="text-black-950 font-semibold hover:underline">
+          <Link to="/login" className="text-slate-900 font-semibold hover:underline">
             Sign in.
           </Link>
         </div>

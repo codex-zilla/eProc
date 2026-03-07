@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useRoleNavigate } from '@/hooks/useRoleNavigate';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown, Wallet } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/common/EmptyState';
 import { formatCurrency } from '@/lib/formatters';
+import { getProgressColor } from '@/lib/po-stats';
 
 export interface BudgetOverviewProject {
     projectId: number;
@@ -26,36 +30,36 @@ export const BudgetOverviewList: React.FC<BudgetOverviewListProps> = ({ data, ti
     const hiddenCount = data.length - maxRows;
 
     return (
-        <div className="bg-white rounded-lg border border-slate-200">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-slate-900">{title || "Budget Overview"}</h2>
+        <Card className="flex flex-col shadow-sm border border-slate-200">
+            <CardHeader className="p-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+                <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
+                    <Wallet className="h-4 w-4 mr-2 text-[#2a3455]" />
+                    {title || "Budget Overview"}
+                </CardTitle>
                 {data.length > 0 && (
-                    <button
-                        className="text-xs text-[#2a3455] font-semibold flex items-center gap-1 hover:underline"
+                    <Button
+                        variant="link"
+                        className="text-xs h-auto p-0 text-[#2a3455] font-semibold"
                         onClick={() => navigateRole('/projects')}
                     >
-                        All projects <ArrowRight className="h-3 w-3" />
-                    </button>
+                        All projects <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
                 )}
-            </div>
+            </CardHeader>
 
-            <div className="p-4 space-y-5">
+            <CardContent className="p-0 flex-1">
                 {data && data.length > 0 ? (
-                    <>
+                    <div className="divide-y divide-slate-100">
                         {displayed.map((project) => {
-                            const isOverspent = project.utilizationPct > 100;
-                            const isNearBudget = project.utilizationPct >= 80 && project.utilizationPct <= 100;
-                            let progressColorClass = 'bg-[#2a3455]';
-                            if (isOverspent) progressColorClass = 'bg-red-600';
-                            else if (isNearBudget) progressColorClass = 'bg-yellow-500';
+                            const progressColorClass = getProgressColor(project.utilizationPct);
 
                             return (
-                                <div key={project.projectId} className="space-y-2">
+                                <div key={project.projectId} className="px-4 py-2 space-y-1.5">
                                     <div className="flex justify-between items-start">
                                         <div className="font-medium text-sm text-slate-900 truncate pr-2">
                                             {project.projectName}
                                         </div>
-                                        <div className={`text-xs font-semibold whitespace-nowrap ${isOverspent ? 'text-red-600' : 'text-slate-700'}`}>
+                                        <div className={`text-xs font-semibold whitespace-nowrap ${project.utilizationPct > 100 ? 'text-red-600' : 'text-slate-700'}`}>
                                             {project.utilizationPct.toFixed(1)}%
                                         </div>
                                     </div>
@@ -77,19 +81,24 @@ export const BudgetOverviewList: React.FC<BudgetOverviewListProps> = ({ data, ti
 
                         {!showAll && hiddenCount > 0 && (
                             <button
-                                className="w-full text-center text-xs text-[#2a3455] font-semibold py-2 hover:bg-slate-50 rounded transition-colors border border-slate-200"
+                                className="w-full text-center text-xs text-[#2a3455] font-semibold py-3 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
                                 onClick={() => setShowAll(true)}
                             >
-                                + {hiddenCount} more project{hiddenCount > 1 ? 's' : ''}
+                                <ChevronDown className="h-3 w-3" /> {hiddenCount} more project{hiddenCount > 1 ? 's' : ''}
                             </button>
                         )}
-                    </>
+                    </div>
                 ) : (
-                    <div className="text-center py-6 text-slate-500 text-sm">
-                        No active project budgets found
+                    <div className="p-6">
+                        <EmptyState
+                            icon={Wallet}
+                            title="No active project budgets"
+                            description="Budget data will appear here once projects are active."
+                            className="py-2"
+                        />
                     </div>
                 )}
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };

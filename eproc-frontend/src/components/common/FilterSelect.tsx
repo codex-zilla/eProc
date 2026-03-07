@@ -61,7 +61,7 @@ export function FilterSelect<T = any>({
                 type="button"
                 onClick={() => setOpen(!open)}
                 className={cn(
-                    "flex items-center justify-between text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors",
+                    "flex items-center justify-between text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-[#2a3455] transition-colors",
                     minimal ? "p-2 h-8 w-8 justify-center" : "w-full px-3 h-9 text-left"
                 )}
             >

@@ -12,6 +12,8 @@ import { MonthlySpendChart } from '@/components/domain/dashboard/MonthlySpendCha
 import { BudgetOverviewList } from '@/components/domain/dashboard/BudgetOverviewList';
 import { SummaryStatGrid } from '@/components/common/SummaryStatGrid';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Button } from '@/components/ui/button';
 import {
     DashboardAlerts,
     RecentPOsWidget,
@@ -44,31 +46,31 @@ const AccountantDashboard = () => {
     return (
         <div className="space-y-6 min-w-0">
             {/* Header */}
-            <div className="flex flex-row items-end
-             justify-between gap-3">
-                <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Dashboard</h1>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-0 sm:mt-1">Procurement and delivery overview</p>
-                </div>
-                <div className="flex justify-end gap-2 sm:gap-3 flex-shrink-0">
-                    <button
-                        onClick={() => navigateRole('/procurement')}
-                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2"
-                    >
-                        <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 hidden sm:inline mr-2" />
-                        <span className="hidden sm:inline">View Procurement</span>
-                        <span className="sm:hidden">Procurement</span>
-                    </button>
-                    <button
-                        onClick={() => navigateRole('/procurement/create')}
-                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-[#2a3455] rounded-md hover:bg-[#1e253e] transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2"
-                    >
-                        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 hidden sm:inline mr-2" />
-                        <span className="hidden sm:inline">Create Purchase Order</span>
-                        <span className="sm:hidden">New PO</span>
-                    </button>
-                </div>
-            </div>
+            <PageHeader
+                title="Dashboard"
+                description="Procurement and delivery overview"
+                actions={
+                    <div className="flex gap-2 sm:gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => navigateRole('/procurement')}
+                            className="text-xs sm:text-sm text-slate-700 border-slate-300 hover:bg-slate-50"
+                        >
+                            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 hidden sm:inline mr-2" />
+                            <span className="hidden sm:inline">View Procurement</span>
+                            <span className="sm:hidden">Procurement</span>
+                        </Button>
+                        <Button
+                            onClick={() => navigateRole('/procurement/create')}
+                            className="text-xs sm:text-sm bg-[#2a3455] hover:bg-[#1e253e] text-white"
+                        >
+                            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 hidden sm:inline mr-2" />
+                            <span className="hidden sm:inline">Create Purchase Order</span>
+                            <span className="sm:hidden">New PO</span>
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* Summary Cards */}
             <SummaryStatGrid

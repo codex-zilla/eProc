@@ -67,7 +67,7 @@ export const POFormItemCard: React.FC<POFormItemCardProps> = ({ item, onUpdate, 
                             placeholder="0"
                             onChange={(e) => onUpdate(item.id, 'orderedQty', e.target.value)}
                             disabled={isUpdateMode && (item.maxAssignable === 0)}
-                            className={`h-9 font-semibold text-slate-900 bg-white border-slate-200 focus:border-indigo-500 transition-all ${isOverRequested ? 'border-red-500 bg-red-50' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`h-9 font-semibold text-slate-900 bg-white border-slate-200 focus:border-[#2a3455] transition-all ${isOverRequested ? 'border-red-500 bg-red-50' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                         />
                         {isOverRequested && (
                             <p className="text-[10px] text-red-600 font-medium mt-1">
@@ -89,7 +89,7 @@ export const POFormItemCard: React.FC<POFormItemCardProps> = ({ item, onUpdate, 
                             placeholder="0.00"
                             onChange={(e) => onUpdate(item.id, 'unitPrice', e.target.value)}
                             disabled={isUpdateMode && (item.maxAssignable === 0)}
-                            className="h-9 font-mono bg-white border-slate-200 focus:border-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-9 font-mono bg-white border-slate-200 focus:border-[#2a3455] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
                 </div>

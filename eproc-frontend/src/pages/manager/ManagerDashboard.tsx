@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { SummaryStatGrid } from '@/components/common/SummaryStatGrid';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorDisplay } from '@/components/common/ErrorDisplay';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Button } from '@/components/ui/button';
 import {
   DashboardAlerts,
   SiteActivityWidget,
@@ -20,7 +23,7 @@ import { useManagerDashboard } from '@/hooks/queries/useDashboard';
 const ManagerDashboard = () => {
   const navigateRole = useRoleNavigate();
   const { user } = useAuth();
-  const { data: dashboard, isLoading, error: queryError } = useManagerDashboard();
+  const { data: dashboard, isLoading, error: queryError, refetch } = useManagerDashboard();
 
   const error = queryError ? (queryError as Error).message || 'Failed to load dashboard data' : null;
 
@@ -34,8 +37,12 @@ const ManagerDashboard = () => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm mt-4">
-        <span className="font-bold">Error:</span> {error}
+      <div className="space-y-6">
+        <ErrorDisplay
+          error={queryError as Error}
+          onRetry={() => refetch()}
+          title="Failed to load dashboard data"
+        />
       </div>
     );
   }
@@ -71,35 +78,24 @@ const ManagerDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6 min-w-0">
+    <div className="space-y-3 min-w-0">
       {/* Header */}
-      <div className="flex flex-row items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Welcome back, {user?.name}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0 sm:mt-1">
-            Here's your project and resource overview.
-          </p>
-        </div>
-        <div className="flex justify-end gap-2 sm:gap-3 flex-shrink-0">
-          <button
-            onClick={() => navigateRole('/requests')}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2"
-          >
-            <span className="hidden sm:inline">View Requests</span>
-            <span className="sm:hidden">Requests</span>
-          </button>
-          <button
-            onClick={() => navigateRole('/projects/new')}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-[#2a3455] rounded-md hover:bg-[#1e253e] transition-colors focus:outline-none focus:ring-2 focus:ring-[#2a3455] focus:ring-offset-2 flex items-center shadow-sm"
-          >
-            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">New Project</span>
-            <span className="sm:hidden">New</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={`Welcome back, ${user?.name}`}
+        description="Here's your project and resource overview."
+        actions={
+          <div className="flex gap-2 sm:gap-3">
+            <Button
+              onClick={() => navigateRole('/projects/new')}
+              className="text-xs sm:text-sm bg-[#2a3455] hover:bg-[#1e253e] text-white shadow-sm"
+            >
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">New Project</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          </div>
+        }
+      />
 
       {/* Summary Cards */}
       <SummaryStatGrid stats={stats} />

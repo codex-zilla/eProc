@@ -20,6 +20,7 @@ import {
 } from '@/components/domain/dashboard';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/formatters';
+import { getProgressColor } from '@/lib/po-stats';
 
 /**
  * Engineer Dashboard - daily operational view.
@@ -108,7 +109,7 @@ const EngineerDashboard = () => {
               <CardHeader className="bg-slate-50 border-b border-slate-100">
                 <CardTitle className="text-lg font-bold text-slate-900 flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <Briefcase className="h-5 w-5 text-indigo-600" />
+                    <Briefcase className="h-5 w-5 text-[#2a3455]" />
                     Assigned Project
                   </div>
                   <ProjectStatusBadge status={data.projectStatus || 'UNKNOWN'} />
@@ -146,7 +147,7 @@ const EngineerDashboard = () => {
                       <Progress
                         value={data.totalBudget > 0 ? ((data.totalBudget - data.remainingBudget) / data.totalBudget) * 100 : 0}
                         className="h-2 bg-slate-200"
-                        indicatorClassName={data.remainingBudget < (data.totalBudget * 0.1) ? "bg-red-500" : "bg-indigo-500"}
+                        indicatorClassName={getProgressColor(data.totalBudget > 0 ? ((data.totalBudget - data.remainingBudget) / data.totalBudget) * 100 : 0)}
                       />
                       <p className="text-xs text-slate-500 font-medium text-right">
                         {formatCurrency(data.remainingBudget, true)} remaining

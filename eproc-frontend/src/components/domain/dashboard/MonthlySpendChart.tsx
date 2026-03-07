@@ -65,7 +65,7 @@ export const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({ data }) =>
     return (
         <div className="bg-white rounded-lg border border-slate-200 p-5 h-[350px] flex flex-col">
             <div className="mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">Monthly Spend Trend</h2>
+                <h2 className="text-base font-bold text-[#2a3455]">Monthly Spend Trend</h2>
                 <p className="text-sm text-slate-500">Committed vs Actual spending over the last 6 months</p>
             </div>
 

@@ -40,7 +40,7 @@ export function DashboardRequestsWidget({
 
     return (
         <Card className="flex flex-col shadow-sm border border-slate-200">
-            <CardHeader className="p-4 border-b border-slate-100 flex flex-row items-center justify-between pb-2 bg-slate-50/50">
+            <CardHeader className="p-3 border-b border-slate-100 flex flex-row items-center justify-between pb-2 bg-slate-50/50">
                 <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
                     {getPriorityIcon(priority)}
                     {title}
@@ -60,10 +60,10 @@ export function DashboardRequestsWidget({
                         {displayed.map((req) => (
                             <div
                                 key={req.id}
-                                className="p-4 hover:bg-slate-50 transition-colors flex gap-3 group cursor-pointer"
+                                className="px-4 py-2 hover:bg-slate-50 transition-colors flex items-start gap-3 group cursor-pointer"
                                 onClick={() => navigateRole(`/requests/${req.id}`)}
                             >
-                                <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${req.status === 'PENDING' ? 'bg-amber-500' :
+                                <div className={`mt-2 flex-shrink-0 w-2 h-2 rounded-full ${req.status === 'PENDING' ? 'bg-amber-500' :
                                     req.status === 'APPROVED' ? 'bg-emerald-500' :
                                         req.status === 'REJECTED' ? 'bg-red-500' :
                                             'bg-slate-400'
@@ -73,10 +73,10 @@ export function DashboardRequestsWidget({
                                         <p className="text-sm font-semibold text-slate-900 truncate">{req.title}</p>
                                         <StatusBadge status={req.status} type="request" className="text-[10px] py-0 px-1.5 h-4 min-h-0 flex-shrink-0" />
                                     </div>
-                                    <p className="text-xs text-slate-600 mt-0.5 truncate">
+                                    <p className="text-xs text-slate-600 truncate">
                                         {req.projectName}{req.siteName ? ` · ${req.siteName}` : ''}
                                     </p>
-                                    <div className="flex items-center justify-between mt-1.5 text-xs text-slate-500">
+                                    <div className="flex items-center justify-between mt-0.5 text-xs text-slate-500">
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium text-slate-700">{req.createdByName}</span>
                                             <span>•</span>

@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Package } from "lucide-react";
+import { EmptyState } from '@/components/common/EmptyState';
 import { format } from "date-fns";
 import type { EngineerDashboardData } from "@/hooks/queries/useDashboard";
 
@@ -12,14 +13,21 @@ export function ExpectedDeliveriesWidget({ deliveries }: ExpectedDeliveriesWidge
     if (!deliveries?.length) {
         return (
             <Card className="border-slate-200 shadow-sm">
-                <CardHeader className="p-4 sm:p-5 flex-none">
-                    <CardTitle className="text-sm font-semibold text-slate-900 flex items-center">
-                        <Truck className="h-4 w-4 mr-2 text-emerald-500" />
+                <CardHeader className="p-3 border-b border-slate-100 bg-slate-50/50">
+                    <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
+                        <Truck className="h-4 w-4 mr-2 text-[#2a3455]" />
                         Expected Deliveries (POs)
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-5 pt-0 text-center text-sm text-slate-500 flex-1">
-                    No expected deliveries found.
+                <CardContent className="p-0">
+                    <div className="p-6">
+                        <EmptyState
+                            icon={Truck}
+                            title="No expected deliveries"
+                            description="Delivery data will appear here once POs are created."
+                            className="py-2"
+                        />
+                    </div>
                 </CardContent>
             </Card>
         );
@@ -27,16 +35,16 @@ export function ExpectedDeliveriesWidget({ deliveries }: ExpectedDeliveriesWidge
 
     return (
         <Card className="border-slate-200 shadow-sm flex flex-col h-full">
-            <CardHeader className="p-4 sm:p-5 pb-2 border-b border-slate-100 flex-none">
-                <CardTitle className="text-sm font-semibold text-slate-900 flex items-center">
-                    <Truck className="h-4 w-4 mr-2 text-emerald-500" />
+            <CardHeader className="p-3 border-b border-slate-100 bg-slate-50/50 flex-none">
+                <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
+                    <Truck className="h-4 w-4 mr-2 text-[#2a3455]" />
                     Expected Deliveries (POs)
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-y-auto">
                 <ul className="divide-y divide-slate-100">
                     {deliveries.map((delivery) => (
-                        <li key={delivery.poId} className="p-4 sm:p-5 hover:bg-slate-50 transition-colors">
+                        <li key={delivery.poId} className="px-4 py-2 hover:bg-slate-50 transition-colors">
                             <div className="flex justify-between items-start gap-4">
                                 <div className="space-y-1 overflow-hidden min-w-0">
                                     <p className="text-xs font-semibold text-slate-900 truncate">

@@ -112,7 +112,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
                 {onRetry && (
                     <button
                         onClick={onRetry}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-800 rounded-md hover:bg-slate-900 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#2a3455] rounded-md hover:bg-[#1e253e] transition-colors"
                     >
                         <RefreshCw className="h-4 w-4" />
                         Try Again

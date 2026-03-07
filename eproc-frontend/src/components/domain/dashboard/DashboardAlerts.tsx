@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertTriangle, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import type { AccountantDashboardData } from '@/hooks/queries/useDashboard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export type DashboardAlert = AccountantDashboardData['alerts'][0];
 
@@ -28,7 +29,7 @@ export function DashboardAlerts({ alerts }: DashboardAlertsProps) {
 
     return (
         <Card className="flex flex-col shadow-sm border border-slate-200">
-            <CardHeader className="p-4 border-b border-slate-100 flex flex-row items-center justify-between pb-2">
+            <CardHeader className="p-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
                     <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
                     Alerts & Flags
@@ -46,27 +47,21 @@ export function DashboardAlerts({ alerts }: DashboardAlertsProps) {
                             {displayed.map((alert, index) => {
                                 const IconComponent = getAlertIcon(alert.type);
                                 return (
-                                    <div key={index} className="p-4 hover:bg-slate-50 transition-colors flex gap-3 group">
-                                        <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${alert.severity === 'danger' ? 'bg-red-500' :
-                                                alert.severity === 'warning' ? 'bg-amber-500' :
-                                                    'bg-slate-400'
+                                    <div key={index} className="px-4 py-2 hover:bg-slate-50 transition-colors flex gap-3 group">
+                                        <div className={`mt-2 flex-shrink-0 w-2 h-2 rounded-full ${alert.severity === 'danger' ? 'bg-red-500' :
+                                            alert.severity === 'warning' ? 'bg-amber-500' :
+                                                'bg-slate-400'
                                             }`} />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-900">{alert.title}</p>
-                                            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                                            <p className="text-xs text-slate-600 leading-relaxed">
                                                 {alert.message}
                                             </p>
-                                            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
+                                            <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
                                                 <span className="flex items-center gap-1">
                                                     <IconComponent className="h-3 w-3" />
                                                     <span className="capitalize">{alert.type.replace(/_/g, ' ').toLowerCase()}</span>
                                                 </span>
-                                                {alert.referenceId && (
-                                                    <>
-                                                        <span>•</span>
-                                                        <span className="truncate max-w-[150px]">Ref #{alert.referenceId}</span>
-                                                    </>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -87,9 +82,13 @@ export function DashboardAlerts({ alerts }: DashboardAlertsProps) {
                             )}
                         </>
                     ) : (
-                        <div className="p-6 text-center text-slate-500">
-                            <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500 opacity-50" />
-                            <p className="text-sm">No active alerts requiring attention.</p>
+                        <div className="p-6">
+                            <EmptyState
+                                icon={CheckCircle}
+                                title="No active alerts"
+                                description="All clear — no issues requiring attention."
+                                className="py-2"
+                            />
                         </div>
                     )}
                 </div>

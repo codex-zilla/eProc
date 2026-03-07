@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DataTable, type ColumnDef, MobileListCard } from '@/components/common';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { EmptyState } from '@/components/common/EmptyState';
 import { formatCurrency } from '@/lib/formatters';
 
 export type RecentPO = AccountantDashboardData['recentPOs'][0];
@@ -47,12 +48,12 @@ export function RecentPOsWidget({ recentPOs }: RecentPOsWidgetProps) {
 
     return (
         <Card className="shadow-sm border border-slate-200">
-            <CardHeader className="p-4 border-b border-slate-100 flex flex-row items-center justify-between pb-2 bg-slate-50/50">
+            <CardHeader className="p-3 border-b border-slate-100 flex flex-row items-center justify-between bg-slate-50/50">
                 <CardTitle className="text-base font-bold text-[#2a3455] flex items-center">
-                    <ShoppingCart className="mr-2 h-5 w-5 text-indigo-600" />
+                    <ShoppingCart className="mr-2 h-5 w-5 text-[#2a3455]" />
                     Recent PO Activity
                 </CardTitle>
-                <Button variant="link" className="text-xs h-auto p-0 text-indigo-600 font-semibold" onClick={(e) => { e.stopPropagation(); navigateRole('/procurement/purchase-orders'); }}>
+                <Button variant="link" className="text-xs h-auto p-0 text-[#2a3455] font-semibold" onClick={(e) => { e.stopPropagation(); navigateRole('/procurement/purchase-orders'); }}>
                     View All <ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
             </CardHeader>
@@ -82,8 +83,13 @@ export function RecentPOsWidget({ recentPOs }: RecentPOsWidgetProps) {
                             />
                         ))
                     ) : (
-                        <div className="text-center py-6 text-slate-500 text-sm">
-                            No purchase orders found
+                        <div className="p-6">
+                            <EmptyState
+                                icon={ShoppingCart}
+                                title="No purchase orders"
+                                description="Purchase orders will appear here."
+                                className="py-2"
+                            />
                         </div>
                     )}
                 </div>

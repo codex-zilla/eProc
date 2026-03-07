@@ -86,16 +86,16 @@ const ForgotPassword = () => {
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-black-900 font-medium">Email Address</Label>
+            <Label htmlFor="email" className="text-slate-700 font-medium text-sm">Email Address</Label>
             <div className="relative group">
-              <User className="absolute left-3 top-2.5 h-5 w-5 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-500 group-focus-within:text-slate-700 transition-colors" />
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-11 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
+                className="pl-9 h-10 border-slate-300 bg-slate-50 focus:bg-white transition-colors text-slate-900"
                 required
               />
             </div>
