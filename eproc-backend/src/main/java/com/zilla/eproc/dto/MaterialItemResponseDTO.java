@@ -34,4 +34,8 @@ public class MaterialItemResponseDTO {
     private LocalDateTime createdAt;
     private Boolean isDuplicate;
     private BigDecimal orderedQuantity;
+
+    // Labour-specific breakdown fields (null for MATERIAL items)
+    private Integer numberOfLabourers;
+    private BigDecimal numberOfDays;
 }

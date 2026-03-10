@@ -141,7 +141,7 @@ const PurchaseOrderForm = () => {
 
     const availableMaterials = useMemo(() => {
         if (!targetRequest) return [];
-        return (targetRequest.materials || []).filter((m: RequestMaterial) => m.status === 'APPROVED');
+        return (targetRequest.materials || []).filter((m: RequestMaterial) => m.status === 'APPROVED' && m.resourceType !== 'LABOUR');
     }, [targetRequest]);
 
     // Compute Table Data

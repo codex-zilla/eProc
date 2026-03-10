@@ -1,462 +1,58 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Plus, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import { DuplicateWarningModal } from '@/components/DuplicateWarningModal';
-import { formatCurrency } from '../../lib/formatters';
-import { useSites } from '@/hooks/queries/useSites';
-import { useCreateBatchRequests } from '@/hooks/queries/useRequests';
+import { formatCurrency } from '@/lib/formatters';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorDisplay } from '@/components/common/ErrorDisplay';
 import { PageHeader } from '@/components/common/PageHeader';
+import { FormField } from '@/components/common/FormField';
+import { MaterialItemsTable } from '@/components/domain/requests/create/MaterialItemsTable';
+import { useCreateRequest } from '@/hooks/useCreateRequest';
 
-
-interface MaterialItem {
-  tempId: string;
-  materialName: string;
-  quantity: string;
-  measurementUnit: string;
-  rateEstimate: string;
-  rateEstimateType: string;
-}
-
-interface LabourItem {
-  tempId: string;
-  labourType: string;
-  quantity: string;
-  measurementUnit: string;
-  rateEstimate: string;
-}
-
-interface BOQEntry {
-  tempId: string;
-  siteId: string;
-  boqDescription: string;
-  workDescription: string;
-  plannedStart: string;
-  plannedEnd: string;
-  emergencyFlag: boolean;
-  materials: MaterialItem[];
-  labour: LabourItem[];
-  duplicateExplanation?: string; // Add explanation field
-}
-
-interface DuplicateWarning {
-  requestId: number;
-  requestTitle: string;
-  boqReferenceCode: string;
-  plannedStartDate: string;
-  plannedEndDate: string;
-  overlappingMaterials: string[];
-  timelineOverlapPercentage: number;
-  status: string;
-  siteName: string;
-}
-
-const RATE_TYPES = [
-  { value: 'ENGINEER_ESTIMATE', label: 'Engineer Estimate' },
-  { value: 'MARKET_RATE', label: 'Market Rate' },
-];
-
-const MEASUREMENT_UNITS = [
-  { value: 'm³', label: 'm³ - Cubic Meter' },
-  { value: 'm²', label: 'm² - Square Meter' },
-  { value: 'm', label: 'm - Linear Meter' },
-  { value: 'kg', label: 'kg - Kilogram' },
-  { value: 'ton', label: 'ton - Metric Ton' },
-  { value: 'No', label: 'No - Number (count)' },
-  { value: 'LS', label: 'LS - Lump Sum' },
-  { value: 'bag', label: 'bag - Bag (cement, aggregates)' },
-  { value: 'bundle', label: 'bundle - Bundle (reinforcement)' },
-  { value: 'trip', label: 'trip - Trip (lorry deliveries)' },
-  { value: 'drum', label: 'drum - Drum (bitumen/asphalt)' },
-  { value: 'pcs', label: 'pcs - Pieces' },
-  { value: 'Days', label: 'Days - Labour duration' },
-];
-
-/**
- * Create BOQ Request page for Engineers.
- * Each BOQ is a card with details, materials, and labour.
- */
-const CreateBatch = () => {
-  const navigate = useNavigate();
-  const { data: sites = [], isLoading: loadingSites } = useSites();
-  const createBatchRequests = useCreateBatchRequests();
-
-  const [error, setError] = useState<string | null>(null);
-
-  // Duplicate detection state
-  const [duplicateWarnings, setDuplicateWarnings] = useState<DuplicateWarning[]>([]);
-  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [duplicateExplanation, setDuplicateExplanation] = useState('');
-  const [pendingSubmission, setPendingSubmission] = useState<any[] | null>(null);
-
-  const [boqEntries, setBoqEntries] = useState<BOQEntry[]>([
-    {
-      tempId: crypto.randomUUID(),
-      siteId: '',
-      boqDescription: '',
-      workDescription: '',
-      plannedStart: '',
-      plannedEnd: '',
-      emergencyFlag: false,
-      materials: [
-        {
-          tempId: crypto.randomUUID(),
-          materialName: '',
-          quantity: '',
-          measurementUnit: '',
-          rateEstimate: '',
-          rateEstimateType: 'ENGINEER_ESTIMATE',
-        },
-      ],
-      labour: [
-        {
-          tempId: crypto.randomUUID(),
-          labourType: '',
-          quantity: '',
-          measurementUnit: 'Days',
-          rateEstimate: '',
-        },
-      ],
+const CreateRequest = () => {
+  const {
+    state: {
+      sites,
+      loadingSites,
+      error,
+      validationErrors,
+      boqEntries,
+      duplicateWarnings,
+      showDuplicateModal,
+      duplicateExplanation,
+      isSubmitting,
     },
-  ]);
-
-  // Auto-select site if only one available
-  useState(() => {
-    if (sites.length === 1 && boqEntries[0].siteId === '') {
-      setBoqEntries(prev => prev.map((entry, idx) =>
-        idx === 0 ? { ...entry, siteId: sites[0].id.toString() } : entry
-      ));
-    }
-  });
-
-  const addBOQEntry = () => {
-    setBoqEntries([
-      ...boqEntries,
-      {
-        tempId: crypto.randomUUID(),
-        siteId: '',
-        boqDescription: '',
-        workDescription: '',
-        plannedStart: '',
-        plannedEnd: '',
-        emergencyFlag: false,
-        materials: [
-          {
-            tempId: crypto.randomUUID(),
-            materialName: '',
-            quantity: '',
-            measurementUnit: '',
-            rateEstimate: '',
-            rateEstimateType: 'ENGINEER_ESTIMATE',
-          },
-        ],
-        labour: [
-          {
-            tempId: crypto.randomUUID(),
-            labourType: '',
-            quantity: '',
-            measurementUnit: 'Days',
-            rateEstimate: '',
-          },
-        ],
-      },
-    ]);
-  };
-
-  const removeBOQEntry = (tempId: string) => {
-    if (boqEntries.length > 1) {
-      setBoqEntries(boqEntries.filter(entry => entry.tempId !== tempId));
-    }
-  };
-
-  const updateBOQEntry = (tempId: string, field: keyof BOQEntry, value: any) => {
-    setBoqEntries(boqEntries.map(entry =>
-      entry.tempId === tempId ? { ...entry, [field]: value } : entry
-    ));
-  };
-
-  const addMaterial = (boqTempId: string) => {
-    setBoqEntries(boqEntries.map(entry => {
-      if (entry.tempId === boqTempId) {
-        return {
-          ...entry,
-          materials: [
-            ...entry.materials,
-            {
-              tempId: crypto.randomUUID(),
-              materialName: '',
-              quantity: '',
-              measurementUnit: '',
-              rateEstimate: '',
-              rateEstimateType: 'ENGINEER_ESTIMATE',
-            },
-          ],
-        };
-      }
-      return entry;
-    }));
-  };
-
-  const removeMaterial = (boqTempId: string, materialTempId: string) => {
-    setBoqEntries(boqEntries.map(entry => {
-      if (entry.tempId === boqTempId) {
-        return {
-          ...entry,
-          materials: entry.materials.filter(m => m.tempId !== materialTempId),
-        };
-      }
-      return entry;
-    }));
-  };
-
-  const updateMaterial = (boqTempId: string, materialTempId: string, field: keyof MaterialItem, value: string) => {
-    setBoqEntries(boqEntries.map(entry => {
-      if (entry.tempId === boqTempId) {
-        return {
-          ...entry,
-          materials: entry.materials.map(m =>
-            m.tempId === materialTempId ? { ...m, [field]: value } : m
-          ),
-        };
-      }
-      return entry;
-    }));
-  };
-
-  const addLabour = (boqTempId: string) => {
-    setBoqEntries(boqEntries.map(entry => {
-      if (entry.tempId === boqTempId) {
-        return {
-          ...entry,
-          labour: [
-            ...entry.labour,
-            {
-              tempId: crypto.randomUUID(),
-              labourType: '',
-              quantity: '',
-              measurementUnit: 'Days',
-              rateEstimate: '',
-            },
-          ],
-        };
-      }
-      return entry;
-    }));
-  };
-
-  const removeLabour = (boqTempId: string, labourTempId: string) => {
-    setBoqEntries(boqEntries.map(entry => {
-      if (entry.tempId === boqTempId) {
-        return {
-          ...entry,
-          labour: entry.labour.filter(l => l.tempId !== labourTempId),
-        };
-      }
-      return entry;
-    }));
-  };
-
-  const updateLabour = (boqTempId: string, labourTempId: string, field: keyof LabourItem, value: string) => {
-    setBoqEntries(boqEntries.map(entry => {
-      if (entry.tempId === boqTempId) {
-        return {
-          ...entry,
-          labour: entry.labour.map(l =>
-            l.tempId === labourTempId ? { ...l, [field]: value } : l
-          ),
-        };
-      }
-      return entry;
-    }));
-  };
-
-  const calculateMaterialCost = (boqEntry: BOQEntry) => {
-    return boqEntry.materials.reduce((sum, material) => {
-      const qty = parseFloat(material.quantity) || 0;
-      const rate = parseFloat(material.rateEstimate) || 0;
-      return sum + qty * rate;
-    }, 0);
-  };
-
-  const calculateLabourCost = (boqEntry: BOQEntry) => {
-    return boqEntry.labour.reduce((sum, labour) => {
-      const qty = parseFloat(labour.quantity) || 0;
-      const rate = parseFloat(labour.rateEstimate) || 0;
-      return sum + qty * rate;
-    }, 0);
-  };
-
-  const calculateBOQTotal = (boqEntry: BOQEntry) => {
-    return calculateMaterialCost(boqEntry) + calculateLabourCost(boqEntry);
-  };
-
-  const calculateGrandTotal = () => {
-    return boqEntries.reduce((sum, entry) => sum + calculateBOQTotal(entry), 0);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    // Validation
-    for (let i = 0; i < boqEntries.length; i++) {
-      const entry = boqEntries[i];
-      if (!entry.siteId) {
-        setError(`BOQ ${i + 1}: Please select a site`);
-        return;
-      }
-      if (!entry.boqDescription.trim()) {
-        setError(`BOQ ${i + 1}: Please enter a BOQ description`);
-        return;
-      }
-      if (entry.materials.length === 0 && entry.labour.length === 0) {
-        setError(`BOQ ${i + 1}: Please add at least one material or labour item`);
-        return;
-      }
-
-      // Validate materials
-      for (let j = 0; j < entry.materials.length; j++) {
-        const mat = entry.materials[j];
-        if (!mat.materialName || !mat.quantity || !mat.measurementUnit || !mat.rateEstimate) {
-          setError(`BOQ ${i + 1}, Material ${j + 1}: All fields are required`);
-          return;
-        }
-      }
-
-      // Validate labour
-      for (let j = 0; j < entry.labour.length; j++) {
-        const lab = entry.labour[j];
-        if (!lab.labourType || !lab.quantity || !lab.measurementUnit || !lab.rateEstimate) {
-          setError(`BOQ ${i + 1}, Labour ${j + 1}: All fields are required`);
-          return;
-        }
-      }
-    }
-
-
-
-    // Create request payload - array of requests (declared outside try block for access in catch)
-    const requestsPayload = boqEntries.map((entry) => ({
-      projectId: sites.find(s => s.id === parseInt(entry.siteId))?.projectId || 0,
-      siteId: parseInt(entry.siteId),
-      title: entry.boqDescription,
-      plannedStartDate: entry.plannedStart ? `${entry.plannedStart}T00:00:00` : new Date().toISOString(),
-      plannedEndDate: entry.plannedEnd ? `${entry.plannedEnd}T23:59:59` : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      emergencyFlag: entry.emergencyFlag,
-      additionalDetails: entry.workDescription || '',
-      duplicateExplanation: entry.duplicateExplanation, // Include explanation if provided
-      items: [
-        ...entry.materials.map((mat) => ({
-          name: mat.materialName,
-          quantity: parseFloat(mat.quantity),
-          measurementUnit: mat.measurementUnit,
-          rateEstimate: parseFloat(mat.rateEstimate),
-          rateEstimateType: mat.rateEstimateType,
-          resourceType: 'MATERIAL',
-        })),
-        ...entry.labour.map((lab) => ({
-          name: lab.labourType,
-          quantity: parseFloat(lab.quantity),
-          measurementUnit: lab.measurementUnit,
-          rateEstimate: parseFloat(lab.rateEstimate),
-          rateEstimateType: 'ENGINEER_ESTIMATE', // Labour always uses engineer estimate
-          resourceType: 'LABOUR',
-        })),
-      ],
-    }));
-
-    try {
-      // Create requests
-      await createBatchRequests.mutateAsync(requestsPayload);
-
-      navigate('/engineer/batches');
-    } catch (err: any) {
-      console.error('Failed to submit batch:', err);
-
-      // Handle duplicate request detection (HTTP 409)
-      if (err.response?.status === 409 && err.response?.data?.duplicates) {
-        const duplicates = err.response.data.duplicates;
-        console.log('Duplicate requests detected:', duplicates);
-
-        // Store the pending submission and show duplicate modal
-        setPendingSubmission(requestsPayload);
-        setDuplicateWarnings(duplicates);
-        setShowDuplicateModal(true);
-        return;
-      }
-
-      // Extract meaningful error message for other errors
-      let errorMessage = 'Failed to submit batch';
-
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
-
-      // Scroll to top to show error
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleDuplicateConfirm = async (explanation: string) => {
-    if (!pendingSubmission) return;
-
-    setShowDuplicateModal(false);
-    setError(null);
-
-    try {
-      // Add explanation to pending requests
-      const requestsWithExplanation = pendingSubmission.map((req: any) => ({
-        ...req,
-        duplicateExplanation: explanation,
-      }));
-
-      // Resubmit with explanation
-      await createBatchRequests.mutateAsync(requestsWithExplanation);
-
-      navigate('/engineer/batches');
-    } catch (err: any) {
-      console.error('Failed to submit batch after duplicate confirmation:', err);
-
-      let errorMessage = 'Failed to submit batch';
-
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } finally {
-      setPendingSubmission(null);
-      setDuplicateWarnings([]);
-      setDuplicateExplanation('');
-    }
-  };
-
-  // Handle duplicate cancellation
-  const handleDuplicateCancel = () => {
-    setShowDuplicateModal(false);
-    setPendingSubmission(null);
-    setDuplicateWarnings([]);
-    setDuplicateExplanation('');
-  };
-
+    actions: {
+      addBOQEntry,
+      removeBOQEntry,
+      updateBOQEntry,
+      addMaterial,
+      removeMaterial,
+      updateMaterial,
+      addLabour,
+      removeLabour,
+      updateLabour,
+      calculateMaterialCost,
+      calculateLabourCost,
+      calculateBOQTotal,
+      calculateGrandTotal,
+      handleSubmit,
+      handleDuplicateConfirm,
+      handleDuplicateCancel,
+      setDuplicateExplanation,
+      navigate,
+    },
+  } = useCreateRequest();
 
   if (loadingSites) {
     return (
@@ -467,25 +63,26 @@ const CreateBatch = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 max-w-7xl mx-auto">
       <PageHeader
         title="Create BOQ Request"
         description="Submit a Bill of Quantities for your assigned project"
       />
 
       {error && (
-        <ErrorDisplay
-          error={new Error(error)}
-          message={error}
-          variant="inline"
-        />
+        <ErrorDisplay error={new Error(error)} message={error} variant="inline" />
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {boqEntries.map((entry, entryIndex) => (
-          <Card key={entry.tempId} className="border-2 border-slate-300">
-            <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-50 border-b border-slate-200 rounded-t-lg flex flex-row items-center justify-between">
-              <CardTitle className="text-sm sm:text-base text-slate-800 font-semibold">BOQ Entry {entryIndex + 1}</CardTitle>
+          <Card
+            key={entry.tempId}
+            className="flex flex-col shadow-none border border-slate-200/50"
+          >
+            <CardHeader className="p-3 border-b border-slate-100 flex flex-row items-center justify-between bg-slate-50/50">
+              <CardTitle className="text-base font-bold text-[#2a3455]">
+                BOQ Entry {entryIndex + 1}
+              </CardTitle>
               {boqEntries.length > 1 && (
                 <Button
                   type="button"
@@ -494,366 +91,184 @@ const CreateBatch = () => {
                   onClick={() => removeBOQEntry(entry.tempId)}
                   className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Remove BOQ
                 </Button>
               )}
             </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6 space-y-4">
-              {/* BOQ Header Information */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pb-4 border-b">
-                {/* Site Selection */}
-                <div className="grid gap-1.5 sm:gap-2">
-                  <Label htmlFor={`site-${entry.tempId}`} className="text-xs sm:text-sm">
-                    Site <span className="text-red-500">*</span>
-                  </Label>
+
+            <CardContent className="p-3 sm:p-5 space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pb-4 border-b border-slate-100">
+                {/* Site */}
+                <FormField
+                  label="Site"
+                  htmlFor={`site-${entry.tempId}`}
+                  error={validationErrors[`site-${entry.tempId}`]}
+                >
                   <Select
                     value={entry.siteId}
-                    onValueChange={(val) => updateBOQEntry(entry.tempId, 'siteId', val)}
-                    required
+                    onValueChange={val => updateBOQEntry(entry.tempId, 'siteId', val)}
                     disabled={sites.length === 0}
                   >
-                    <SelectTrigger id={`site-${entry.tempId}`} className="h-9 sm:h-10 text-xs sm:text-sm">
-                      <SelectValue placeholder={sites.length === 0 ? 'No sites available' : 'Select a site...'} />
+                    <SelectTrigger
+                      id={`site-${entry.tempId}`}
+                      className="h-9 sm:h-10 text-xs sm:text-sm"
+                    >
+                      <SelectValue
+                        placeholder={
+                          sites.length === 0 ? 'No sites available' : 'Select a site...'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {sites.length === 0 ? (
-                        <SelectItem value="no-sites" disabled className="text-xs sm:text-sm text-muted-foreground">
+                        <SelectItem value="no-sites" disabled className="text-xs sm:text-sm">
                           No sites available
                         </SelectItem>
                       ) : (
-                        sites.map((site) => (
-                          <SelectItem key={site.id} value={site.id.toString()} className="text-xs sm:text-sm">
-                            {site.name} - {site.location}
+                        sites.map(site => (
+                          <SelectItem
+                            key={site.id}
+                            value={site.id.toString()}
+                            className="text-xs sm:text-sm"
+                          >
+                            {site.name} – {site.location}
                           </SelectItem>
                         ))
                       )}
                     </SelectContent>
                   </Select>
-                </div>
+                </FormField>
 
-                {/* Emergency Flag */}
-                <div className="grid gap-1.5 sm:gap-2">
-                  <Label htmlFor={`emergency-${entry.tempId}`} className="text-xs sm:text-sm">
-                    Priority
-                  </Label>
+                {/* Priority / Emergency */}
+                <FormField label="Priority" htmlFor={`emergency-${entry.tempId}`}>
                   <div className="flex items-center gap-2 h-9 sm:h-10">
                     <input
                       type="checkbox"
                       id={`emergency-${entry.tempId}`}
                       checked={entry.emergencyFlag}
-                      onChange={(e) => updateBOQEntry(entry.tempId, 'emergencyFlag', e.target.checked)}
-                      className="h-4 w-4"
+                      onChange={e =>
+                        updateBOQEntry(entry.tempId, 'emergencyFlag', e.target.checked)
+                      }
+                      className="h-4 w-4 accent-orange-500"
                     />
-                    <label htmlFor={`emergency-${entry.tempId}`} className="text-xs sm:text-sm flex items-center gap-1">
+                    <label
+                      htmlFor={`emergency-${entry.tempId}`}
+                      className="text-xs sm:text-sm flex items-center gap-1 cursor-pointer"
+                    >
                       <AlertTriangle className="h-4 w-4 text-orange-500" />
                       Mark as Emergency
                     </label>
                   </div>
-                </div>
+                </FormField>
 
-                {/* BOQ Description */}
-                <div className="grid gap-1.5 sm:gap-2 sm:col-span-2">
-                  <Label htmlFor={`boq-desc-${entry.tempId}`} className="text-xs sm:text-sm">
-                    BOQ Task Description <span className="text-red-500">*</span>
-                  </Label>
+                {/* BOQ Task Description */}
+                <FormField
+                  label="BOQ Task Description"
+                  required
+                  htmlFor={`boq-desc-${entry.tempId}`}
+                  className="sm:col-span-2"
+                  error={validationErrors[`boqDesc-${entry.tempId}`]}
+                >
                   <Input
                     id={`boq-desc-${entry.tempId}`}
-                    type="text"
                     value={entry.boqDescription}
-                    onChange={(e) => updateBOQEntry(entry.tempId, 'boqDescription', e.target.value)}
-                    required
+                    onChange={e =>
+                      updateBOQEntry(entry.tempId, 'boqDescription', e.target.value)
+                    }
                     placeholder="e.g., Supply, cut, bend and fix reinforcement steel bars for pad foundations"
                     className="h-9 sm:h-10 text-sm"
                   />
-                </div>
+                </FormField>
 
-                {/* Work Description (optional details) */}
-                <div className="grid gap-1.5 sm:gap-2 sm:col-span-2">
-                  <Label htmlFor={`work-desc-${entry.tempId}`} className="text-xs sm:text-sm">
-                    Additional Details (Optional)
-                  </Label>
+                {/* Additional Details */}
+                <FormField
+                  label="Additional Details (Optional)"
+                  htmlFor={`work-desc-${entry.tempId}`}
+                  className="sm:col-span-2"
+                >
                   <Textarea
                     id={`work-desc-${entry.tempId}`}
                     value={entry.workDescription}
-                    onChange={(e) => updateBOQEntry(entry.tempId, 'workDescription', e.target.value)}
+                    onChange={e =>
+                      updateBOQEntry(entry.tempId, 'workDescription', e.target.value)
+                    }
                     rows={2}
                     placeholder="Additional work details..."
                     className="resize-none text-sm"
                   />
-                </div>
+                </FormField>
 
-                {/* Timeline */}
-                <div className="grid gap-1.5 sm:gap-2">
-                  <Label htmlFor={`start-${entry.tempId}`} className="text-xs sm:text-sm flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Planned Start
-                  </Label>
-                  <Input
-                    id={`start-${entry.tempId}`}
-                    type="date"
-                    value={entry.plannedStart}
-                    onChange={(e) => updateBOQEntry(entry.tempId, 'plannedStart', e.target.value)}
-                    className="h-9 sm:h-10 text-xs sm:text-sm"
-                  />
-                </div>
-
-                <div className="grid gap-1.5 sm:gap-2">
-                  <Label htmlFor={`end-${entry.tempId}`} className="text-xs sm:text-sm flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Planned End
-                  </Label>
-                  <Input
-                    id={`end-${entry.tempId}`}
-                    type="date"
-                    value={entry.plannedEnd}
-                    onChange={(e) => updateBOQEntry(entry.tempId, 'plannedEnd', e.target.value)}
-                    className="h-9 sm:h-10 text-xs sm:text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Materials Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                  <div className="h-3 w-3 bg-blue-500 rounded"></div>
-                  Materials ({entry.materials.length})
-                </h4>
-
-                <div className="overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-100">
-                      <tr>
-                        <th className="text-left p-2 font-medium">Material Name</th>
-                        <th className="text-left p-2 font-medium w-24">Quantity</th>
-                        <th className="text-left p-2 font-medium w-28">Unit</th>
-                        <th className="text-left p-2 font-medium w-32">Rate Type</th>
-                        <th className="text-left p-2 font-medium w-28">Rate (TZS)</th>
-                        <th className="text-right p-2 font-medium w-28">Amount</th>
-                        <th className="w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entry.materials.map((material) => (
-                        <tr key={material.tempId} className="border-t border-slate-200">
-                          <td className="p-2">
-                            <Input
-                              type="text"
-                              value={material.materialName}
-                              onChange={(e) => updateMaterial(entry.tempId, material.tempId, 'materialName', e.target.value)}
-                              placeholder="e.g., Cement, Steel"
-                              className="h-8 text-xs"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              value={material.quantity}
-                              onChange={(e) => updateMaterial(entry.tempId, material.tempId, 'quantity', e.target.value)}
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              className="h-8 text-xs"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Select
-                              value={material.measurementUnit}
-                              onValueChange={(val) => updateMaterial(entry.tempId, material.tempId, 'measurementUnit', val)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Unit" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {MEASUREMENT_UNITS.filter(u => u.value !== 'Days').map((unit) => (
-                                  <SelectItem key={unit.value} value={unit.value} className="text-xs">
-                                    {unit.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Select
-                              value={material.rateEstimateType}
-                              onValueChange={(val) => updateMaterial(entry.tempId, material.tempId, 'rateEstimateType', val)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {RATE_TYPES.map((type) => (
-                                  <SelectItem key={type.value} value={type.value} className="text-xs">
-                                    {type.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              value={material.rateEstimate}
-                              onChange={(e) => updateMaterial(entry.tempId, material.tempId, 'rateEstimate', e.target.value)}
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              className="h-8 text-xs"
-                            />
-                          </td>
-                          <td className="p-2 text-right font-semibold text-xs">
-                            {formatCurrency(((parseFloat(material.quantity) || 0) * (parseFloat(material.rateEstimate) || 0)))}
-                          </td>
-                          <td className="p-2">
-                            {entry.materials.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeMaterial(entry.tempId, material.tempId)}
-                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addMaterial(entry.tempId)}
-                  className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                {/* Planned Start */}
+                <FormField
+                  label="Planned Start"
+                  htmlFor={`start-${entry.tempId}`}
                 >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add Material
-                </Button>
+                  <div className="relative">
+                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Input
+                      id={`start-${entry.tempId}`}
+                      type="date"
+                      value={entry.plannedStart}
+                      onChange={e =>
+                        updateBOQEntry(entry.tempId, 'plannedStart', e.target.value)
+                      }
+                      className="h-9 sm:h-10 text-xs sm:text-sm pl-8"
+                    />
+                  </div>
+                </FormField>
 
-                <div className="bg-blue-50 p-2 rounded flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-700">Materials Total:</span>
-                  <span className="text-sm font-bold text-blue-900">
-                    {formatCurrency(calculateMaterialCost(entry))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Labour Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                  <div className="h-3 w-3 bg-green-500 rounded"></div>
-                  Labour ({entry.labour.length})
-                </h4>
-
-                <div className="overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-100">
-                      <tr>
-                        <th className="text-left p-2 font-medium">Labour Type</th>
-                        <th className="text-left p-2 font-medium w-24">Quantity</th>
-                        <th className="text-left p-2 font-medium w-28">Unit</th>
-                        <th className="text-left p-2 font-medium w-28">Rate (TZS)</th>
-                        <th className="text-right p-2 font-medium w-28">Amount</th>
-                        <th className="w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entry.labour.map((labour) => (
-                        <tr key={labour.tempId} className="border-t border-slate-200">
-                          <td className="p-2">
-                            <Input
-                              type="text"
-                              value={labour.labourType}
-                              onChange={(e) => updateLabour(entry.tempId, labour.tempId, 'labourType', e.target.value)}
-                              placeholder="e.g., Mason, Carpenter"
-                              className="h-8 text-xs"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              value={labour.quantity}
-                              onChange={(e) => updateLabour(entry.tempId, labour.tempId, 'quantity', e.target.value)}
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              className="h-8 text-xs"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Select
-                              value={labour.measurementUnit}
-                              onValueChange={(val) => updateLabour(entry.tempId, labour.tempId, 'measurementUnit', val)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Days" className="text-xs">Days</SelectItem>
-                                <SelectItem value="No" className="text-xs">No - Count</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              value={labour.rateEstimate}
-                              onChange={(e) => updateLabour(entry.tempId, labour.tempId, 'rateEstimate', e.target.value)}
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              className="h-8 text-xs"
-                            />
-                          </td>
-                          <td className="p-2 text-right font-semibold text-xs">
-                            {formatCurrency(((parseFloat(labour.quantity) || 0) * (parseFloat(labour.rateEstimate) || 0)))}
-                          </td>
-                          <td className="p-2">
-                            {entry.labour.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeLabour(entry.tempId, labour.tempId)}
-                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addLabour(entry.tempId)}
-                  className="h-7 text-xs border-green-300 text-green-700 hover:bg-green-50"
+                {/* Planned End */}
+                <FormField
+                  label="Planned End"
+                  htmlFor={`end-${entry.tempId}`}
                 >
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add Labour
-                </Button>
-
-                <div className="bg-green-50 p-2 rounded flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-700">Labour Total:</span>
-                  <span className="text-sm font-bold text-green-900">
-                    {formatCurrency(calculateLabourCost(entry))}
-                  </span>
-                </div>
+                  <div className="relative">
+                    <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Input
+                      id={`end-${entry.tempId}`}
+                      type="date"
+                      value={entry.plannedEnd}
+                      onChange={e =>
+                        updateBOQEntry(entry.tempId, 'plannedEnd', e.target.value)
+                      }
+                      className="h-9 sm:h-10 text-xs sm:text-sm pl-8"
+                    />
+                  </div>
+                </FormField>
               </div>
 
-              {/* BOQ Total */}
-              <div className="flex items-center justify-between pt-3 border-t bg-slate-50 -mx-3 sm:-mx-6 px-3 sm:px-6 py-2">
-                <span className="text-sm font-semibold text-slate-800">BOQ {entryIndex + 1} Total:</span>
-                <span className="text-lg font-bold text-indigo-900">
+              {/* ── Materials Table ───────────────────────────────────────── */}
+              <MaterialItemsTable
+                boqTempId={entry.tempId}
+                mode="material"
+                items={entry.materials}
+                subtotal={calculateMaterialCost(entry)}
+                onAdd={() => addMaterial(entry.tempId)}
+                onRemove={id => removeMaterial(entry.tempId, id)}
+                onUpdate={(id, field, val) => updateMaterial(entry.tempId, id, field as any, val)}
+                errors={validationErrors}
+                sectionError={validationErrors[`items-${entry.tempId}`]}
+              />
+
+              {/* ── Labour Table ──────────────────────────────────────────── */}
+              <MaterialItemsTable
+                boqTempId={entry.tempId}
+                mode="labour"
+                items={entry.labour}
+                subtotal={calculateLabourCost(entry)}
+                onAdd={() => addLabour(entry.tempId)}
+                onRemove={id => removeLabour(entry.tempId, id)}
+                onUpdate={(id, field, val) => updateLabour(entry.tempId, id, field as any, val)}
+                errors={validationErrors}
+              />
+
+              {/* ── BOQ Total ─────────────────────────────────────────────── */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 bg-slate-50 -mx-3 sm:-mx-5 px-3 sm:px-5 py-2.5 rounded-b">
+                <span className="text-sm font-semibold text-slate-700">
+                  BOQ {entryIndex + 1} Total
+                </span>
+                <span className="text-base font-bold text-indigo-900">
                   {formatCurrency(calculateBOQTotal(entry))}
                 </span>
               </div>
@@ -861,27 +276,29 @@ const CreateBatch = () => {
           </Card>
         ))}
 
-        {/* Add Another BOQ Button */}
+        {/* ── Add Another BOQ ──────────────────────────────────────────────── */}
         <Button
           type="button"
           variant="outline"
           onClick={addBOQEntry}
-          className="w-full h-10 text-sm border-2 border-dashed border-slate-300 hover:border-slate-400"
+          className="w-full h-10 text-sm border-2 border-dashed border-slate-200 hover:border-slate-300 text-slate-500 hover:text-slate-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Another BOQ Entry
         </Button>
 
-        {/* Grand Total Summary */}
-        <Card>
-          <CardHeader className="px-3 py-2 sm:px-4 sm:py-2.5 bg-[#2a3455] rounded-t-lg">
-            <CardTitle className="text-sm sm:text-base text-white">Total Summary</CardTitle>
+        {/* ── Grand Total Summary Card ─────────────────────────────────────── */}
+        <Card className="flex flex-col shadow-none border border-slate-200/50">
+          <CardHeader className="p-3 border-b border-slate-100 flex flex-row items-center justify-between bg-slate-50/50">
+            <CardTitle className="text-base font-bold text-[#2a3455]">Total Summary</CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between pt-2 bg-indigo-50 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 rounded">
+            <div className="flex items-center justify-between bg-indigo-50 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 rounded-b">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-indigo-600" />
-                <span className="text-base font-semibold text-slate-800">Grand Total ({boqEntries.length} BOQ{boqEntries.length > 1 ? 's' : ''})</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  Grand Total ({boqEntries.length} BOQ
+                  {boqEntries.length > 1 ? 's' : ''})
+                </span>
               </div>
               <span className="text-xl sm:text-2xl font-bold text-indigo-900">
                 {formatCurrency(calculateGrandTotal())}
@@ -890,8 +307,8 @@ const CreateBatch = () => {
           </CardContent>
         </Card>
 
-        {/* Form Actions */}
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
+        {/* ── Form Actions ─────────────────────────────────────────────────── */}
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-100">
           <Button
             type="button"
             variant="outline"
@@ -902,14 +319,15 @@ const CreateBatch = () => {
           </Button>
           <Button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm"
-            disabled={createBatchRequests.isPending}
+            className="bg-[#2a3455] hover:bg-[#1e253b] text-white min-w-[120px] sm:min-w-[140px] h-9 sm:h-10 text-xs sm:text-sm"
+            disabled={isSubmitting}
           >
-            {createBatchRequests.isPending ? 'Submitting...' : 'Submit All BOQs'}
+            {isSubmitting ? 'Submitting...' : 'Submit All BOQs'}
           </Button>
         </div>
       </form>
 
+      {/* ── Duplicate Warning Modal ──────────────────────────────────────────── */}
       {showDuplicateModal && (
         <DuplicateWarningModal
           warnings={duplicateWarnings}
@@ -923,4 +341,4 @@ const CreateBatch = () => {
   );
 };
 
-export default CreateBatch;
+export default CreateRequest;

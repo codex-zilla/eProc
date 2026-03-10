@@ -72,6 +72,14 @@ public class Material {
     @Column(name = "audit_data", columnDefinition = "TEXT")
     private String auditData;
 
+    /** Only populated for LABOUR items — number of workers required. */
+    @Column(name = "number_of_labourers")
+    private Integer numberOfLabourers;
+
+    /** Only populated for LABOUR items — number of working days required. */
+    @Column(name = "number_of_days", precision = 8, scale = 2)
+    private BigDecimal numberOfDays;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

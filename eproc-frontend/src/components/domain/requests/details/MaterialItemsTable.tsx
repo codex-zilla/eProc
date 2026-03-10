@@ -13,13 +13,16 @@ export interface MaterialItemsTableProps {
     actionRenderer?: (item: RequestItem) => React.ReactNode;
 }
 
-export const    MaterialItemsTable = ({
+export const MaterialItemsTable = ({
     items,
     label,
     subtotal,
     onRowClick,
     actionRenderer,
 }: MaterialItemsTableProps) => {
+    // Detect if this section contains LABOUR items (to switch column headers)
+    const isLabour = items.length > 0 && (items[0] as any).resourceType === 'LABOUR';
+
     const columns: ColumnDef<RequestItem>[] = [
         {
             id: 'item',
@@ -33,27 +36,51 @@ export const    MaterialItemsTable = ({
                 </>
             )
         },
-        {
-            id: 'qty',
-            header: 'Qty',
-            className: "px-2 py-2.5 text-center text-sm font-mono text-slate-600 tracking-tighter",
-            headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-center",
-            cell: (item) => item.quantity
-        },
-        {
-            id: 'unit',
-            header: 'Unit',
-            className: "px-2 py-2.5 text-center text-sm text-slate-600 tracking-tighter",
-            headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-center",
-            cell: (item) => item.measurementUnit
-        },
-        {
-            id: 'rate',
-            header: 'Rate (TZS)',
-            className: "px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter",
-            headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-right hidden lg:table-cell",
-            cell: (item) => formatNumber(item.rateEstimate)
-        },
+        ...(isLabour ? [
+            {
+                id: 'workers',
+                header: 'Workers',
+                className: "px-2 py-2.5 text-center text-sm font-mono text-slate-600 tracking-tighter",
+                headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-center",
+                cell: (item: RequestItem) => (item as any).numberOfLabourers ?? '—'
+            },
+            {
+                id: 'days',
+                header: 'Days',
+                className: "px-2 py-2.5 text-center text-sm font-mono text-slate-600 tracking-tighter",
+                headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-center",
+                cell: (item: RequestItem) => (item as any).numberOfDays ?? '—'
+            },
+            {
+                id: 'dayRate',
+                header: 'Day Rate (TZS)',
+                className: "px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter",
+                headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-right hidden lg:table-cell",
+                cell: (item: RequestItem) => formatNumber(item.rateEstimate)
+            },
+        ] : [
+            {
+                id: 'qty',
+                header: 'Qty',
+                className: "px-2 py-2.5 text-center text-sm font-mono text-slate-600 tracking-tighter",
+                headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-center",
+                cell: (item: RequestItem) => item.quantity
+            },
+            {
+                id: 'unit',
+                header: 'Unit',
+                className: "px-2 py-2.5 text-center text-sm text-slate-600 tracking-tighter",
+                headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-center",
+                cell: (item: RequestItem) => item.measurementUnit
+            },
+            {
+                id: 'rate',
+                header: 'Rate (TZS)',
+                className: "px-2 py-2.5 text-right text-sm text-slate-600 font-mono hidden lg:table-cell tracking-tighter",
+                headerClassName: "text-slate-800 text-xs sm:text-sm font-semibold px-2 py-2 text-right hidden lg:table-cell",
+                cell: (item: RequestItem) => formatNumber(item.rateEstimate)
+            },
+        ]),
         {
             id: 'amount',
             header: 'Amount (TZS)',
@@ -123,14 +150,29 @@ export const    MaterialItemsTable = ({
                                 <p className="font-bold text-sm text-slate-900">{item.name}</p>
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-xs">
-                                <div>
-                                    <p className="text-slate-600">Qty</p>
-                                    <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
-                                </div>
-                                <div>
-                                    <p className="text-slate-600">Rate</p>
-                                    <p className="font-semibold text-slate-900">{formatCurrency(item.rateEstimate)}</p>
-                                </div>
+                                {isLabour ? (
+                                    <>
+                                        <div>
+                                            <p className="text-slate-600">Workers</p>
+                                            <p className="font-semibold text-slate-900">{(item as any).numberOfLabourers ?? '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Days / Rate</p>
+                                            <p className="font-semibold text-slate-900">{(item as any).numberOfDays ?? '—'} / {formatCurrency(item.rateEstimate)}</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <p className="text-slate-600">Qty</p>
+                                            <p className="font-semibold text-slate-900">{item.quantity} {item.measurementUnit}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-slate-600">Rate</p>
+                                            <p className="font-semibold text-slate-900">{formatCurrency(item.rateEstimate)}</p>
+                                        </div>
+                                    </>
+                                )}
                                 <div>
                                     <p className="text-slate-600">Amount</p>
                                     <p className="font-semibold text-slate-900">{formatCurrency(item.totalEstimate ?? item.quantity * item.rateEstimate)}</p>

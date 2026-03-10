@@ -183,17 +183,25 @@ public class RequestService {
          * Create Material entity from DTO.
          */
         private Material createMaterialFromDTO(CreateMaterialItemDTO dto, Request request) {
-                return Material.builder()
+                Material.MaterialBuilder builder = Material.builder()
                                 .request(request)
                                 .name(dto.getName())
-                                .quantity(dto.getQuantity())
+                                // For LABOUR: quantity = workers × days; for MATERIAL: raw quantity
+                                .quantity(dto.getEffectiveQuantity())
                                 .measurementUnit(dto.getMeasurementUnit())
                                 .rateEstimate(dto.getRateEstimate())
                                 .rateEstimateType(RateEstimateType.valueOf(dto.getRateEstimateType()))
                                 .resourceType(ResourceType.valueOf(dto.getResourceType()))
                                 .status(MaterialStatus.PENDING)
-                                .revisionNumber(1)
-                                .build();
+                                .revisionNumber(1);
+
+                // Persist the labour breakdown fields when this is a LABOUR item
+                if ("LABOUR".equals(dto.getResourceType())) {
+                        builder.numberOfLabourers(dto.getNumberOfLabourers())
+                                        .numberOfDays(dto.getNumberOfDays());
+                }
+
+                return builder.build();
         }
 
         /**
@@ -480,6 +488,8 @@ public class RequestService {
                                 .totalEstimate(material.getTotalEstimate())
                                 .createdAt(material.getCreatedAt())
                                 .orderedQuantity(orderedQty)
+                                .numberOfLabourers(material.getNumberOfLabourers())
+                                .numberOfDays(material.getNumberOfDays())
                                 .build();
         }
 

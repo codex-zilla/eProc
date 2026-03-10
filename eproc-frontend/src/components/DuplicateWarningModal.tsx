@@ -78,7 +78,7 @@ export const DuplicateWarningModal: React.FC<DuplicateWarningModalProps> = ({
             <Button
                 onClick={() => onConfirm(explanation)}
                 disabled={!explanation || explanation.trim().length === 0}
-                className="text-sm"
+                className="text-sm bg-orange-500 hover:bg-orange-600"
             >
                 Confirm & Submit
             </Button>
@@ -97,7 +97,7 @@ export const DuplicateWarningModal: React.FC<DuplicateWarningModalProps> = ({
             <div className="space-y-4">
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                     <p className="text-sm text-slate-700">
-                        This request contains materials that overlap with existing requests for the same site and timeline.
+                        This request contains items (materials/labourers) that overlap with existing requests for the same site and timeline.
                         Please review the existing requests below and provide an explanation for why this duplicate is necessary.
                     </p>
                 </div>
@@ -142,7 +142,7 @@ export const DuplicateWarningModal: React.FC<DuplicateWarningModalProps> = ({
                                     </div>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-slate-600">Overlapping Materials:</span>
+                                    <span className="font-medium text-slate-600">Overlapping Items (Materials/Labourers):</span>
                                     <div className="mt-1 flex flex-wrap gap-1">
                                         {warning.overlappingMaterials.map((material, idx) => (
                                             <Badge key={idx} variant="secondary" className="text-xs">

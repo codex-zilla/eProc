@@ -280,6 +280,57 @@ class RequestServiceTest {
         }
 
         @Test
+        @DisplayName("Should correctly calculate effective quantity for LABOUR items")
+        void shouldCalculateEffectiveQuantityForLabourItems() {
+                // Arrange
+                CreateMaterialItemDTO labourItem = CreateMaterialItemDTO.builder()
+                                .name("Mason")
+                                .numberOfLabourers(3)
+                                .numberOfDays(BigDecimal.valueOf(5))
+                                .rateEstimate(BigDecimal.valueOf(30000))
+                                .rateEstimateType("ENGINEER_ESTIMATE")
+                                .resourceType("LABOUR")
+                                .build();
+
+                testRequestDTO.setItems(List.of(labourItem));
+
+                when(userRepository.findByEmail(testEngineer.getEmail()))
+                                .thenReturn(Optional.of(testEngineer));
+                when(projectRepository.findById(1L))
+                                .thenReturn(Optional.of(testProject));
+                when(siteRepository.findById(1L))
+                                .thenReturn(Optional.of(testSite));
+                when(requestRepository.existsByBoqReferenceCode(anyString()))
+                                .thenReturn(false);
+                when(requestRepository.saveAll(anyList()))
+                                .thenAnswer(invocation -> {
+                                        List<Request> requests = invocation.getArgument(0);
+                                        requests.forEach(r -> r.setId(1L));
+                                        return requests;
+                                });
+
+                doNothing().when(projectSecurityService).validateProjectAccess(anyString(), anyLong(),
+                                any(ProjectRole[].class));
+                when(purchaseOrderItemRepository.findByRequestId(anyLong())).thenReturn(new ArrayList<>());
+
+                // Act
+                List<RequestResponseDTO> result = requestService.createRequests(
+                                List.of(testRequestDTO),
+                                testEngineer.getEmail());
+
+                // Assert
+                assertThat(result).hasSize(1);
+                RequestResponseDTO response = result.get(0);
+                assertThat(response.getMaterials()).hasSize(1);
+
+                com.zilla.eproc.dto.MaterialItemResponseDTO savedLabour = response.getMaterials().get(0);
+                // 3 labourers * 5 days = 15 quantity
+                assertThat(savedLabour.getQuantity()).isEqualByComparingTo(BigDecimal.valueOf(15));
+                assertThat(savedLabour.getNumberOfLabourers()).isEqualTo(3);
+                assertThat(savedLabour.getNumberOfDays()).isEqualByComparingTo(BigDecimal.valueOf(5));
+        }
+
+        @Test
         @DisplayName("Should throw ForbiddenException when user not assigned to project")
         void shouldThrowExceptionWhenUserNotAssigned() {
                 // Arrange

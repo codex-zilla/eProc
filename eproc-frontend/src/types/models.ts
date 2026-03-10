@@ -355,6 +355,9 @@ export interface RequestMaterial {
     comment?: string;
     workDescription?: string;
     orderedQuantity?: number;
+    // Labour-specific breakdown (only present when resourceType === 'LABOUR')
+    numberOfLabourers?: number;
+    numberOfDays?: number;
 }
 
 // Aliases

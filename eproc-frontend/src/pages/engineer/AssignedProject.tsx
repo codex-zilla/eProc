@@ -30,7 +30,7 @@ const AssignedProject = () => {
   const handleCreateRequest = () => {
     if (selectedProjectId) {
       setIsModalOpen(false);
-      navigate(`/engineer/create-batch?projectId=${selectedProjectId}`);
+      navigate(`/engineer/requests/new?projectId=${selectedProjectId}`);
     }
   };
 

@@ -480,6 +480,30 @@ public class DashboardService {
                                         .build());
                 }
 
+                // 5a-1. Priority & Duplicate Requests
+                for (Request r : pendingFromMyProjects) {
+                        if (r.getPriority() == Priority.HIGH) {
+                                ownerAlerts.add(AccountantDashboardDTO.DashboardAlert.builder()
+                                                .type("HIGH_PRIORITY_REQUEST")
+                                                .severity("danger")
+                                                .title("High Priority Request")
+                                                .message("Request '" + r.getTitle() + "' requires urgent review.")
+                                                .referenceId(r.getId())
+                                                .build());
+                        }
+
+                        if (Boolean.TRUE.equals(r.getIsDuplicateFlagged())) {
+                                ownerAlerts.add(AccountantDashboardDTO.DashboardAlert.builder()
+                                                .type("DUPLICATE_REQUEST_FLAG")
+                                                .severity("warning")
+                                                .title("Duplicate Request Flagged")
+                                                .message("Request '" + r.getTitle()
+                                                                + "' has been flagged as a potential duplicate.")
+                                                .referenceId(r.getId())
+                                                .build());
+                        }
+                }
+
                 // 5b. Delayed delivery alerts (PO past expectedDeliveryDate)
                 List<PurchaseOrder> overdueDeliveries = purchaseOrderRepository
                                 .findOverdueDeliveries(LocalDateTime.now())

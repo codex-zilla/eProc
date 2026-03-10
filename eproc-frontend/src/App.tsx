@@ -73,7 +73,7 @@ function App() {
                 <Route path="/engineer/projects/:id" element={<ProjectDetails />} />
                 <Route path="/engineer/requests" element={<Requests />} />
                 <Route path="/engineer/requests/:id" element={<RequestDetails />} />
-                <Route path="/engineer/create-batch" element={<CreateRequest />} />
+                <Route path="/engineer/requests/new" element={<CreateRequest />} />
                 <Route path="/engineer/deliveries" element={<Deliveries />} />
                 <Route path="/engineer/deliveries/:poId" element={<DeliveryRegistration />} />
               </Route>

@@ -208,7 +208,7 @@ const AppLayout = () => {
       }
 
       // Engineer Routes Logic
-      if (location.pathname === '/engineer/create-batch') {
+      if (location.pathname === '/engineer/requests/new') {
         breadcrumbs[0].active = false;
         breadcrumbs.push({
           label: 'Create New Request',
@@ -220,7 +220,7 @@ const AppLayout = () => {
           label: 'Request Details',
           active: true
         });
-      } else if (location.pathname === '/engineer/create-batch') {
+      } else if (location.pathname === '/engineer/requests/new') {
         breadcrumbs[0].active = false;
         breadcrumbs.push({
           label: 'Create New Request',
